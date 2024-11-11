@@ -204,12 +204,10 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
             
             bit<1> var_portstatus;
-            bit<1> var_portactive;
-            var_portstatus = 0;
-            var_portactive = 1;
+            var_portstatus = 1;
 
             portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);    
-            if(var_portstatus == 0){
+            if(var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
             }
             else{
