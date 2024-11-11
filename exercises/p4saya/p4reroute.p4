@@ -108,28 +108,33 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        transition select(hdr.ipv4.protocol){
-            TYPE_ICMP: parse_icmp;
-            TYPE_UDP: parse_udp;
-            TYPE_TCP: parse_tcp;
-            default: accept;
-        }
-    }
-
-    state parse_icmp {
-        packet.extract(hdr.icmp);
         transition accept;
     }
 
-    state parse_udp {
-        packet.extract(hdr.udp);
-        transition accept;
-    }
+    // state parse_ipv4 {
+    //     packet.extract(hdr.ipv4);
+    //     transition select(hdr.ipv4.protocol){
+    //         TYPE_ICMP: parse_icmp;
+    //         TYPE_UDP: parse_udp;
+    //         TYPE_TCP: parse_tcp;
+    //         default: accept;
+    //     }
+    // }
 
-    state parse_tcp {
-        packet.extract(hdr.tcp);
-        transition accept;
-    }
+    // state parse_icmp {
+    //     packet.extract(hdr.icmp);
+    //     transition accept;
+    // }
+
+    // state parse_udp {
+    //     packet.extract(hdr.udp);
+    //     transition accept;
+    // }
+
+    // state parse_tcp {
+    //     packet.extract(hdr.tcp);
+    //     transition accept;
+    // }
 
 }
 
@@ -149,6 +154,10 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+
+    register<bit<1>>(NUM_PORT) portstatus;
+    
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -158,6 +167,11 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    action ipv4_rerouting(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.dstAddr = dstAddr;
     }
 
     table ipv4_lpm {
@@ -178,7 +192,7 @@ control MyIngress(inout headers hdr,
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            ipv4_reroute;
+            ipv4_rerouting;
             drop;
             NoAction;
         }
@@ -188,10 +202,22 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            ipv4_lpm.apply();
+            
+            bit<1> var_portstatus;
+            var_portstatus = 1;
+
+            portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);    
+            if(var_portstatus == PORT_DOWN){
+                ipv4_reroute.apply();
+            }
+            else{
+                ipv4_lpm.apply();
+            }
         }
     }
 }
+
+/* register_write portstatus (PORT) (PORTSTATUS 0|1)*/
 
 /*************************************************************************
 ****************  E G R E S S   P R O C E S S I N G   *******************
