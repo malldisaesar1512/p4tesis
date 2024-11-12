@@ -263,7 +263,7 @@ control MyIngress(inout headers hdr,
                 var_t2 = standard_metadata.ingress_global_timestamp;
                 var_rtt = var_t2 - var_t1;
 
-                gudangrtt.write((bit<32>)var_rtt, (bit<32>)var_index2);
+                gudangrtt.write((bit<32>)var_rtt, var_index2);
 
                 gudangrtt.write((bit<32>)var_t1,0);
                }
