@@ -247,7 +247,7 @@ control MyIngress(inout headers hdr,
                 var_hash_port_in = 0;
             }
 
-            portin.read(var_port_in,(bit<32>)var_hash_port_in);
+            portin.read(var_portin,(bit<32>)var_hash_port_in);
             if(var_hash_port_in == 0){
                 portin.write((bit<32>)var_hash_port_in,standard_metadata.ingress_port);
                 macin.write((bit<32>)var_hash_mac_in,hdr.ethernet.srcAddr);
