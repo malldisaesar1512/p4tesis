@@ -229,7 +229,6 @@ control MyIngress(inout headers hdr,
             var_threshold = 500;
             var_index1 = 0;
             var_index2 = 1;
-            var_index3 = 2;
             var_portstatus = 0;
 
         if (hdr.ipv4.isValid()) {
