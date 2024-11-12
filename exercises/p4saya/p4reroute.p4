@@ -223,8 +223,8 @@ control MyIngress(inout headers hdr,
             bit<48> var_t2;
             bit<48> var_rtt;
             bit<48> var_threshold;
-            bit<48> var_index1;
-            bit<48> var_index2;
+            bit<32> var_index1;
+            bit<32> var_index2;
             
             var_threshold = 500000000;
             var_index1 = 0;
