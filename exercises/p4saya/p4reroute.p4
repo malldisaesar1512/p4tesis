@@ -223,8 +223,8 @@ control MyIngress(inout headers hdr,
             bit<48> var_t2;
             bit<48> var_rtt;
             bit<48> var_threshold;
-            bit<32> var_index1;
-            bit<32> var_index2;
+            bit<48> var_index1;
+            bit<48> var_index2;
             
             var_threshold = 500000000;
             var_index1 = 0;
@@ -271,7 +271,7 @@ control MyIngress(inout headers hdr,
 
             gudangrtt.read(var_rtt, (bit<32>)var_index2);
             if(var_rtt == 0){
-                gudangrtt.write(var_index2, (bit<32>)0);
+                gudangrtt.write(var_index2,0);
             }
             else{
                 if(var_rtt > var_threshold){
