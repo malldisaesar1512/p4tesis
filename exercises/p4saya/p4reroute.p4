@@ -256,6 +256,7 @@ control MyIngress(inout headers hdr,
             if(hdr.ipv4.ttl>0){
                if(var_t1 == 0){
                 gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
+                gudangrtt.read(var_t1,(bit<32>)var_index1);
                }
                else{
                 var_t2 = standard_metadata.ingress_global_timestamp;
@@ -270,7 +271,7 @@ control MyIngress(inout headers hdr,
 
             gudangrtt.read(var_rtt, (bit<32>)var_index2);
             if(var_rtt == 0){
-                gudangrtt.write((bit<32>)var_rtt, 0);
+                gudangrtt.write((bit<32>)var_rtt[1], 0);
             }
             else{
                 if(var_rtt > var_threshold){
