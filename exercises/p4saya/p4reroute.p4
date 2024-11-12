@@ -226,7 +226,7 @@ control MyIngress(inout headers hdr,
             bit<48> var_index1;
             bit<48> var_index2;
             
-            var_threshold = 500;
+            var_threshold = 500000000;
             var_index1 = 0;
             var_index2 = 1;
             var_portstatus = 0;
@@ -256,13 +256,13 @@ control MyIngress(inout headers hdr,
             if(hdr.ipv4.ttl>0){
                if(var_t1 == 0){
                 gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
-                gudangrtt.read(var_t1,(bit<32>)var_index1);
+                gudangrtt.read(var_t1,(bit<32>)var_index1); //value,index
                }
                else{
                 var_t2 = standard_metadata.ingress_global_timestamp;
                 var_rtt = var_t2 - var_t1;
 
-                gudangrtt.write((bit<32>)var_rtt, var_index2);
+                gudangrtt.write(var_index2, (bit<32>)var_rtt); //index,value
 
                 gudangrtt.write((bit<32>)var_t1,0);
                }
@@ -271,7 +271,7 @@ control MyIngress(inout headers hdr,
 
             gudangrtt.read(var_rtt, (bit<32>)var_index2);
             if(var_rtt == 0){
-                gudangrtt.write((bit<32>)var_rtt, 1);
+                gudangrtt.write(var_index2, (bit<32>)0);
             }
             else{
                 if(var_rtt > var_threshold){
