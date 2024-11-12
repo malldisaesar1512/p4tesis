@@ -3,6 +3,9 @@
 #include <v1model.p4>
 
 const bit<16> TYPE_IPV4 = 0x800;
+const bit<8>  TYPE_TCP  = 6;
+const bit<8>  TYPE_UDP  = 17;
+const bit<8>  TYPE_ICMP  = 1;
 
 const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
@@ -214,6 +217,7 @@ control MyIngress(inout headers hdr,
             bit<48> var_flowtime;
             bit<48> var_hash_port_keluar;
             bit<1> var_hash_port_in;
+            bit<48> var_hash_mac_in;
             bit<48> var_trigger;
             bit<48> var_t1;
             bit<48> var_t2;
