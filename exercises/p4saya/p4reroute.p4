@@ -7,6 +7,7 @@ const bit<16> TYPE_IPV4 = 0x800;
 const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
 const bit<32> NUM_PORT = 4;
+const bit<32> NUM_FLOW = 100000;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -111,30 +112,30 @@ parser MyParser(packet_in packet,
         transition accept;
     }
 
-    // state parse_ipv4 {
-    //     packet.extract(hdr.ipv4);
-    //     transition select(hdr.ipv4.protocol){
-    //         TYPE_ICMP: parse_icmp;
-    //         TYPE_UDP: parse_udp;
-    //         TYPE_TCP: parse_tcp;
-    //         default: accept;
-    //     }
-    // }
+    state parse_ipv4 {
+        packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol){
+            TYPE_ICMP: parse_icmp;
+            TYPE_UDP: parse_udp;
+            TYPE_TCP: parse_tcp;
+            default: accept;
+        }
+    }
 
-    // state parse_icmp {
-    //     packet.extract(hdr.icmp);
-    //     transition accept;
-    // }
+    state parse_icmp {
+        packet.extract(hdr.icmp);
+        transition accept;
+    }
 
-    // state parse_udp {
-    //     packet.extract(hdr.udp);
-    //     transition accept;
-    // }
+    state parse_udp {
+        packet.extract(hdr.udp);
+        transition accept;
+    }
 
-    // state parse_tcp {
-    //     packet.extract(hdr.tcp);
-    //     transition accept;
-    // }
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition accept;
+    }
 
 }
 
@@ -156,6 +157,11 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
     register<bit<1>>(NUM_PORT) portstatus;
+    register<bit<9>>(NUM_FLOW) portin;
+    register<bit<48>>(NUM_FLOW) macin;
+    register<bit<48>>(NUM_FLOW) flow_time;
+    register<bit<48>>(NUM_PORT) trigger;
+    register<bit<48>>(NUM_PORT) gudangrtt;
     
 
     action drop() {
@@ -201,10 +207,74 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        if (hdr.ipv4.isValid()) {
             
             bit<1> var_portstatus;
-            var_portstatus = 1;
+            bit<9> var_portin;
+            bit<48> var_macin;
+            bit<48> var_flowtime;
+            bit<48> var_hash_port_keluar;
+            bit<1> var_hash_port_in;
+            bit<48> var_trigger;
+            bit<48> var_t1;
+            bit<48> var_t2;
+            bit<48> var_rtt;
+            bit<48> var_threshold;
+            bit<1> var_index1;
+            bit<1> var_index2;
+            bit<1> var_index3;
+            
+            var_threshold = 500;
+            var_index1 = 0;
+            var_index2 = 1;
+            var_index3 = 2;
+            var_portstatus = 0;
+
+        if (hdr.ipv4.isValid()) {
+            if(hdr.ipv4.protocol == TYPE_ICMP){
+                hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
+            }
+            if(hdr.ipv4.protocol == TYPE_TCP){
+                hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_PORT);
+            }
+            if(hdr.ipv4.protocol == TYPE_UDP){
+                hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_PORT);
+            }
+            else{
+                var_hash_port_in = 0;
+            }
+
+            portin.read(var_port_in,(bit<32>)var_hash_port_in);
+            if(var_hash_port_in == 0){
+                portin.write((bit<32>)var_hash_port_in,standard_metadata.ingress_port);
+                macin.write((bit<32>)var_hash_mac_in,hdr.ethernet.srcAddr);
+                var_portin = standard_metadata.ingress_port;
+            }
+
+            gudangrtt.read(var_t1,var_index1);
+            if(hdr.ipv4.ttl>0){
+               if(var_t1 == 0){
+                gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
+               }
+               else{
+                var_t2 = standard_metadata.ingress_global_timestamp;
+                var_rtt = var_t2 - var_t1;
+
+                gudangrtt.write(var_rtt, var_index2);
+
+                gudangrtt.write(var_t1,0);
+               }
+
+            }
+
+            gudangrtt.read(var_rtt, var_index2);
+            if(var_rtt == 0){
+                gudangrtt.write(var_rtt, 0);
+            }
+            else{
+                if(var_rtt > var_threshold){
+                    portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                }
+            }
 
             portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);    
             if(var_portstatus == PORT_DOWN){
