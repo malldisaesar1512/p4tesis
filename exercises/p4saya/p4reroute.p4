@@ -263,16 +263,16 @@ control MyIngress(inout headers hdr,
                 var_t2 = standard_metadata.ingress_global_timestamp;
                 var_rtt = var_t2 - var_t1;
 
-                gudangrtt.write(var_rtt, var_index2);
+                gudangrtt.write((bit<32>)var_rtt, var_index2);
 
-                gudangrtt.write(var_t1,0);
+                gudangrtt.write((bit<32>)var_t1,0);
                }
 
             }
 
             gudangrtt.read(var_rtt, var_index2);
             if(var_rtt == 0){
-                gudangrtt.write(var_rtt, 0);
+                gudangrtt.write((bit<32>)var_rtt, 0);
             }
             else{
                 if(var_rtt > var_threshold){
