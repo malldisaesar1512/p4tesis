@@ -11,6 +11,7 @@ const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
 const bit<32> NUM_PORT = 4;
 const bit<32> NUM_FLOW = 100000;
+const bit<19> ECN_THRESHOLD = 10;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -30,6 +31,7 @@ header ipv4_t {
     bit<4>    version;
     bit<4>    ihl;
     bit<8>    diffserv;
+    bit<2>    ecn;
     bit<16>   totalLen;
     bit<16>   identification;
     bit<3>    flags;
@@ -226,7 +228,7 @@ control MyIngress(inout headers hdr,
             bit<48> var_index1;
             bit<48> var_index2;
             
-            var_threshold = 500000000;
+            var_threshold = 250000; //refer to ITU-T G.1010
             var_index1 = 0;
             var_index2 = 1;
             var_portstatus = 0;
@@ -274,8 +276,11 @@ control MyIngress(inout headers hdr,
                 gudangrtt.write((bit<32>)var_index2,0);
             }
             else{
-                if(var_rtt > var_threshold){
+                if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                }
+                else{
+                    portstatus.write((bit<32>)var_portstatus, PORT_UP);
                 }
             }
 
@@ -299,7 +304,16 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    apply {  }
+    action mark_ecn() {
+        hdr.ipv4.ecn = 3;
+    }
+    apply { 
+        if (hdr.ipv4.ecn == 1 || hdr.ipv4.ecn == 2){
+            if (standard_metadata.enq_qdepth >= ECN_THRESHOLD){
+                mark_ecn();
+            }
+        }
+     }
 }
 
 /*************************************************************************
@@ -313,6 +327,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
             { hdr.ipv4.version,
               hdr.ipv4.ihl,
               hdr.ipv4.diffserv,
+              hdr.ipv4.enc,
               hdr.ipv4.totalLen,
               hdr.ipv4.identification,
               hdr.ipv4.flags,
