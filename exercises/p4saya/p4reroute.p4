@@ -30,7 +30,7 @@ header ethernet_t {
 header ipv4_t {
     bit<4>    version;
     bit<4>    ihl;
-    bit<8>    diffserv;
+    bit<6>    diffserv;
     bit<2>    ecn;
     bit<16>   totalLen;
     bit<16>   identification;
@@ -323,7 +323,7 @@ control MyEgress(inout headers hdr,
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
      apply {
         update_checksum(
-        hdr.ipv4.isValid(),
+            hdr.ipv4.isValid(),
             { hdr.ipv4.version,
               hdr.ipv4.ihl,
               hdr.ipv4.diffserv,
