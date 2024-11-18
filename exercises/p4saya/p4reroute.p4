@@ -327,7 +327,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
             { hdr.ipv4.version,
               hdr.ipv4.ihl,
               hdr.ipv4.diffserv,
-              hdr.ipv4.enc,
+              hdr.ipv4.ecn,
               hdr.ipv4.totalLen,
               hdr.ipv4.identification,
               hdr.ipv4.flags,
