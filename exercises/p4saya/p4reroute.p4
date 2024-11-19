@@ -278,9 +278,11 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                    gudangrtt.write((bit<32>)var_index2,0);
                 }
                 else{
                     portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                    gudangrtt.write((bit<32>)var_index2,0);
                 }
             }
 
