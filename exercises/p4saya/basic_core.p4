@@ -143,15 +143,15 @@ control MyIngress(inout headers hdr,
         var_flow = 0;
 
         if (hdr.ipv4.isValid()) {
-            if(var_flow == 0){
-                portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
-                portin.read(var_portin1,0);
-                if(var_portin1 == 1 || var_portin1 == 0){
-                    portin.write(0,0);
-                    var_flow = 0; 
-                }else{
-                    var_flow = var_flow + 1;
-                }
+            // if(var_flow == 0){
+            //     portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
+            //     portin.read(var_portin1,0);
+            //     if(var_portin1 == 1 || var_portin1 == 0){
+            //         portin.write(0,0);
+            //         var_flow = 0; 
+            //     }else{
+            //         var_flow = var_flow + 1;
+            //     }
                 ipv4_route1.apply();
             }
             else{
