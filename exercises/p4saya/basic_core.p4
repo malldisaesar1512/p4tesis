@@ -139,9 +139,8 @@ control MyIngress(inout headers hdr,
         bit<9> var_portin1;
         bit<32> var_counter;
 
-        
         var_portin1 = 0;
-        var_counter = 0;
+        var_flow = 0;
 
         if (hdr.ipv4.isValid()) {
             if(var_counter == 0){
@@ -149,9 +148,9 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin1,0);
                 if(var_portin1 == 1 || var_portin1 == 0){
                     portin.write(0,0);
-                    var_counter = 0; 
+                    var_flow = 0; 
                 }else{
-                    var_counter = var_counter + 1;
+                    var_flow = var_flow + 1;
                 }
                 ipv4_route1.apply();
             }
@@ -159,6 +158,7 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
                     portin.write(0,0);
+                    var_flow = 0;
                     ipv4_route2.apply();
                 }
             }
