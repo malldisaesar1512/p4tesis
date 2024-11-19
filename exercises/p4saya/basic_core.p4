@@ -148,11 +148,11 @@ control MyIngress(inout headers hdr,
             }
             else{
                 portin.read(var_portin1,0);
-                if(var_portin1 == 0){
+                if(var_portin1 == 1){
                     var_portin1 = 5;
                     ipv4_lpm.apply();
                 }
-                if(var_portin1 == 1){
+                if(var_portin1 == 2){
                     var_portin1 = 5;
                     ipv4_lpm2.apply();
                 }
