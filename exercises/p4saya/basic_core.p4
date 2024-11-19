@@ -145,10 +145,10 @@ control MyIngress(inout headers hdr,
             portin.write((bit<32>)var_portin1,5);
             portin.read(var_portin1,0);
             if(var_portin1 == 5){
-                portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
+                portin.write(0,standard_metadata.ingress_port);
                 portin.read(var_portin1,0);
                 if(var_portin1 == 1){
-                    portin.write(0,5);
+                    portin.write(0,5); 
                 }
                 ipv4_lpm.apply();
             }
