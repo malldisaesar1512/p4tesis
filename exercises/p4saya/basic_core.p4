@@ -139,7 +139,7 @@ control MyIngress(inout headers hdr,
         bit<9> var_portin1;
         bit<48> var_macin;
 
-        var_portin1 = 5;
+        var_portin1 = 0;
 
         if (hdr.ipv4.isValid()) {
             portin.write((bit<32>)var_portin1,5);
