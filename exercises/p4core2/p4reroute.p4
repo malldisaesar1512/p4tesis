@@ -198,7 +198,7 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    table ipv4_reroute{
+    table reroute{
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -243,7 +243,7 @@ control MyIngress(inout headers hdr,
                 if(var_portin1 == 2){
                     portin.write(0,0);
                     var_flowcount = 0;
-                    ipv4_reroute.apply();
+                    reroute.apply();
                 }
             }
             else{
