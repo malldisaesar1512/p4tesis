@@ -103,11 +103,6 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    action ipv4_forwarding2(macAddr_t dstAddr, egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-        hdr.ethernet.dstAddr = dstAddr;
-    }
-
     table ipv4_route1 {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -119,6 +114,11 @@ control MyIngress(inout headers hdr,
         }
         size = 1024;
         default_action = drop();
+    }
+
+    action ipv4_forwarding2(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.dstAddr = dstAddr;
     }
 
     table ipv4_route2 {
