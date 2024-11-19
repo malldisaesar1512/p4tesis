@@ -167,7 +167,7 @@ control MyIngress(inout headers hdr,
     register<bit<48>>(NUM_FLOW) flow_time;
     register<bit<48>>(NUM_PORT) trigger;
     register<bit<48>>(NUM_PORT) gudangrtt;
-    egister<bit<32>>(NUM_FLOW) flowcount;
+    register<bit<32>>(NUM_FLOW) flowcount;
     
 
     action drop() {
