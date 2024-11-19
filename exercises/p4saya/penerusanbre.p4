@@ -167,7 +167,8 @@ control MyIngress(inout headers hdr,
                 if(var_portin1 == 1 || var_portin1 == 0){
                     portin.write(0,0);
                     var_counter = 0; 
-                }else{
+                }
+                else{
                     var_counter = var_counter + 1;
                 }
                 ipv4_lpm.apply();
@@ -176,8 +177,11 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
                     portin.write(0,0);
+                    ipv4_reroute.apply();
                 }
-                ipv4_reroute.apply();
+                else{
+                    NoAction();
+                }
             }
             
         }
