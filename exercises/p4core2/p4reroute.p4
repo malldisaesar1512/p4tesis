@@ -239,7 +239,7 @@ control MyIngress(inout headers hdr,
 
 
         if (hdr.ipv4.isValid()) {
-            flowcount.read((bit<32>)var_flowcount, 0);
+            flowcount.read(var_flowcount, 0);
             if(var_flowcount == 1){
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
@@ -257,7 +257,7 @@ control MyIngress(inout headers hdr,
                 }
                 else{
                     var_flowcount = var_flowcount + 1;
-                    flowcount.write(0, (bit<32>)var_flowcount);
+                    flowcount.write(0, var_flowcount);
                 }
                 ipv4_lpm.apply();
             }
