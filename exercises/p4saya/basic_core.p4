@@ -138,23 +138,28 @@ control MyIngress(inout headers hdr,
 
         bit<9> var_portin1;
         bit<48> var_macin;
+        bit<32> var_counter;
 
+        
         var_portin1 = 0;
+        var_counter = 0;
 
         if (hdr.ipv4.isValid()) {
-            portin.write((bit<32>)var_portin1,5);
-            portin.read(var_portin1,0);
-            if(var_portin1 == 5){
-                portin.write(0,standard_metadata.ingress_port);
+            if(var_counter == 0){
+                portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
                 portin.read(var_portin1,0);
-                if(var_portin1 == 1){
-                    portin.write(0,5); 
+                if(var_portin1 == 1 || var_portin1 == 0){
+                    portin.write(0,0);
+                    var_counter = 0; 
+                }else{
+                    var_counter = var_counter + 1;
                 }
                 ipv4_lpm.apply();
             }
             else{
+                portin.read(var_portin1,0);
                 if(var_portin1 == 2){
-                    portin.write(0,5);
+                    portin.write(0,0);
                     ipv4_lpm2.apply();
                 }
             }
