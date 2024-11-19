@@ -245,6 +245,7 @@ control MyIngress(inout headers hdr,
                 if(var_portin1 == 2){
                     portin.write(0,0);
                     var_flowcount = 0;
+                    flowcount.write(0, var_flowcount); 
                     reroute.apply();
                 }
             }
