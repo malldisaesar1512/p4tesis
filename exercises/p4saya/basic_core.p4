@@ -137,7 +137,7 @@ control MyIngress(inout headers hdr,
     apply {
 
         bit<9> var_portin1;
-        bit<32> var_counter;
+        bit<32> var_flow;
 
         var_portin1 = 0;
         var_flow = 0;
