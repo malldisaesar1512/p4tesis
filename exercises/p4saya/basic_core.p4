@@ -121,7 +121,7 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    table ipv4_lpm2{
+    table ipv4_lpm2 {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
