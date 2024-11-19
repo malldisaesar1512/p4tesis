@@ -107,7 +107,7 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = port;
         hdr.ethernet.dstAddr = dstAddr;
     }
-    
+
     table ipv4_reroute{
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -176,8 +176,8 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
                     portin.write(0,0);
-                    ipv4_reroute.apply();
                 }
+                ipv4_reroute.apply();
             }
             
         }
