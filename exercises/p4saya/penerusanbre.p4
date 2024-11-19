@@ -103,7 +103,12 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    table ipv4_route1 {
+    action ipv4_rerouting(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.dstAddr = dstAddr;
+    }
+
+    table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -116,17 +121,12 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    action ipv4_forwarding2(macAddr_t dstAddr, egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-        hdr.ethernet.dstAddr = dstAddr;
-    }
-
-    table ipv4_route2 {
+    table ipv4_reroute{
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            ipv4_forwarding2;
+            ipv4_rerouting;
             drop;
             NoAction;
         }
@@ -135,24 +135,54 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-
-        bit<9> var_portin1;
-        bit<32> var_flow;
-
-        var_portin1 = 0;
-        var_flow = 0;
+            
+            bit<1> var_portstatus;
+            bit<9> var_portin;
+            bit<48> var_macin;
+            bit<48> var_flowtime;
+            bit<48> var_hash_port_keluar;
+            bit<1> var_hash_port_in;
+            bit<48> var_hash_mac_in;
+            bit<48> var_trigger;
+            bit<48> var_t1;
+            bit<48> var_t2;
+            bit<48> var_rtt;
+            bit<48> var_threshold;
+            bit<48> var_index1;
+            bit<48> var_index2;
+            bit<32> var_counter;
+            
+            var_threshold = 250000; //refer to ITU-T G.1010
+            var_index1 = 0;
+            var_index2 = 1;
+            var_portstatus = 0;
+            var_portin1 = 0;
+            var_counter = 0;
 
         if (hdr.ipv4.isValid()) {
-            if(var_flow == 0){
-                ipv4_route1.apply();
+
+            if(var_counter == 0){
+                portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
+                portin.read(var_portin1,0);
+                if(var_portin1 == 1 || var_portin1 == 0){
+                    portin.write(0,0);
+                    var_counter = 0; 
+                }else{
+                    var_counter = var_counter + 1;
+                }
+                ipv4_lpm.apply();
             }
             else{
-                    ipv4_route2.apply();
+                portin.read(var_portin1,0);
+                if(var_portin1 == 2){
+                    portin.write(0,0);
+                    ipv4_reroute.apply();
                 }
             }
             
         }
     }
+}
 
 /*************************************************************************
 ****************  E G R E S S   P R O C E S S I N G   *******************
