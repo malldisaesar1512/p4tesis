@@ -107,13 +107,13 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = port;
         hdr.ethernet.dstAddr = dstAddr;
     }
-
-    table ipv4_lpm {
+    
+    table ipv4_reroute{
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            ipv4_forward;
+            ipv4_rerouting;
             drop;
             NoAction;
         }
@@ -121,12 +121,12 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    table ipv4_reroute{
+    table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            ipv4_rerouting;
+            ipv4_forward;
             drop;
             NoAction;
         }
