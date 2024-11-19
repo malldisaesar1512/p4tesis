@@ -89,6 +89,9 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+    
+    register<bit<9>>(NUM_FLOW) portin;
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -149,13 +152,13 @@ control MyIngress(inout headers hdr,
                 }else{
                     var_counter = var_counter + 1;
                 }
-                ipv4_route1.apply();
+                ipv4_lpm.apply();
             }
             else{
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
                     portin.write(0,0);
-                    ipv4_route2.apply();
+                    ipv4_route1.apply();
                 }
             }
             
