@@ -143,7 +143,7 @@ control MyIngress(inout headers hdr,
         var_flow = 0;
 
         if (hdr.ipv4.isValid()) {
-            // if(var_flow == 0){
+            if(var_flow == 0){
             //     portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
             //     portin.read(var_portin1,0);
             //     if(var_portin1 == 1 || var_portin1 == 0){
@@ -151,21 +151,21 @@ control MyIngress(inout headers hdr,
             //         var_flow = 0; 
             //     }else{
             //         var_flow = var_flow + 1;
-            //     }
                 ipv4_route1.apply();
-            }
+                }
             else{
-                portin.read(var_portin1,0);
-                if(var_portin1 == 2){
-                    portin.write(0,0);
-                    var_flow = 0;
+                // portin.read(var_portin1,0);
+                // if(var_portin1 == 2){
+                //     portin.write(0,0);
+                //     var_flow = 0;
                     ipv4_route2.apply();
                 }
             }
             
         }
-    }
-}
+                  }
+//     }
+// }
 
 /*************************************************************************
 ****************  E G R E S S   P R O C E S S I N G   *******************
