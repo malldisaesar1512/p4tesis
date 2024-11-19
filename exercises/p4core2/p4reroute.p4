@@ -238,7 +238,15 @@ control MyIngress(inout headers hdr,
 
 
         if (hdr.ipv4.isValid()) {
-            if(var_flowcount == 0){
+            if(var_flowcount == 1){
+                portin.read(var_portin1,0);
+                if(var_portin1 == 2){
+                    portin.write(0,0);
+                    var_flowcount = 0;
+                    ipv4_reroute.apply();
+                }
+            }
+            else{
                 portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
                 portin.read(var_portin1,0);
                 if(var_portin1 == 1 || var_portin1 == 0){
@@ -249,17 +257,6 @@ control MyIngress(inout headers hdr,
                     var_flowcount = var_flowcount + 1;
                 }
                 ipv4_lpm.apply();
-            }
-            else{
-                portin.read(var_portin1,0);
-                if(var_portin1 == 2){
-                    portin.write(0,0);
-                    var_flowcount = 0;
-                    ipv4_reroute.apply();
-                }
-                else{
-                    NoAction();
-                }
             }
         }
     }
