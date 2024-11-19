@@ -103,7 +103,7 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    action ipv4_forward2(macAddr_t dstAddr, egressSpec_t port) {
+    action ipv4_forwarding2(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.dstAddr = dstAddr;
     }
@@ -126,7 +126,7 @@ control MyIngress(inout headers hdr,
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
-            ipv4_forward2;
+            ipv4_forwarding2;
             drop;
             NoAction;
         }
@@ -137,7 +137,6 @@ control MyIngress(inout headers hdr,
     apply {
 
         bit<9> var_portin1;
-        bit<48> var_macin;
         bit<32> var_counter;
 
         
