@@ -108,7 +108,7 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.dstAddr = dstAddr;
     }
 
-    table ipv4_lpm {
+    table ipv4_route1 {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -121,7 +121,7 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    table ipv4_lpmno2 {
+    table ipv4_route2 {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -154,13 +154,13 @@ control MyIngress(inout headers hdr,
                 }else{
                     var_counter = var_counter + 1;
                 }
-                ipv4_lpm.apply();
+                ipv4_route1.apply();
             }
             else{
                 portin.read(var_portin1,0);
                 if(var_portin1 == 2){
                     portin.write(0,0);
-                    ipv4_lpmno2.apply();
+                    ipv4_route2.apply();
                 }
             }
             
