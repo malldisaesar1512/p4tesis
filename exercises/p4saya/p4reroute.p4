@@ -231,7 +231,7 @@ control MyIngress(inout headers hdr,
             var_threshold = 250000; //refer to ITU-T G.1010
             var_index1 = 0;
             var_index2 = 1;
-            var_portstatus = 0;
+            var_portstatus = 1;
 
         if (hdr.ipv4.isValid()) {
             // if(hdr.ipv4.protocol == TYPE_ICMP){
@@ -278,11 +278,9 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
-                    gudangrtt.write((bit<32>)var_index2,0);
                 }
                 else{
                     portstatus.write((bit<32>)var_portstatus, PORT_UP);
-                    gudangrtt.write((bit<32>)var_index2,0);
                 }
             }
 
