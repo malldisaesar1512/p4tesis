@@ -278,10 +278,19 @@ control MyIngress(inout headers hdr,
             }
             else{
                 if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
-                    portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                    portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
+                    if(var_portstatus == PORT_DOWN){
+                        portstatus.write((bit<32>)var_portstatus, PORT_UP);   
+                    }else{
+                        portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                    }
                 }
-                else{
-                    portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                if(var_rtt <= var_threshold){
+                    if(var_portstatus == PORT_DOWN){
+                        portstatus.write((bit<32>)var_portstatus, PORT_DOWN);   
+                    }else{
+                        portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                    }
                 }
             }
 
