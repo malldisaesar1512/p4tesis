@@ -287,6 +287,7 @@ control MyIngress(inout headers hdr,
                     }
                 }
                 if(var_rtt <= var_threshold){
+                    portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
                     if(var_portstatus == PORT_DOWN){
                         portstatus.write((bit<32>)var_portstatus, PORT_DOWN);   
                     }else{
