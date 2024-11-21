@@ -259,6 +259,7 @@ control MyIngress(inout headers hdr,
                if(var_t1 == 0){
                 gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
                 gudangrtt.read(var_t1,(bit<32>)var_index1); //value,index
+                portstatus.write((bit<32>)var_portstatus, PORT_UP);
                }
                else{
                 var_t2 = standard_metadata.ingress_global_timestamp;
