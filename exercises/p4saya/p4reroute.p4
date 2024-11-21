@@ -281,17 +281,17 @@ control MyIngress(inout headers hdr,
                 if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
                     if(var_portstatus == PORT_DOWN){
-                        portstatus.write((bit<32>)var_portstatus, PORT_UP);   
+                        portstatus.write((bit<32>)var_index1, PORT_UP);   
                     }else{
-                        portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                        portstatus.write((bit<32>)var_index1, PORT_DOWN);
                     }
                 }
                 if(var_rtt <= var_threshold){
                     portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
                     if(var_portstatus == PORT_DOWN){
-                        portstatus.write((bit<32>)var_portstatus, PORT_DOWN);   
+                        portstatus.write((bit<32>)var_index1, PORT_DOWN);   
                     }else{
-                        portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                        portstatus.write((bit<32>)var_index1, PORT_UP);
                     }
                 }
             }
