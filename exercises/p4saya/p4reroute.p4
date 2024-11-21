@@ -234,6 +234,7 @@ control MyIngress(inout headers hdr,
             var_portstatus = 0;
 
         if (hdr.ipv4.isValid()) {
+            portstatus.write((bit<32>)var_portstatus, PORT_UP); //inisiasi port default
             // if(hdr.ipv4.protocol == TYPE_ICMP){
             //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
             // }
@@ -259,7 +260,6 @@ control MyIngress(inout headers hdr,
                if(var_t1 == 0){
                 gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
                 gudangrtt.read(var_t1,(bit<32>)var_index1); //value,index
-                portstatus.write((bit<32>)var_portstatus, PORT_UP);
                }
                else{
                 var_t2 = standard_metadata.ingress_global_timestamp;
