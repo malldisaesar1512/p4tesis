@@ -234,7 +234,7 @@ control MyIngress(inout headers hdr,
             var_portstatus = 0;
 
         if (hdr.ipv4.isValid()) {
-            portstatus.write((bit<32>)var_portstatus, PORT_UP); //inisiasi port default
+             //inisiasi port default
             // if(hdr.ipv4.protocol == TYPE_ICMP){
             //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
             // }
@@ -278,7 +278,7 @@ control MyIngress(inout headers hdr,
                 portstatus.write((bit<32>)var_portstatus, PORT_UP);
             }
             else{
-                if(var_rtt > var_threshold || hdr.ipv4.ecn == 3){
+                if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
                     if(var_portstatus == PORT_DOWN){
                         portstatus.write((bit<32>)var_index1, PORT_UP);   
@@ -299,9 +299,11 @@ control MyIngress(inout headers hdr,
             portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);    
             if(var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
+                portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
             }
             else{
                 ipv4_lpm.apply();
+                portstatus.write((bit<32>)var_portstatus, PORT_UP);
             }
         }
     }
