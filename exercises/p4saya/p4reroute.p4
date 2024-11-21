@@ -282,7 +282,7 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
-                    portin.read((bit<32>)var_portin,standard_metadata.ingress_port);
+                    portin.read(var_portin,0);
                     if(var_portstatus == PORT_DOWN && var_portin == 2){
                         portstatus.write((bit<32>)var_index1, PORT_UP);   
                     }
@@ -291,7 +291,7 @@ control MyIngress(inout headers hdr,
                     }
                 }
                 if(var_rtt <= var_threshold){
-                    portin.read((bit<32>)var_portin,standard_metadata.ingress_port);
+                    portin.read(var_portin,0);
                     if(var_portin == 2){
                         portstatus.write((bit<32>)var_index1, PORT_DOWN);   
                     }else{
