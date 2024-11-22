@@ -277,11 +277,11 @@ control MyIngress(inout headers hdr,
             gudangrtt.read(var_rtt, (bit<32>)var_index2);
             if(var_rtt == 0){
                 gudangrtt.write((bit<32>)var_index2,0);
-                portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                portstatus.write((bit<32>)var_index1, PORT_UP);
             }
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
-                    portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);
+                    portstatus.read(var_portstatus,(bit<32>)var_index1);
                     portin.read(var_portin,0);
                     if(var_portstatus == PORT_DOWN && var_portin == 2){
                         portstatus.write((bit<32>)var_index1, PORT_UP);   
@@ -303,11 +303,11 @@ control MyIngress(inout headers hdr,
             portstatus.read(var_portstatus,(bit<32>)standard_metadata.egress_spec);    
             if(var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
-                portstatus.write((bit<32>)var_portstatus, PORT_DOWN);
+                portstatus.write((bit<32>)var_index1, PORT_DOWN);
             }
             else{
                 ipv4_lpm.apply();
-                portstatus.write((bit<32>)var_portstatus, PORT_UP);
+                portstatus.write((bit<32>)var_index1, PORT_UP);
             }
         }
     }
