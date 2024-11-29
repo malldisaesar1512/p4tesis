@@ -237,7 +237,8 @@ control MyIngress(inout headers hdr,
             var_portin = 0;
 
         if (hdr.ipv4.isValid()) {
-            headoffset.read(var_offset,(bit<32>)var_index1);
+            var_offset = hdr.ipv4.fragOffset;
+            headoffset.write(var_offset,(bit<32>)var_index1);
              //inisiasi port default
             // if(hdr.ipv4.protocol == TYPE_ICMP){
             //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
