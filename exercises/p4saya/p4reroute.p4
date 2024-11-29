@@ -167,7 +167,7 @@ control MyIngress(inout headers hdr,
     register<bit<48>>(NUM_FLOW) flow_time;
     register<bit<48>>(NUM_PORT) trigger;
     register<bit<48>>(NUM_PORT) gudangrtt;
-    register<bit<13>>(NUM_FLOW) headoffset; 
+    register<bit<13>>(NUM_PORT) headoffset; 
     
 
     action drop() {
@@ -229,6 +229,7 @@ control MyIngress(inout headers hdr,
             bit<48> var_index1;
             bit<48> var_index2;
             bit<13> var_offset;
+            bit<13> var_data;
             
             var_threshold = 250000; //refer to ITU-T G.1010
             var_index1 = 0;
@@ -238,7 +239,9 @@ control MyIngress(inout headers hdr,
 
         if (hdr.ipv4.isValid()) {
             var_offset = hdr.ipv4.fragOffset;
+            var_data = var_offset * 8 / 1480;
             headoffset.write((bit<32>)var_index1, var_offset);
+
              //inisiasi port default
             // if(hdr.ipv4.protocol == TYPE_ICMP){
             //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
