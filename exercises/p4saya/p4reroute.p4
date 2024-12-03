@@ -248,7 +248,7 @@ control MyIngress(inout headers hdr,
                     var_data = 0;
                 } else{
                     var_dataoffset = var_offset*8;
-                    var_data = (bit<32>)var_offset * 8 / 1480;
+                    var_data = var_offset * 8 / 1480;
                 }
                 headoffset.write(var_data, var_dataoffset);
                 portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
@@ -288,7 +288,7 @@ control MyIngress(inout headers hdr,
                 gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
                }
                else{
-                headoffset.read(var_index1, var_data/var_data - 1);
+                headoffset.read(var_index1, (var_data/var_data - 1));
                 headoffset.read(var_currentoffset, var_data);
                 if(var_t1 != 0 && var_flowdump == var_hash_flow && var_index1 == var_currentoffset){
                     var_t2 = standard_metadata.ingress_global_timestamp;
