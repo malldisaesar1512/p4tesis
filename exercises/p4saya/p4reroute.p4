@@ -232,6 +232,7 @@ control MyIngress(inout headers hdr,
             bit<13> var_offset;
             bit<13> var_dataoffset;
             bit<13> var_currentoffset;
+            bit<13> var_data;
             
             var_threshold = 250000; //refer to ITU-T G.1010
             var_portstatus = 0;
@@ -289,7 +290,7 @@ control MyIngress(inout headers hdr,
                else{
                 headoffset.read(var_index1, (bit<32>)(var_data/var_data - 1));
                 headoffset.read(var_currentoffset, (bit<32>)var_data);
-                if(var_t1 != 0 && varflowdump == var_hash_flow && var_index1 == var_currentoffset){
+                if(var_t1 != 0 && var_flowdump == var_hash_flow && var_index1 == var_currentoffset){
                     var_t2 = standard_metadata.ingress_global_timestamp;
                     var_rtt = var_t2 - var_t1;
 
