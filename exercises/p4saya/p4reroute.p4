@@ -162,12 +162,12 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
     register<bit<1>>(NUM_PORT) portstatus;
-    register<bit<9>>(NUM_FLOW) portin;
+    register<bit<9>>(NUM_PORT) portin;
     register<bit<48>>(NUM_FLOW) macin;
-    register<bit<48>>(NUM_FLOW) flow_time;
+    register<bit<48>>(NUM_FLOW) flow_id;
     register<bit<48>>(NUM_PORT) trigger;
     register<bit<48>>(NUM_PORT) gudangrtt;
-    register<bit<13>>(NUM_PORT) headoffset; 
+    register<bit<13>>(NUM_FLOW) headoffset; 
     
 
     action drop() {
@@ -217,8 +217,9 @@ control MyIngress(inout headers hdr,
             bit<1> var_portstatus;
             bit<9> var_portin;
             bit<48> var_macin;
-            bit<48> var_flowtime;
-            bit<48> var_hash_port_keluar;
+            bit<48> var_flowid;
+            bit<48> var_flowdump;
+            bit<48> var_hash_flow;
             bit<1> var_hash_port_in;
             bit<48> var_hash_mac_in;
             bit<48> var_trigger;
@@ -229,32 +230,46 @@ control MyIngress(inout headers hdr,
             bit<48> var_index1;
             bit<48> var_index2;
             bit<13> var_offset;
-            bit<13> var_data;
+            bit<13> var_dataoffset;
+            bit<13> var_currentoffset;
             
             var_threshold = 250000; //refer to ITU-T G.1010
-            var_index1 = 0;
-            var_index2 = 1;
             var_portstatus = 0;
             var_portin = 0;
+            var_flowid = 0;
 
         if (hdr.ipv4.isValid()) {
-            var_offset = hdr.ipv4.fragOffset;
-            var_data = var_offset * 8 / 1480;
-            headoffset.write((bit<32>)var_index1, var_offset);
+            if(hdr.ipv4.protocol == TYPE_ICMP){
+                var_offset = hdr.ipv4.fragOffset;
+                if(var_offset == 0){
+                    var_dataoffset = 0;
+                    var_data = 0;
+                } else{
+                    var_dataoffset = var_offset*8;
+                    var_data = var_offset * 8 / 1480;
+                }
+                headoffset.write((bit<32>)var_data, var_dataoffset);
+                portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
+            }
+            
 
              //inisiasi port default
-            // if(hdr.ipv4.protocol == TYPE_ICMP){
-            //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_PORT);
-            // }
-            // if(hdr.ipv4.protocol == TYPE_TCP){
-            //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_PORT);
-            // }
-            // if(hdr.ipv4.protocol == TYPE_UDP){
-            //     hash(var_hash_port_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_PORT);
-            // }
-            // else{
-            //     var_hash_port_in = 0;
-            // }
+            if(hdr.ipv4.protocol == TYPE_ICMP){
+                hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
+                flow_id.write((bit<32>)var_flowid, var_hash_flow);
+            }
+            if(hdr.ipv4.protocol == TYPE_TCP){
+                hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
+                flow_id.write((bit<32>)var_flowid, var_hash_flow);
+            }
+            if(hdr.ipv4.protocol == TYPE_UDP){
+                hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
+                flow_id.write((bit<32>)var_flowid, var_hash_flow);
+            }
+            else{
+                var_hash_flow = 0;
+                flow_id.write((bit<32>)var_flowid, var_hash_flow);
+            }
 
             // portin.read(var_portin,(bit<32>)var_hash_port_in);
             // if(var_hash_port_in == 0){
@@ -262,21 +277,27 @@ control MyIngress(inout headers hdr,
             //     macin.write((bit<32>)var_hash_mac_in,hdr.ethernet.srcAddr);
             //     var_portin = standard_metadata.ingress_port;
             // }
-
-            gudangrtt.read(var_t1,(bit<32>)var_index1);
+            portin.read(var_portin,0);
+            gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
+            flow_id.read(var_flowdump, (bit<32>)var_flowid);
             if(hdr.ipv4.ttl>0){
-               if(var_t1 == 0){
-                gudangrtt.write((bit<32>)var_t1,standard_metadata.ingress_global_timestamp);
-                gudangrtt.read(var_t1,(bit<32>)var_index1); //value,index
+               if(var_t1 == 0 && hdr.ipv4.fragOffset == 0){
+                gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
+                gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
                }
                else{
-                var_t2 = standard_metadata.ingress_global_timestamp;
-                var_rtt = var_t2 - var_t1;
+                headoffset.read(var_index1, (bit<32>)(var_data/var_data - 1));
+                headoffset.read(var_currentoffset, (bit<32>)var_data);
+                if(var_t1 != 0 && varflowdump == var_hash_flow && var_index1 == var_currentoffset){
+                    var_t2 = standard_metadata.ingress_global_timestamp;
+                    var_rtt = var_t2 - var_t1;
 
-                gudangrtt.write((bit<32>)var_index2, var_rtt); //index,value
-                portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
+                    gudangrtt.write((bit<32>)var_hash_flow, var_rtt); //index,value
+                    var_t1 = 0;
 
-                gudangrtt.write((bit<32>)var_index1,0);
+                    gudangrtt.write((bit<32>)var_t1,0);
+                }
+                
                }
 
             }
