@@ -237,6 +237,7 @@ control MyIngress(inout headers hdr,
             var_portstatus = 0;
             var_portin = 0;
             var_flowid = 0;
+            var_data = 0;
 
         if (hdr.ipv4.isValid()) {
             if(hdr.ipv4.protocol == TYPE_ICMP){
