@@ -258,12 +258,10 @@ control MyIngress(inout headers hdr,
             if(hdr.ipv4.protocol == TYPE_ICMP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
-            }
-            if(hdr.ipv4.protocol == TYPE_TCP){
+            }else if(hdr.ipv4.protocol == TYPE_TCP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
-            }
-            if(hdr.ipv4.protocol == TYPE_UDP){
+            }else if(hdr.ipv4.protocol == TYPE_UDP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
             }
