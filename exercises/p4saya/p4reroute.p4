@@ -303,10 +303,10 @@ control MyIngress(inout headers hdr,
 
             }
 
-            gudangrtt.read(var_rtt, (bit<32>)var_index2);
+            gudangrtt.read(var_rtt, 1);
             if(var_rtt == 0){
-                gudangrtt.write((bit<32>)var_index2,0);
-                portstatus.write((bit<32>)var_index1, PORT_UP);
+                gudangrtt.write(1,0);
+                portstatus.write(0, PORT_UP);
             }
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
