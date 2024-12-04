@@ -166,7 +166,7 @@ control MyIngress(inout headers hdr,
     register<bit<48>>(NUM_FLOW) macin;
     register<bit<48>>(NUM_FLOW) flow_id;
     register<bit<48>>(NUM_PORT) trigger;
-    register<bit<48>>(NUM_PORT) gudangrtt;
+    register<bit<48>>(NUM_FLOW) gudangrtt;
     register<bit<13>>(NUM_FLOW) headoffset; 
     
 
