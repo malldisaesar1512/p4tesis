@@ -238,7 +238,6 @@ control MyIngress(inout headers hdr,
             var_portstatus = 0;
             var_portin = 0;
             var_flowid = 0;
-            var_data = 0;
 
         if (hdr.ipv4.isValid()) {
             if(hdr.ipv4.protocol == TYPE_ICMP){
@@ -247,8 +246,8 @@ control MyIngress(inout headers hdr,
                     var_dataoffset = 0;
                     var_data = 0;
                 } else{
-                    var_dataoffset = var_offset * 8;
-                    var_data = var_dataoffset / 1480;
+                    var_dataoffset = var_offset;
+                    var_data = var_dataoffset;
                 }
                 headoffset.write((bit<32>)var_data, var_dataoffset);
                 portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
@@ -289,7 +288,7 @@ control MyIngress(inout headers hdr,
                }
                else{
                 headoffset.read(var_index1, 0);
-                headoffset.read(var_currentoffset, (bit<32>)var_data);
+                var_currentoffset = hdr.ipv4.fragOffset;
                 if(var_t1 != 0 && var_flowdump == var_hash_flow && var_index1 == var_currentoffset){
                     var_t2 = standard_metadata.ingress_global_timestamp;
                     var_rtt = var_t2 - var_t1;
