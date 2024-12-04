@@ -296,7 +296,7 @@ control MyIngress(inout headers hdr,
                     gudangrtt.write((bit<32>)var_hash_flow, var_rtt); //index,value
                     var_t1 = 0;
 
-                    gudangrtt.write((bit<32>)var_t1,0);
+                    gudangrtt.write((bit<32>)var_hash_flow,0);
                 }
                 
                }
