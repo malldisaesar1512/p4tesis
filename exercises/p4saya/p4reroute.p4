@@ -303,9 +303,9 @@ control MyIngress(inout headers hdr,
 
             }
 
-            gudangrtt.read(var_rtt, 1);
+            gudangrtt.read(var_rtt, (bit<32>)var_hash_flow);
             if(var_rtt == 0){
-                gudangrtt.write(1,0);
+                gudangrtt.write((bit<32>)var_hash_flow,0);
                 portstatus.write(0, PORT_UP);
             }
             else{
