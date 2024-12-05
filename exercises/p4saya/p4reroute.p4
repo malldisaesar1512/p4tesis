@@ -322,8 +322,8 @@ control MyIngress(inout headers hdr,
                     }
                 }
                 if(var_rtt <= var_threshold){
-                    portin.read(var_portin,0);
-                    if(var_portin == 2){
+                    portstatus.read(var_portstatus,0);
+                    if(var_portstatus == PORT_DOWN){
                         portstatus.write(0, PORT_DOWN);   
                     }else{
                         portstatus.write(0, PORT_UP);
