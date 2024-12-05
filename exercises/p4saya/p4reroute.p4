@@ -268,7 +268,7 @@ control MyIngress(inout headers hdr,
                 var_data = 0;    
             } else{
                 var_dataoffset = var_offset;
-                var_data = var_dataoffset/(bit<13>)185;
+                var_data = var_dataoffset;
             }
             headoffset.write((bit<32>)var_data, var_dataoffset);
             portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
