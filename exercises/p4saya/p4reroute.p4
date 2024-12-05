@@ -240,21 +240,27 @@ control MyIngress(inout headers hdr,
             var_flowid = 0;
 
         if (hdr.ipv4.isValid()) {
-             //inisiasi port default
-            if(hdr.ipv4.protocol == TYPE_ICMP){
+            flow_id.read(var_hash_flow, (bit<32>)var_flowid);
+            if(var_hash_flow == 0){
+                if(hdr.ipv4.protocol == TYPE_ICMP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
-            }else if(hdr.ipv4.protocol == TYPE_TCP){
+                }else if(hdr.ipv4.protocol == TYPE_TCP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
-            }else if(hdr.ipv4.protocol == TYPE_UDP){
+                }else if(hdr.ipv4.protocol == TYPE_UDP){
                 hash(var_hash_flow, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
-            }
-            else{
+                }else{
                 var_hash_flow = 0;
                 flow_id.write((bit<32>)var_flowid, var_hash_flow);
+                }
+            }else{
+                var_hash_flow = var_hash_flow;
+                flow_id.write((bit<32>)var_flowid, var_hash_flow);
             }
+             //inisiasi port default
+            
 
             var_offset = hdr.ipv4.fragOffset;
             if(var_offset == 0){
@@ -262,7 +268,7 @@ control MyIngress(inout headers hdr,
                 var_data = 0;    
             } else{
                 var_dataoffset = var_offset;
-                var_data = var_dataoffset;
+                var_data = var_dataoffset/185;
             }
             headoffset.write((bit<32>)var_data, var_dataoffset);
             portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
@@ -278,14 +284,14 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin,0);
                 gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
                 flow_id.read(var_flowdump, (bit<32>)var_flowid);
-               if(var_t1 == 0 && hdr.ipv4.fragOffset == 0){
+                if(var_t1 == 0 && hdr.ipv4.fragOffset == 0){
                 gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
                 gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
-               }
-               else{
+                }
+                else{
                 headoffset.read(var_index1, 0);
                 var_currentoffset = hdr.ipv4.fragOffset;
-                if(var_t1 != 0 && var_flowdump == var_hash_flow && var_index1 == var_currentoffset){
+                    if(var_t1 != 0 && var_flowdump == var_hash_flow && var_index1 == var_currentoffset){
                     var_t2 = standard_metadata.ingress_global_timestamp;
                     var_rtt = var_t2 - var_t1;
 
