@@ -273,10 +273,11 @@ control MyIngress(inout headers hdr,
             //     macin.write((bit<32>)var_hash_mac_in,hdr.ethernet.srcAddr);
             //     var_portin = standard_metadata.ingress_port;
             // }
-            portin.read(var_portin,0);
-            gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
-            flow_id.read(var_flowdump, (bit<32>)var_flowid);
+           
             if(hdr.ipv4.ttl>0){
+                portin.read(var_portin,0);
+                gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
+                flow_id.read(var_flowdump, (bit<32>)var_flowid);
                if(var_t1 == 0 && hdr.ipv4.fragOffset == 0){
                 gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
                 gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
