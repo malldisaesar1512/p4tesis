@@ -309,7 +309,6 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
-                    portin.read(var_portin,0);
                     if(var_portstatus == PORT_DOWN){
                         portstatus.write(0, PORT_UP);   
                     }
@@ -331,12 +330,12 @@ control MyIngress(inout headers hdr,
             if(var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
                 portstatus.write(0, PORT_DOWN);
-                flow_id.write((bit<32>)var_flowid, 0);
+                // flow_id.write((bit<32>)var_flowid, 0);
             }
             else{
                 ipv4_lpm.apply();
                 portstatus.write(0, PORT_UP);
-                flow_id.write((bit<32>)var_flowid, 0);
+                // flow_id.write((bit<32>)var_flowid, 0);
             }
         }
     }
