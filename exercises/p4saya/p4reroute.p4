@@ -12,6 +12,7 @@ const bit<1> PORT_UP = 1;
 const bit<32> NUM_PORT = 4;
 const bit<32> NUM_FLOW = 100000;
 const bit<19> ECN_THRESHOLD = 10;
+const bit<32> NUM_OFFSET = 100;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -299,6 +300,7 @@ control MyIngress(inout headers hdr,
                     var_t1 = 0;
 
                     gudangrtt.write((bit<32>)var_hash_flow,0);
+
                 }
                 
                }
@@ -335,10 +337,12 @@ control MyIngress(inout headers hdr,
             if(var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
                 portstatus.write(0, PORT_DOWN);
+                flow_id.write((bit<32>)var_flowid, 0);
             }
             else{
                 ipv4_lpm.apply();
                 portstatus.write(0, PORT_UP);
+                flow_id.write((bit<32>)var_flowid, 0);
             }
         }
     }
