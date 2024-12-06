@@ -168,7 +168,7 @@ control MyIngress(inout headers hdr,
     register<bit<48>>(NUM_FLOW) flow_id;
     register<bit<48>>(NUM_PORT) trigger;
     register<bit<48>>(NUM_FLOW) gudangrtt;
-    register<bit<13>>(NUM_FLOW) headoffset; 
+    register<bit<13>>(NUM_OFFSET) headoffset; 
     
 
     action drop() {
@@ -274,12 +274,6 @@ control MyIngress(inout headers hdr,
             headoffset.write((bit<32>)var_data, var_dataoffset);
             portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
 
-            // portin.read(var_portin,(bit<32>)var_hash_port_in);
-            // if(var_hash_port_in == 0){
-            //     portin.write((bit<32>)var_hash_port_in,standard_metadata.ingress_port);
-            //     macin.write((bit<32>)var_hash_mac_in,hdr.ethernet.srcAddr);
-            //     var_portin = standard_metadata.ingress_port;
-            // }
            
             if(hdr.ipv4.ttl>0){
                 portin.read(var_portin,0);
@@ -316,10 +310,10 @@ control MyIngress(inout headers hdr,
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
                     portin.read(var_portin,0);
-                    if(var_portstatus == PORT_DOWN && var_portin == 2){
+                    if(var_portstatus == PORT_DOWN){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP && var_portin == 1){
+                    if(var_portstatus == PORT_UP){
                         portstatus.write(0, PORT_DOWN);
                     }
                 }
