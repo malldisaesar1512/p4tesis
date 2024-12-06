@@ -184,7 +184,9 @@ control MyIngress(inout headers hdr,
 
     action ipv4_rerouting(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
     table ipv4_lpm {
@@ -269,10 +271,10 @@ control MyIngress(inout headers hdr,
                 var_data = 0;    
             } else{
                 var_dataoffset = var_offset;
-                var_data = var_dataoffset;
+                var_data = var_data + 1;
             }
             headoffset.write((bit<32>)var_data, var_dataoffset);
-            portin.write((bit<32>)var_portin,standard_metadata.ingress_port);
+            portin.write((bit<32>)var_portin, standard_metadata.ingress_port);
 
            
             if(hdr.ipv4.ttl>0){
