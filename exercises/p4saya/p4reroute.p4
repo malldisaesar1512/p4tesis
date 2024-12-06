@@ -309,10 +309,10 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
-                    if(var_portstatus == PORT_DOWN){
+                    if(var_portstatus == PORT_DOWN && var_portin == 2){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP){
+                    if(var_portstatus == PORT_UP && var_portin == 1){
                         portstatus.write(0, PORT_DOWN);
                     }
                 }
