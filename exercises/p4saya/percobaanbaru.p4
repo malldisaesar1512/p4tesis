@@ -306,12 +306,13 @@ control MyIngress(inout headers hdr,
                 portstatus.write(0, PORT_UP);
             }
             else{
+                //reroute saat menerima paket balasan
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
-                    if(var_portstatus == PORT_DOWN){
+                    if(var_portstatus == PORT_DOWN && var_t1 == 0){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP){
+                    if(var_portstatus == PORT_UP && var_t1 == 0){
                         portstatus.write(0, PORT_DOWN);
                     }
                 }
