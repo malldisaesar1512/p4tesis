@@ -283,6 +283,8 @@ control MyIngress(inout headers hdr,
                             var_rtt = var_t2 - var_t1;
 
                             gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
+
+                            gudangrtt.write((bit<32>)var_hash_flow,0);
                         }
                     }
                     if(hdr.icmp.isValid() && hdr.icmp.icmp_type == 8 && var_t1 == 0){
@@ -293,6 +295,8 @@ control MyIngress(inout headers hdr,
                         var_rtt = var_t2 - var_t1;
 
                         gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
+
+                        gudangrtt.write((bit<32>)var_hash_flow,0);
                     }
                 }
 
@@ -304,10 +308,10 @@ control MyIngress(inout headers hdr,
             else{
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
-                    if(var_portstatus == PORT_DOWN && var_portin == 2){
+                    if(var_portstatus == PORT_DOWN){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP && var_portin == 1){
+                    if(var_portstatus == PORT_UP){
                         portstatus.write(0, PORT_DOWN);
                     }
                 }
