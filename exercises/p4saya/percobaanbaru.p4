@@ -274,11 +274,10 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin,0);
                 gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
                 flow_id.read(var_flowdump, (bit<32>)var_flowid);
-                if(var_t1 == 0){
                     if(hdr.tcp.isValid()){
-                        if(hdr.tcp.flags == 1){
+                        if(hdr.tcp.flags == 1 && var_t1 == 0){
                             gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
-                        }else if(hdr.tcp.flags == 4){
+                        }else if(hdr.tcp.flags == 4 && var_t1 != 0){
                             gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
                             var_t2 = standard_metadata.ingress_global_timestamp;
                             var_rtt = var_t2 - var_t1;
@@ -286,9 +285,9 @@ control MyIngress(inout headers hdr,
                             gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
                         }
                     }
-                    if(hdr.icmp.isValid() && hdr.icmp.icmp_type == 8){
+                    if(hdr.icmp.isValid() && hdr.icmp.icmp_type == 8 && var_t1 == 0){
                         gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
-                    }else if(hdr.icmp.isValid() && hdr.icmp.icmp_type == 0){
+                    }else if(hdr.icmp.isValid() && hdr.icmp.icmp_type == 0 && var_t1 != 0){
                         gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
                         var_t2 = standard_metadata.ingress_global_timestamp;
                         var_rtt = var_t2 - var_t1;
@@ -296,7 +295,6 @@ control MyIngress(inout headers hdr,
                         gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
                     }
                 }
-            }
 
             gudangrtt.read(var_rtt, (bit<32>)var_hash_flow+1);
             if(var_rtt == 0){
