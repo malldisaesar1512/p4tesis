@@ -252,7 +252,7 @@ control MyIngress(inout headers hdr,
             else if (var_flowcount == 0){
                 portin.write((bit<32>)var_portin1,standard_metadata.ingress_port);
                 portin.read(var_portin1,0);
-                if(var_portin1 == 1){
+                if(var_portin1 == 1 || var_portin == 0){
                     portin.write(0,0);
                     var_flowcount = 0;
                     flowcount.write(0, var_flowcount); 
