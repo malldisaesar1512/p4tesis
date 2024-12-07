@@ -309,10 +309,11 @@ control MyIngress(inout headers hdr,
                 //reroute saat menerima paket balasan
                 if(var_rtt >= var_threshold || hdr.ipv4.ecn == 3){
                     portstatus.read(var_portstatus,0);
+                    gudangrtt.read(var_t1,(bit<32>)var_hash_flow);
                     if(var_portstatus == PORT_DOWN && var_t1 == 0){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP && var_t1 == 0){
+                    else if(var_portstatus == PORT_UP && var_t1 == 0){
                         portstatus.write(0, PORT_DOWN);
                     }
                 }
