@@ -276,9 +276,9 @@ control MyIngress(inout headers hdr,
                 flow_id.read(var_flowdump, (bit<32>)var_flowid);
                 if(var_t1 == 0){
                     if(hdr.tcp.isValid()){
-                        if(hdr.tcp.flags[1] == 1){
+                        if(hdr.tcp.flags == 1){
                             gudangrtt.write((bit<32>)var_hash_flow,standard_metadata.ingress_global_timestamp);
-                        }else if(hdr.tcp.flags[4] == 1){
+                        }else if(hdr.tcp.flags == 4){
                             gudangrtt.read(var_t1,(bit<32>)var_hash_flow); //value,index
                             var_t2 = standard_metadata.ingress_global_timestamp;
                             var_rtt = var_t2 - var_t1;
@@ -296,23 +296,6 @@ control MyIngress(inout headers hdr,
                         gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
                     }
                 }
-
-                else{
-                headoffset.read(var_dataoffset, 0);
-                var_currentoffset = hdr.ipv4.fragOffset;
-                    if(var_t1 != 0 && var_flowdump == var_hash_flow && var_dataoffset == var_currentoffset){
-                    var_t2 = standard_metadata.ingress_global_timestamp;
-                    var_rtt = var_t2 - var_t1;
-
-                    gudangrtt.write((bit<32>)var_hash_flow+1, var_rtt); //index,value
-                    var_t1 = 0;
-
-                    gudangrtt.write((bit<32>)var_hash_flow,0);
-
-                }
-                
-               }
-
             }
 
             gudangrtt.read(var_rtt, (bit<32>)var_hash_flow+1);
