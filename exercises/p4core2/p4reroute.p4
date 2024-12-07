@@ -242,7 +242,7 @@ control MyIngress(inout headers hdr,
             flowcount.read(var_flowcount, 0);
             if(var_flowcount != 0){
                 portin.read(var_portin1,0);
-                if(var_portin1 == 2 || var_portin == 0){
+                if(var_portin1 == 2 || var_portin1 == 0){
                     portin.write(0,0);
                     var_flowcount = var_flowcount + 1;
                     flowcount.write(0, var_flowcount);
