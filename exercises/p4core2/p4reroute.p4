@@ -183,7 +183,9 @@ control MyIngress(inout headers hdr,
 
     action ipv4_rerouting(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
     table ipv4_lpm {
@@ -252,12 +254,13 @@ control MyIngress(inout headers hdr,
                     portin.write(0,0);
                     var_flowcount = 0;
                     flowcount.write(0, var_flowcount); 
+                    ipv4_lpm.apply();
                 }
                 else{
                     var_flowcount = var_flowcount + 1;
                     flowcount.write(0, var_flowcount);
                 }
-                ipv4_lpm.apply();
+                
             }
         }
     }
