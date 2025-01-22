@@ -105,8 +105,8 @@ parser my_parser(packet_in packet,
     }
 
     state parse_ethernet {
-        packet.extract(hdr.ethernet);
-        transition select(hdr.ethernet.etherType) {
+        packet.extract(hd.ethernet);
+        transition select(hd.ethernet.etherType) {
             TYPE_IPV4: parse_ipv4;
             default: accept;
         }
@@ -118,8 +118,8 @@ parser my_parser(packet_in packet,
     // }
 
     state parse_ipv4 {
-        packet.extract(hdr.ipv4);
-        transition select(hdr.ipv4.protocol){
+        packet.extract(hd.ipv4);
+        transition select(hd.ipv4.protocol){
             TYPE_ICMP: parse_icmp;
             TYPE_UDP: parse_udp;
             TYPE_TCP: parse_tcp;
@@ -128,17 +128,17 @@ parser my_parser(packet_in packet,
     }
 
     state parse_icmp {
-        packet.extract(hdr.icmp);
+        packet.extract(hd.icmp);
         transition accept;
     }
 
     state parse_udp {
-        packet.extract(hdr.udp);
+        packet.extract(hd.udp);
         transition accept;
     }
 
     state parse_tcp {
-        packet.extract(hdr.tcp);
+        packet.extract(hd.tcp);
         transition accept;
     }
 }
