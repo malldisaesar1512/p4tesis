@@ -204,7 +204,7 @@ control MyIngress(inout headers hdr,
         }
     }
 
-    action enc_status(){
+    action cek_enc_status(){
         enc_status.read(var_ecnstatus,1);
     }
 
@@ -264,15 +264,19 @@ control MyIngress(inout headers hdr,
         if(hdr.ipv4.isValid()){
             if(hdr.ipv4.protocol == TYPE_ICMP){
                 if(hdr.icmp.icmp_type == 8){
-                
+                    hash_packetin();
+                    rtt_calculation();
                 }else if(hdr.icmp.icmp_type == 0){
-
+                    hash_packetout();
+                    rtt_calculation();
                 }
             }else if(hdr.ipv4.protocol == TYPE_TCP){
                 if(hdr.tcp.flags == 2){
-
+                    hash_packetin();
+                    rtt_calculation();
                 }else if(hdr.tcp.flags == 5){
-
+                    hash_packetout();
+                    rtt_calculation();
                 }
             }else if(hdr.ipv4.protocol == TYPE_UDP){
             
