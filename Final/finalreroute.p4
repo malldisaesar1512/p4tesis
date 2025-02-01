@@ -87,8 +87,8 @@ struct metadata {
     bit<32> var_hash_in;
     bit<32> ip_a;
     bit<32> ip_b;
-    bit<32> port_a;
-    bit<32> port_b;
+    bit<16> port_a;
+    bit<16> port_b;
     bit<32> var_hash_out;
 }
 
