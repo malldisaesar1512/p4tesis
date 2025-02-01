@@ -185,13 +185,13 @@ control MyIngress(inout headers hdr,
 
     action hash_packetin(){
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
-                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
+                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP){
-                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
+                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
-                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
+                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
                 }else{
                     var_hash_in = 0;
@@ -208,7 +208,7 @@ control MyIngress(inout headers hdr,
                     flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
                 }else if(hdr.ipv4.protocol == TYPE_TCP){
                     meta.port_a = hdr.tcp.dstPort;
-                    pmeta.ort_b = hdr.tcp.srcPort;
+                    meta.port_b = hdr.tcp.srcPort;
                     hash(meta.var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {meta.ip_a, meta.ip_b, meta.port_a, meta.port_b}, (bit<32>)NUM_FLOW);
                     flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
@@ -302,7 +302,7 @@ control MyIngress(inout headers hdr,
             }
             //decision
             gudangrtt.read(meta.var_rtt, meta.var_flowid);
-            check_enc_status();
+            cek_enc_status();
             if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3){
                 ipv4_reroute.apply();          
             }else{
