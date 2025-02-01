@@ -143,14 +143,9 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 }
 
 //------------------------------------------------------------------
-// INGRESS PROCESSING
+// REGISTER DEFINITION
 //------------------------------------------------------------------
 
-control MyIngress(inout headers hdr,
-                  inout metadata meta,
-                  inout standard_metadata_t standard_metadata) {
-
-    //register
     register<bit<1>>(NUM_PORT) port_status;
     register<bit<9>>(NUM_PORT) portin;
     register<bit<48>>(NUM_FLOW) mac_list;
@@ -159,6 +154,15 @@ control MyIngress(inout headers hdr,
     register<bit<32>>(NUM_FLOW) flow_out;
     register<bit<32>>(NUM_FLOW) flow_in;
 
+//------------------------------------------------------------------
+// INGRESS PROCESSING
+//------------------------------------------------------------------
+
+control MyIngress(inout headers hdr,
+                  inout metadata meta,
+                  inout standard_metadata_t standard_metadata) {
+
+    //register
 
     action drop() {
         mark_to_drop(standard_metadata);
@@ -216,6 +220,7 @@ control MyIngress(inout headers hdr,
         bit<32> var_rtt;
         bit<48> var_time1;
         bit<48> var_time2;
+        bit<48> var_flowid;
 
         if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
             gudangrtt.write(var_flowid, var_time1);//index,value
