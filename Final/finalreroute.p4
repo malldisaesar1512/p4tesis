@@ -225,7 +225,9 @@ control MyIngress(inout headers hdr,
     action rtt_calculation(){
         bit<48> var_time1;
         bit<48> var_time2;
-
+        bit<48> var_hash_out;
+        bit<48> var_hash_in;
+        
         flow_in.read(var_hash_in, (bit<32>)meta.var_flowid);
         flow_out.read(var_hash_out, (bit<32>)meta.var_flowid);
         if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
