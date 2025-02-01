@@ -83,13 +83,13 @@ struct metadata {
     bit<48> var_time2;
     bit<32> var_ecnstatus;
     bit<48> var_rtt;
-    bit<48> var_flowid;
-    bit<48> var_hash_in;
+    bit<32> var_flowid;
+    bit<32> var_hash_in;
     bit<32> ip_a;
     bit<32> ip_b;
     bit<32> port_a;
     bit<32> port_b;
-    bit<48> var_hash_out;
+    bit<32> var_hash_out;
 }
 
 struct headers {
