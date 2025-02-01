@@ -83,13 +83,13 @@ struct metadata {
     bit<48> var_time2;
     bit<32> var_ecnstatus;
     bit<48> var_rtt;
-    bit<32> var_flowid;
-    bit<32> var_hash_in;
+    bit<48> var_flowid;
+    bit<48> var_hash_in;
     bit<32> ip_a;
     bit<32> ip_b;
     bit<16> port_a;
     bit<16> port_b;
-    bit<32> var_hash_out;
+    bit<48> var_hash_out;
 }
 
 struct headers {
@@ -167,7 +167,7 @@ register<bit<48>>(NUM_FLOW) mac_list;
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<32>>(NUM_FLOW) flow_out;
 register<bit<32>>(NUM_FLOW) flow_in;
-register<bit<32>>(NUM_FLOW) enc_status;
+register<bit<32>>(NUM_PORT) enc_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
