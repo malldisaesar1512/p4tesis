@@ -146,13 +146,14 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 // REGISTER DEFINITION
 //------------------------------------------------------------------
 
-    register<bit<1>>(NUM_PORT) port_status;
-    register<bit<9>>(NUM_PORT) portin;
-    register<bit<48>>(NUM_FLOW) mac_list;
+register<bit<1>>(NUM_PORT) port_status;
+register<bit<9>>(NUM_PORT) portin;
+register<bit<48>>(NUM_FLOW) mac_list;
 
-    register<bit<48>>(NUM_FLOW) gudangrtt;
-    register<bit<32>>(NUM_FLOW) flow_out;
-    register<bit<32>>(NUM_FLOW) flow_in;
+register<bit<48>>(NUM_FLOW) gudangrtt;
+register<bit<32>>(NUM_FLOW) flow_out;
+register<bit<32>>(NUM_FLOW) flow_in;
+register<bit<32>>(ECN_THRESHOLD) enc_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
@@ -332,7 +333,6 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     
-    register<bit<32>>(ECN_THRESHOLD) enc_status;
     
     action mark_ecn() {
         hdr.ipv4.ecn = 3;
