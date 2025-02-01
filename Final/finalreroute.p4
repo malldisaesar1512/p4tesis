@@ -12,7 +12,7 @@ const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
 const bit<32> NUM_PORT = 4;
 const bit<32> NUM_FLOW = 100000;
-const bit<19> ECN_THRESHOLD = 10;
+const bit<32> ECN_THRESHOLD = 10;
 // const bit<32> NUM_OFFSET = 100;
 
 //------------------------------------------------------------------
