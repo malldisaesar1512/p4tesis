@@ -167,7 +167,7 @@ register<bit<48>>(NUM_FLOW) mac_list;
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<32>>(NUM_FLOW) flow_out;
 register<bit<32>>(NUM_FLOW) flow_in;
-register<bit<19>>(ECN_THRESHOLD) enc_status;
+register<bit<32>>(NUM_FLOW) enc_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
