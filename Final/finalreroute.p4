@@ -76,6 +76,20 @@ header icmp_t {
 
 struct metadata {
     /* empty */
+    bit<1> var_portstatus;
+    bit<9> var_portin;
+    bit<48> var_macin;
+    bit<48> var_time1;
+    bit<48> var_time2;
+    bit<32> var_ecnstatus;
+    bit<32> var_rtt;
+    bit<48> var_flowid;
+    bit<48> var_hash_in;
+    bit<32> ip_a;
+    bit<32> ip_b;
+    bit<32> port_a;
+    bit<32> port_b;
+    bit<48> var_hash_out;
 }
 
 struct headers {
@@ -170,9 +184,6 @@ control MyIngress(inout headers hdr,
     }
 
     action hash_packetin(){
-        bit<48> var_flowid;
-        bit<48> var_hash_in;
-
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
@@ -189,13 +200,6 @@ control MyIngress(inout headers hdr,
     }
 
     action hash_packetout(){
-        bit<32> ip_a;
-        bit<32> ip_b;
-        bit<32> port_a;
-        bit<32> port_b;
-        bit<48> var_hash_out;
-        bit<48> var_flowid;
-
         ip_a = hdr.ipv4.dstAddr;
         ip_b = hdr.ipv4.srcAddr;
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
@@ -218,14 +222,11 @@ control MyIngress(inout headers hdr,
     }
 
     action rtt_calculation(){
-        bit<32> var_rtt;
-        bit<48> var_time1;
-        bit<48> var_time2;
-        bit<48> var_flowid;
-
+        flow_in.read(var_hash_in, var_flowid);
+        flow_out.read(var_hash_out, var_flowid);
         if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
             gudangrtt.write(var_flowid, var_time1);//index,value
-        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_flowid){
+        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
             gudangrtt.read(var_time1, var_flowid);//value,index
             var_time2 = standard_metadata.ingress_global_timestamp;
             var_rtt = var_time2 - var_time1;
@@ -233,8 +234,6 @@ control MyIngress(inout headers hdr,
     }
 
     action cek_enc_status(){
-        bit<32> var_ecnstatus;
-
         enc_status.read(var_ecnstatus,1);
     }
 
@@ -279,16 +278,6 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        //variabel
-        bit<1> var_portstatus;
-        bit<9> var_portin;
-        bit<48> var_macin;
-        bit<48> var_time1;
-        bit<48> var_time2;
-        bit<32> var_ecnstatus;
-        bit<32> var_rtt;
-        bit<48> var_flowid;
-
 
         if(hdr.ipv4.isValid()){
             if(hdr.ipv4.protocol == TYPE_ICMP){
