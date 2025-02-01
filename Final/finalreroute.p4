@@ -79,17 +79,9 @@ struct metadata {
     bit<1> var_portstatus;
     bit<9> var_portin;
     bit<48> var_macin;
-    bit<48> var_time1;
-    bit<48> var_time2;
     bit<32> var_ecnstatus;
     bit<48> var_rtt;
     bit<48> var_flowid;
-    bit<48> var_hash_in;
-    bit<32> ip_a;
-    bit<32> ip_b;
-    bit<16> port_a;
-    bit<16> port_b;
-    bit<48> var_hash_out;
 }
 
 struct headers {
@@ -184,53 +176,64 @@ control MyIngress(inout headers hdr,
     }
 
     action hash_packetin(){
+        bit<48> var_hash_in;
+
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
-                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
-                    flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
+                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
+                    flow_in.write((bit<32>)meta.meta.var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP){
-                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
-                    flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
+                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
+                    flow_in.write((bit<32>)meta.var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
-                    hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
-                    flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
+                    hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
+                    flow_in.write((bit<32>)meta.var_flowid, var_hash_in);
                 }else{
-                    meta.var_hash_in = 0;
-                    flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
+                    var_hash_in = 0;
+                    flow_in.write((bit<32>)meta.var_flowid, var_hash_in);
                 }
     }
 
     action hash_packetout(){
-        meta.ip_a = hdr.ipv4.dstAddr;
-        meta.ip_b = hdr.ipv4.srcAddr;
+        bit<32> ip_a;
+        bit<32> ip_b;
+        bit<16> port_a;
+        bit<16> port_b;
+        bit<48> var_hash_out;
+
+        ip_a = hdr.ipv4.dstAddr;
+        ip_b = hdr.ipv4.srcAddr;
 
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
-                    hash(meta.var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {meta.ip_a, meta.ip_b}, (bit<32>)NUM_FLOW);
-                    flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
+                    hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a, ip_b}, (bit<32>)NUM_FLOW);
+                    flow_out.write((bit<32>)meta.var_flowid, var_hash_out);
                 }else if(hdr.ipv4.protocol == TYPE_TCP){
-                    meta.port_a = hdr.tcp.dstPort;
-                    meta.port_b = hdr.tcp.srcPort;
-                    hash(meta.var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {meta.ip_a, meta.ip_b, meta.port_a, meta.port_b}, (bit<32>)NUM_FLOW);
-                    flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
+                    port_a = hdr.tcp.dstPort;
+                    port_b = hdr.tcp.srcPort;
+                    hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a, ip_b, port_a, port_b}, (bit<32>)NUM_FLOW);
+                    flow_out.write((bit<32>)meta.var_flowid, var_hash_out);
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
-                    meta.port_a = hdr.udp.dstPort;
-                    meta.port_b = hdr.udp.srcPort;
-                    hash(meta.var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {meta.ip_a, meta.ip_b, meta.port_a, meta.port_b}, (bit<32>)NUM_FLOW);
-                    flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
+                    port_a = hdr.udp.dstPort;
+                    port_b = hdr.udp.srcPort;
+                    hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a, ip_b, port_a, port_b}, (bit<32>)NUM_FLOW);
+                    flow_out.write((bit<32>)meta.var_flowid, var_hash_out);
                 }else{
-                    meta.var_hash_out = 0;
-                    flow_out.write((bit<32>)meta.var_flowid, meta.var_hash_out);
+                    var_hash_out = 0;
+                    flow_out.write((bit<32>)meta.var_flowid, var_hash_out);
                 }
     }
 
     action rtt_calculation(){
-        flow_in.read(meta.var_hash_in, (bit<32>)meta.var_flowid);
-        flow_out.read(meta.var_hash_out, (bit<32>)meta.var_flowid);
-        if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && meta.var_time1 == 0){
-            gudangrtt.write((bit<32>)meta.var_flowid, meta.var_time1);//index,value
-        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && meta.var_time1 != 0 && meta.var_hash_out == meta.var_hash_in){
-            gudangrtt.read(meta.var_time1, (bit<32>)meta.var_flowid);//value,index
-            meta.var_time2 = standard_metadata.ingress_global_timestamp;
-            meta.var_rtt = meta.var_time2 - meta.var_time1;
+        bit<48> var_time1;
+        bit<48> var_time2;
+
+        flow_in.read(var_hash_in, (bit<32>)meta.var_flowid);
+        flow_out.read(var_hash_out, (bit<32>)meta.var_flowid);
+        if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
+            gudangrtt.write((bit<32>)meta.var_flowid, var_time1);//index,value
+        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
+            gudangrtt.read(var_time1, (bit<32>)meta.var_flowid);//value,index
+            var_time2 = standard_metadata.ingress_global_timestamp;
+            meta.var_rtt = var_time2 - var_time1;
         }
     }
 
