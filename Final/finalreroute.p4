@@ -12,7 +12,7 @@ const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
 const bit<32> NUM_PORT = 4;
 const bit<32> NUM_FLOW = 100000;
-const bit<32> ECN_THRESHOLD = 10;
+const bit<19> ECN_THRESHOLD = 10;
 // const bit<32> NUM_OFFSET = 100;
 
 //------------------------------------------------------------------
@@ -167,7 +167,7 @@ register<bit<48>>(NUM_FLOW) mac_list;
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<32>>(NUM_FLOW) flow_out;
 register<bit<32>>(NUM_FLOW) flow_in;
-register<bit<32>>(ECN_THRESHOLD) enc_status;
+register<bit<19>>(ECN_THRESHOLD) enc_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
@@ -326,7 +326,8 @@ control MyEgress(inout headers hdr,
     
     action mark_ecn() {
         hdr.ipv4.ecn = 3;
-        enc_status.write(1, hdr.ipv4.ecn);
+        meta.var_ecnstatus = 3;
+        enc_status.write(1, meta.var_ecnstatus);
 
     }
     apply { 
@@ -335,7 +336,8 @@ control MyEgress(inout headers hdr,
                 mark_ecn();
             }else{
                 hdr.ipv4.ecn = 0;
-                enc_status.write(1, hdr.ipv4.ecn);
+                meta.var_ecnstatus = 0;
+                enc_status.write(1, meta.var_ecnstatus);
             }
         }
      }
