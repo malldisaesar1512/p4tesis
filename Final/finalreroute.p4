@@ -223,12 +223,12 @@ control MyIngress(inout headers hdr,
     }
 
     action rtt_calculation(){
-        flow_in.read(meta.var_hash_in, meta.var_flowid);
-        flow_out.read(meta.var_hash_out, meta.var_flowid);
+        flow_in.read(meta.var_hash_in, (bit<32>)meta.var_flowid);
+        flow_out.read(meta.var_hash_out, (bit<32>)meta.var_flowid);
         if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && meta.var_time1 == 0){
-            gudangrtt.write(meta.var_flowid, meta.var_time1);//index,value
+            gudangrtt.write((bit<32>)meta.var_flowid, meta.var_time1);//index,value
         }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && meta.var_time1 != 0 && meta.var_hash_out == meta.var_hash_in){
-            gudangrtt.read(meta.var_time1, meta.var_flowid);//value,index
+            gudangrtt.read(meta.var_time1, (bit<32>)meta.var_flowid);//value,index
             meta.var_time2 = standard_metadata.ingress_global_timestamp;
             meta.var_rtt = meta.var_time2 - meta.var_time1;
         }
@@ -301,7 +301,7 @@ control MyIngress(inout headers hdr,
                 cek_enc_status();
             }
             //decision
-            gudangrtt.read(meta.var_rtt, meta.var_flowid);
+            gudangrtt.read(meta.var_rtt, (bit<32>)meta.var_flowid);
             cek_enc_status();
             if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3){
                 ipv4_reroute.apply();          
