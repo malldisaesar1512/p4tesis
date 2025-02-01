@@ -194,7 +194,7 @@ control MyIngress(inout headers hdr,
                     hash(meta.var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
                 }else{
-                    var_hash_in = 0;
+                    meta.var_hash_in = 0;
                     flow_in.write((bit<32>)meta.var_flowid, meta.var_hash_in);
                 }
     }
