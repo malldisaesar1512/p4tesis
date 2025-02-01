@@ -81,7 +81,6 @@ struct metadata {
     bit<48> var_macin;
     bit<32> var_ecnstatus;
     bit<48> var_rtt;
-    bit<48> var_flowid;
 }
 
 struct headers {
@@ -177,6 +176,7 @@ control MyIngress(inout headers hdr,
 
     action hash_packetin(){
         bit<48> var_hash_in;
+        bit<48> var_flowid;
 
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
@@ -199,6 +199,7 @@ control MyIngress(inout headers hdr,
         bit<16> port_a;
         bit<16> port_b;
         bit<48> var_hash_out;
+        bit<48> var_flowid;
 
         ip_a = hdr.ipv4.dstAddr;
         ip_b = hdr.ipv4.srcAddr;
@@ -227,6 +228,7 @@ control MyIngress(inout headers hdr,
         bit<48> var_time2;
         bit<48> var_hash_out;
         bit<48> var_hash_in;
+        bit<48> var_flowid;
 
         flow_in.read(var_hash_in, (bit<32>)meta.var_flowid);
         flow_out.read(var_hash_out, (bit<32>)meta.var_flowid);
@@ -284,6 +286,7 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
+        bit<48> var_flowid;
 
         if(hdr.ipv4.isValid()){
             if(hdr.ipv4.protocol == TYPE_ICMP){
