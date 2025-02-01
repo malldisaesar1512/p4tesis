@@ -165,8 +165,8 @@ register<bit<9>>(NUM_PORT) portin;
 register<bit<48>>(NUM_FLOW) mac_list;
 
 register<bit<48>>(NUM_FLOW) gudangrtt;
-register<bit<32>>(NUM_FLOW) flow_out;
-register<bit<32>>(NUM_FLOW) flow_in;
+register<bit<48>>(NUM_FLOW) flow_out;
+register<bit<48>>(NUM_FLOW) flow_in;
 register<bit<32>>(NUM_PORT) enc_status;
 
 //------------------------------------------------------------------
