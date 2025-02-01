@@ -180,7 +180,7 @@ control MyIngress(inout headers hdr,
 
         if(hdr.ipv4.protocol == TYPE_ICMP){ 
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
-                    flow_in.write((bit<32>)meta.meta.var_flowid, var_hash_in);
+                    flow_in.write((bit<32>)meta.var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP){
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)meta.var_flowid, var_hash_in);
@@ -227,7 +227,7 @@ control MyIngress(inout headers hdr,
         bit<48> var_time2;
         bit<48> var_hash_out;
         bit<48> var_hash_in;
-        
+
         flow_in.read(var_hash_in, (bit<32>)meta.var_flowid);
         flow_out.read(var_hash_out, (bit<32>)meta.var_flowid);
         if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
