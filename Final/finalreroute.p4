@@ -79,8 +79,8 @@ struct metadata {
     bit<1> var_portstatus;
     bit<9> var_portin;
     bit<48> var_macin;
-    bit<48> var_time1;
-    bit<48> var_time2;
+    bit<32> var_time1;
+    bit<32> var_time2;
     bit<32> var_ecnstatus;
     bit<32> var_rtt;
     bit<48> var_flowid;
