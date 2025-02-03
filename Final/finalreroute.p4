@@ -255,23 +255,23 @@ control MyIngress(inout headers hdr,
     //             }
     // }
 
-    action rtt_calculation(){
-        bit<48> var_time1;
-        bit<48> var_time2;
-        bit<48> var_hash_out;
-        bit<48> var_hash_in;
-        bit<48> var_flowid;
+    // action rtt_calculation(){
+    //     bit<48> var_time1;
+    //     bit<48> var_time2;
+    //     bit<48> var_hash_out;
+    //     bit<48> var_hash_in;
+    //     bit<48> var_flowid;
 
-        flow_in.read(var_hash_in, (bit<32>)var_flowid);
-        flow_out.read(var_hash_out, (bit<32>)var_flowid);
-        if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
-            gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
-        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
-            gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
-            var_time2 = standard_metadata.ingress_global_timestamp;
-            meta.var_rtt = var_time2 - var_time1;
-        }
-    }
+    //     flow_in.read(var_hash_in, (bit<32>)var_flowid);
+    //     flow_out.read(var_hash_out, (bit<32>)var_flowid);
+    //     if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
+    //         gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
+    //     }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
+    //         gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
+    //         var_time2 = standard_metadata.ingress_global_timestamp;
+    //         meta.var_rtt = var_time2 - var_time1;
+    //     }
+    // }
 
     action cek_enc_status(){
         enc_status.read(meta.var_ecnstatus,1);
@@ -323,14 +323,16 @@ control MyIngress(inout headers hdr,
 
         if(hdr.ipv4.isValid()){
             bit<48> var_hash_in;
-        bit<48> var_flowid;
-        bit<32> ip_a;
-        bit<32> ip_b;
-        bit<16> port_a;
-        bit<16> port_b;
-        bit<48> var_hash_out;
+            bit<48> var_flowid;
+            bit<32> ip_a;
+            bit<32> ip_b;
+            bit<16> port_a;
+            bit<16> port_b;
+            bit<48> var_hash_out;
+            bit<48> var_time1;
+            bit<48> var_time2;
 
-        if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ 
+            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ 
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 2){
@@ -344,7 +346,7 @@ control MyIngress(inout headers hdr,
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }
 
-        if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 0){
+            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 0){
                     ip_a = hdr.ipv4.dstAddr;
                     ip_b = hdr.ipv4.srcAddr;
 
@@ -374,25 +376,25 @@ control MyIngress(inout headers hdr,
 
             //rtt calculation
 
-        flow_in.read(var_hash_in, (bit<32>)var_flowid);
-        flow_out.read(var_hash_out, (bit<32>)var_flowid);
+            flow_in.read(var_hash_in, (bit<32>)var_flowid);
+            flow_out.read(var_hash_out, (bit<32>)var_flowid);
 
-        if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
-            gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
-        }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
-            gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
-            var_time2 = standard_metadata.ingress_global_timestamp;
-            meta.var_rtt = var_time2 - var_time1;
-        }
+            if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
+                gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
+            }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
+                gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
+                var_time2 = standard_metadata.ingress_global_timestamp;
+                meta.var_rtt = var_time2 - var_time1;
+            }
 
             //decision
-        gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
-        cek_enc_status();
-        if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3){
-            ipv4_reroute.apply();          
-        }else{
-            ipv4_lpm.apply();
-        }
+            gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
+            cek_enc_status();
+            if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3){
+                ipv4_reroute.apply();          
+            }else{
+                ipv4_lpm.apply();
+            }
         }
         else{
             drop();
