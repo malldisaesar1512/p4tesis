@@ -332,8 +332,11 @@ control MyIngress(inout headers hdr,
 
 
         if(hdr.ipv4.isValid()){
-
-            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ 
+            if(hdr.ipv4.dstAddr == ffffffff){ //noaction ospf
+                NoAction();
+            }
+            
+            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ //hashing packet in
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 2){
@@ -347,7 +350,7 @@ control MyIngress(inout headers hdr,
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }
 
-            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 0){
+            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 0){ //hashing packet out
                     ip_a = hdr.ipv4.dstAddr;
                     ip_b = hdr.ipv4.srcAddr;
 
@@ -420,7 +423,7 @@ control MyEgress(inout headers hdr,
     }
     apply { 
         if (hdr.ipv4.ecn == 1 || hdr.ipv4.ecn == 2){
-            if (standard_metadata.enq_qdepth >= ECN_THRESHOLD){
+            if (standard_metadata.enq_qdepth >= ECN_THRESHOLD){ //ecn marking
                 mark_ecn();
             }else{
                 hdr.ipv4.ecn = 0;
