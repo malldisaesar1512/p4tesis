@@ -332,7 +332,7 @@ control MyIngress(inout headers hdr,
 
 
         if(hdr.ipv4.isValid()){
-            if(hdr.ipv4.dstAddr == 0xffffffff){ //noaction ospf
+            if(hdr.ipv4.dstAddr == 0xffffffff || hdr.ipv4.dstAddr == 0xe0000005){ //noaction ospf
                 NoAction();
             }
             
