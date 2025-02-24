@@ -405,7 +405,7 @@ control MyIngress(inout headers hdr,
             gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
             gudangrtt.read(var_time1, (bit<32>)var_hash_in);
             cek_enc_status();
-            if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3 && var_time1 != 0){
+            if((meta.var_rtt >= 250000 || meta.var_ecnstatus == 3) && var_time1 != 0){
                 ipv4_reroute.apply();          
             }else{
                 ipv4_lpm.apply();
