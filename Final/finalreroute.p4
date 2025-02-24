@@ -418,7 +418,7 @@ control MyIngress(inout headers hdr,
                 if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3){
                     port_status.read(meta.var_portstatus,0);
                     if(meta.var_portstatus == PORT_DOWN && meta.var_portin == var_portout1){
-                        portstatus.write(0, PORT_UP);   
+                        port_status.write(0, PORT_UP);   
                     }
                     if(meta.var_portstatus == PORT_UP && meta.var_portin == var_portout1){
                         port_status.write(0, PORT_DOWN);
