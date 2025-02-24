@@ -259,7 +259,7 @@ control MyIngress(inout headers hdr,
                 if(var_flowcount == 1){
                     flowcount.write(0, var_flowcount);
                     ipv4_lpm.apply();
-                    var_portin2 = standard_metadata.igress_port;
+                    var_portin2=standard_metadata.ingress_port;
                     if(var_portin2 == 0){
                         var_flowcount = 0;
                         flowcount.write(0, var_flowcount);
@@ -267,7 +267,7 @@ control MyIngress(inout headers hdr,
                 }else if(var_flowcount == 2){
                     flowcount.write(0, var_flowcount);
                     reroute.apply();
-                    var_portin2 = standard_metadata.igress_port;
+                    var_portin2=standard_metadata.ingress_port;
                     if(var_portin2 == 0){
                         var_flowcount = 0;
                         flowcount.write(0, var_flowcount);
