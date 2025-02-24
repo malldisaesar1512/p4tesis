@@ -262,7 +262,7 @@ control MyIngress(inout headers hdr,
                 }else if(var_flowcount == 2){
                     var_flowcount = 0;
                     flowcount.write(0, var_flowcount);
-                    ipv4_lpm.reroute();
+                    reroute.apply();
                 }
             }
         }
