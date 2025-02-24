@@ -400,8 +400,8 @@ control MyIngress(inout headers hdr,
                 var_time2 = standard_metadata.ingress_global_timestamp;
                 meta.var_rtt = var_time2 - var_time1;
                 var_time1 = 0;
-                var_portin = standard_metadata.ingress_port;
-                portin.write((bit<32>)var_flowid, var_portin);
+                meta.var_portin = standard_metadata.ingress_port;
+                portin.write((bit<32>)var_flowid, meta.var_portin);
                 gudangrtt.write((bit<32>)var_hash_out, var_time1);
                 gudangrtt.write((bit<32>)var_flowid, meta.var_rtt);
             }
@@ -413,14 +413,14 @@ control MyIngress(inout headers hdr,
                 port_status.write(0, PORT_UP);
             }
             else{
-                portin.read(var_portin, (bit<32>)var_flowid);
+                portin.read(meta.var_portin, (bit<32>)var_flowid);
                 portout.read(var_portout1, (bit<32>)var_flowid);
                 if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3){
                     port_status.read(meta.var_portstatus,0);
-                    if(meta.var_portstatus == PORT_DOWN && var_portin == var_portout1){
+                    if(meta.var_portstatus == PORT_DOWN && meta.var_portin == var_portout1){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(meta.var_portstatus == PORT_UP && var_portin == var_portout1){
+                    if(meta.var_portstatus == PORT_UP && meta.var_portin == var_portout1){
                         port_status.write(0, PORT_DOWN);
                     }
                 }
