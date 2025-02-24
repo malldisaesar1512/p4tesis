@@ -329,8 +329,11 @@ control MyIngress(inout headers hdr,
         bit<48> var_time1;
         bit<48> var_time2;
         bit<9> var_portout1;
+        bit<48> var_flowmark;
+        bit<48> var_threshold;
 
         var_flowid = 0;
+        var_threshold = 250000; //refer to ITU-T G.1010
 
 
         if(hdr.ipv4.isValid()){
@@ -390,25 +393,56 @@ control MyIngress(inout headers hdr,
 
             if((hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2) && var_time1 == 0){
                 var_time1 = standard_metadata.ingress_global_timestamp;
-                gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
+                var_portout1 = standard_metadata.egress_spec;
+                gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value\
+                portout.write((bit<32>)var_flowid, var_portout1);
             }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5) && var_time1 != 0 && var_hash_out == var_hash_in){
                 var_time2 = standard_metadata.ingress_global_timestamp;
                 meta.var_rtt = var_time2 - var_time1;
                 var_time1 = 0;
-                var_portout1 = standard_metadata.egress_spec;
+                var_portin = standard_metadata.ingress_port;
+                portin.write((bit<32>)var_flowid, var_portin);
                 gudangrtt.write((bit<32>)var_hash_out, var_time1);
                 gudangrtt.write((bit<32>)var_flowid, meta.var_rtt);
-                portout.write((bit<32>)var_flowid, var_portout1);
+            }
+            
+            gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
+            cek_enc_status();
+            if(meta.var_rtt == 0){
+                gudangrtt.write((bit<32>)var_flowid,0);
+                port_status.write(0, PORT_UP);
+            }
+            else{
+                portin.read(var_portin, (bit<32>)var_flowid);
+                portout.read(var_portout1, (bit<32>)var_flowid);
+                if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3){
+                    port_status.read(var_portstatus,0);
+                    if(var_portstatus == PORT_DOWN && var_portin == var_portout1){
+                        portstatus.write(0, PORT_UP);   
+                    }
+                    if(var_portstatus == PORT_UP && var_portin == var_portout1){
+                        port_status.write(0, PORT_DOWN);
+                    }
+                }
+                if(var_rtt <= var_threshold){
+                    port_status.read(var_portstatus,0);
+                    if(var_portstatus == PORT_DOWN){
+                        port_status.write(0, PORT_DOWN);   
+                    }else{
+                        port_status.write(0, PORT_UP);
+                    }
+                }
             }
 
             //decision
-            gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
-            gudangrtt.read(var_time1, (bit<32>)var_hash_in);
-            cek_enc_status();
-            if((meta.var_rtt >= 250000 || meta.var_ecnstatus == 3) && var_time1 != 0){
-                ipv4_reroute.apply();          
-            }else{
+            port_status.read(var_portstatus,0);    
+            if(var_portstatus == PORT_DOWN){
+                ipv4_reroute.apply();
+                port_status.write(0, PORT_DOWN);
+            }
+            else{
                 ipv4_lpm.apply();
+                port_status.write(0, PORT_UP);
             }
         }
         else{
