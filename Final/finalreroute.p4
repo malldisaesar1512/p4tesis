@@ -384,11 +384,13 @@ control MyIngress(inout headers hdr,
             flow_out.read(var_hash_out, (bit<32>)var_flowid);
 
             if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
+                var_time1 = standard_metadata.ingress_global_timestamp;
                 gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
             }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
                 gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
                 var_time2 = standard_metadata.ingress_global_timestamp;
                 meta.var_rtt = var_time2 - var_time1;
+                gudangrtt.write((bit<32>)var_flowid, meta.var_rtt);
             }
 
             //decision
