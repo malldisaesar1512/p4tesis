@@ -153,6 +153,7 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 
 register<bit<1>>(NUM_PORT) port_status;
 register<bit<9>>(NUM_PORT) portin;
+register<bit<9>>(NUM_PORT) portout;
 register<bit<48>>(NUM_FLOW) mac_list;
 
 register<bit<48>>(NUM_FLOW) gudangrtt;
@@ -327,6 +328,7 @@ control MyIngress(inout headers hdr,
         bit<48> var_hash_out;
         bit<48> var_time1;
         bit<48> var_time2;
+        bit<9> var_portout1;
 
         var_flowid = 0;
 
@@ -393,14 +395,17 @@ control MyIngress(inout headers hdr,
                 var_time2 = standard_metadata.ingress_global_timestamp;
                 meta.var_rtt = var_time2 - var_time1;
                 var_time1 = 0;
+                var_portout1 = standard_metadata.egress_spec;
                 gudangrtt.write((bit<32>)var_hash_out, var_time1);
                 gudangrtt.write((bit<32>)var_flowid, meta.var_rtt);
+                portout.write((bit<32>)var_flowid, var_portout1);
             }
 
             //decision
             gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
+            gudarttt.read(var_time1, (bit<32>)var_hash_in);
             cek_enc_status();
-            if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3){
+            if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3 && var_time1 != 0){
                 ipv4_reroute.apply();          
             }else{
                 ipv4_lpm.apply();
