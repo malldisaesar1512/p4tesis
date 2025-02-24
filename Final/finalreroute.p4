@@ -403,7 +403,7 @@ control MyIngress(inout headers hdr,
 
             //decision
             gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
-            gudarttt.read(var_time1, (bit<32>)var_hash_in);
+            gudangrtt.read(var_time1, (bit<32>)var_hash_in);
             cek_enc_status();
             if(meta.var_rtt >= 250000 || meta.var_ecnstatus == 3 && var_time1 != 0){
                 ipv4_reroute.apply();          
