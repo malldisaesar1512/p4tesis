@@ -345,10 +345,11 @@ control MyIngress(inout headers hdr,
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.udp.srcPort, hdr.udp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
-                }else{
-                    var_hash_in = 0;
-                    flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }
+                // else{
+                //     var_hash_in = var_hash_out;
+                //     flow_in.write((bit<32>)var_flowid, var_hash_in);
+                // }
 
             if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 0){ //hashing packet out
                     ip_a = hdr.ipv4.dstAddr;
@@ -372,24 +373,27 @@ control MyIngress(inout headers hdr,
 
                     hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a, ip_b, port_a, port_b}, (bit<32>)NUM_FLOW);
                     flow_out.write((bit<32>)var_flowid, var_hash_out);
-                }else{
-                    var_hash_out = 0;
-                    flow_out.write((bit<32>)var_flowid, var_hash_out);
                 }
+                // else{
+                //     var_hash_out = var_hash_in;
+                //     flow_out.write((bit<32>)var_flowid, var_hash_out);
+                // }
 
 
             //rtt calculation
 
             flow_in.read(var_hash_in, (bit<32>)var_flowid);
             flow_out.read(var_hash_out, (bit<32>)var_flowid);
+            gudangrtt.read(var_time1, (bit<32>)var_hash_in);//value,index
 
-            if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 && var_time1 == 0){
+            if((hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2) && var_time1 == 0){
                 var_time1 = standard_metadata.ingress_global_timestamp;
-                gudangrtt.write((bit<32>)var_flowid, var_time1);//index,value
-            }else if(hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5 && var_time1 != 0 && var_hash_out == var_hash_in){
-                gudangrtt.read(var_time1, (bit<32>)var_flowid);//value,index
+                gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
+            }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5) && var_time1 != 0 && var_hash_out == var_hash_in){
                 var_time2 = standard_metadata.ingress_global_timestamp;
                 meta.var_rtt = var_time2 - var_time1;
+                var_time1 = 0;
+                gudangrtt.write((bit<32>)var_hash_out, var_time1);
                 gudangrtt.write((bit<32>)var_flowid, meta.var_rtt);
             }
 
