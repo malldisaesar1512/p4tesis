@@ -416,17 +416,17 @@ control MyIngress(inout headers hdr,
                 portin.read(var_portin, (bit<32>)var_flowid);
                 portout.read(var_portout1, (bit<32>)var_flowid);
                 if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3){
-                    port_status.read(var_portstatus,0);
-                    if(var_portstatus == PORT_DOWN && var_portin == var_portout1){
+                    port_status.read(meta.var_portstatus,0);
+                    if(meta.var_portstatus == PORT_DOWN && var_portin == var_portout1){
                         portstatus.write(0, PORT_UP);   
                     }
-                    if(var_portstatus == PORT_UP && var_portin == var_portout1){
+                    if(meta.var_portstatus == PORT_UP && var_portin == var_portout1){
                         port_status.write(0, PORT_DOWN);
                     }
                 }
                 if(var_rtt <= var_threshold){
-                    port_status.read(var_portstatus,0);
-                    if(var_portstatus == PORT_DOWN){
+                    port_status.read(meta.var_portstatus,0);
+                    if(meta.var_portstatus == PORT_DOWN){
                         port_status.write(0, PORT_DOWN);   
                     }else{
                         port_status.write(0, PORT_UP);
@@ -435,8 +435,8 @@ control MyIngress(inout headers hdr,
             }
 
             //decision
-            port_status.read(var_portstatus,0);    
-            if(var_portstatus == PORT_DOWN){
+            port_status.read(meta.var_portstatus,0);    
+            if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
                 port_status.write(0, PORT_DOWN);
             }
