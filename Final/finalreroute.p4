@@ -424,7 +424,7 @@ control MyIngress(inout headers hdr,
                         port_status.write(0, PORT_DOWN);
                     }
                 }
-                if(var_rtt <= var_threshold){
+                if(meta.var_rtt <= var_threshold){
                     port_status.read(meta.var_portstatus,0);
                     if(meta.var_portstatus == PORT_DOWN){
                         port_status.write(0, PORT_DOWN);   
