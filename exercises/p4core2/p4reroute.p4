@@ -231,6 +231,7 @@ control MyIngress(inout headers hdr,
             bit<48> var_index1;
             bit<48> var_index2;
             bit<32> var_flowcount;
+            bit<9> var_portin2;
             
             var_threshold = 250000; //refer to ITU-T G.1010
             var_index1 = 0;
@@ -256,13 +257,21 @@ control MyIngress(inout headers hdr,
             flowcount.read(var_flowcount, 0);
             if(var_flowcount != 0){
                 if(var_flowcount == 1){
-                    var_flowcount = 0;
                     flowcount.write(0, var_flowcount);
                     ipv4_lpm.apply();
+                    var_portin2 = standard_metadata.igress_port;
+                    if(var_portin2 == 0){
+                        var_flowcount = 0;
+                        flowcount.write(0, var_flowcount);
+                    }
                 }else if(var_flowcount == 2){
-                    var_flowcount = 0;
                     flowcount.write(0, var_flowcount);
                     reroute.apply();
+                    var_portin2 = standard_metadata.igress_port;
+                    if(var_portin2 == 0){
+                        var_flowcount = 0;
+                        flowcount.write(0, var_flowcount);
+                    }
                 }
             }
         }
