@@ -1,6 +1,4 @@
-# from p4runtime_lib.switch import ShutdownAllSwitchConnections
-# from p4runtime_lib.helper import P4InfoHelper
-# from p4runtime_lib import bmv2
+
 import time
 import sys
 import os
@@ -10,10 +8,9 @@ import grpc
 sys.path.append(
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
                  './utils/'))
-import p4runtime_lib.bmv2
-import p4runtime_lib.helper
-from p4runtime_lib.error_utils import printGrpcError
 from p4runtime_lib.switch import ShutdownAllSwitchConnections
+from p4runtime_lib.helper import P4InfoHelper
+from p4runtime_lib import bmv2
 
 #!/usr/bin/env python3
 
