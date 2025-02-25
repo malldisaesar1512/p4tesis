@@ -21,7 +21,7 @@ def ping(host, iface):
 
 def main():
     target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau diping
-    iface = "eth0"  # Ganti dengan nama interface yang mau dipake
+    iface = "ens3"  # Ganti dengan nama interface yang mau dipake
     timeout = 5  # Timeout dalam detik
     start_time = time.time()
 
