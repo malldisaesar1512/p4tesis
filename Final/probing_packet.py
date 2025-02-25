@@ -2,29 +2,34 @@ import os
 import platform
 import subprocess
 import time
+from scapy.all import sr1, IP, ICMP
 
-def ping(host):
-    # Tentukan perintah ping sesuai dengan OS
-    param = '-n' if platform.system().lower() == 'windows' else '-c'
-    command = ['ping', param, '1', host]
+def ping(host, iface):
+    # Buat paket ICMP
+    packet = IP(dst=host)/ICMP()
 
     try:
-        # Eksekusi perintah ping
-        output = subprocess.check_output(command, stderr=subprocess.STDOUT, universal_newlines=True)
-        return True  # Link hidup
-    except subprocess.CalledProcessError:
+        # Kirim paket dan tunggu balasan
+        response = sr1(packet, iface=iface, timeout=1, verbose=False)
+        if response:
+            return True  # Link hidup
+        else:
+            return False  # Link mati
+    except Exception as e:
+        print(f"Error: {e}")
         return False  # Link mati
 
 def main():
     target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau diping
+    iface = "eth0"  # Ganti dengan nama interface yang mau dipake
     timeout = 5  # Timeout dalam detik
     start_time = time.time()
 
     while True:
-        if ping(target_ip):
-            print(f"Link ke {target_ip} hidup!")
+        if ping(target_ip, iface):
+            print(f"Link ke {target_ip} hidup melalui interface {iface}!")
         else:
-            print(f"Link ke {target_ip} mati!")
+            print(f"Link ke {target_ip} mati melalui interface {iface}!")
 
         # Cek waktu
         elapsed_time = time.time() - start_time
