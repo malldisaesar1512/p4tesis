@@ -1,4 +1,4 @@
-from scapy.all import Ether, IP, UDP, sendp, srp, conf
+from scapy.all import Ether, IP, UDP,ICMP, sendp, srp, conf
 import time
 
 def send_hello_packet(target_ip, iface):
