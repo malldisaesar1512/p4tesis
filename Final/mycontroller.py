@@ -79,7 +79,7 @@ def main():
         
         # Main probing loop
         while True:
-            send_probe_packet(1, 2)  # Adjust ports as needed
+            send_probe_packet(0, 1, 2)  # Adjust ports as needed
             time.sleep(1)  # Probe every second
             
     except KeyboardInterrupt:
