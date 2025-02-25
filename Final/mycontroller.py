@@ -60,20 +60,20 @@ def main():
     global switch_connection, p4info_helper
     
     # Initialize P4Runtime connection
-    p4info_helper = P4InfoHelper('build/basic.p4.p4info.txt')
+    p4info_helper = P4InfoHelper('./p4reroute.p4info.txtpb')
     
     try:
         # Connect to switch
         switch_connection = bmv2.Bmv2SwitchConnection(
             name='s1',
-            address='127.0.0.1:50051',
+            address='0.0.0.0:9559',
             device_id=0)
         
         switch_connection.MasterArbitrationUpdate()
         
         # Main probing loop
         while True:
-            send_probe_packet(0, 1, 2)  # Adjust ports as needed
+            send_probe_packet(1, 2)  # Adjust ports as needed
             time.sleep(1)  # Probe every second
             
     except KeyboardInterrupt:
