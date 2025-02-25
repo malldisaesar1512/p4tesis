@@ -11,7 +11,7 @@ def send_hello_packet(target_ip, iface):
 
 def main():
     target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau dikirimi hello packet
-    iface = "eth0"  # Ganti dengan nama interface yang mau dipake
+    iface = "ens3"  # Ganti dengan nama interface yang mau dipake
     timeout = 5  # Timeout dalam detik
     start_time = time.time()
 
