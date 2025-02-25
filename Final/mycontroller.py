@@ -4,6 +4,8 @@ import sys
 import os
 import threading
 import grpc
+import subprocess
+from scapy.all import sr1, IP, ICMP
 
 sys.path.append(
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -18,76 +20,20 @@ from p4runtime_lib import bmv2
 switch_connection = None
 p4info_helper = None
 
-def writeRegister(register_name, index, value):
-    """Write value to register at specified index"""
-    register_entry = p4info_helper.get_register_entry(
-        register_name=register_name,
-        index=index,
-        data=value)
-    switch_connection.WriteRegisters(register_entry)
+# Konfigurasi P4Runtime
+SWITCH_ADDRESS = "127.0.0.1:50051"  # Ganti dengan alamat switch
+REGISTER_NAME = "linkstatus"  # Nama register yang mau diatur
 
-def send_probe_packet(switch_id, ingress_port, egress_port):
-    """Send probe packet and measure round trip time"""
-    try:
-        # Create probe packet
-        packet = bytes([0xFF] * 64)  # Simple probe packet
-        
-        # Record start time
-        start_time = time.time()
-        
-        # Send packet
-        switch_connection.PacketOut(
-            payload=packet,
-            metadata=[
-                ("egress_port", egress_port),
-                ("ingress_port", ingress_port)
-            ]
-        )
-        
-        # Wait for response (implement your own logic here)
-        time.sleep(0.1)  # Simple delay for demonstration
-        
-        # Calculate round trip time
-        rtt = (time.time() - start_time) * 1000  # Convert to milliseconds
-        
-        # Update link status based on RTT
-        if rtt <= 250:
-            writeRegister("linkStatus", 0, 1)  # Link is good
-            print(f"Probe successful - RTT: {rtt:.2f}ms")
-        else:
-            writeRegister("linkStatus", 0, 0)  # Link is bad
-            print(f"Probe too slow - RTT: {rtt:.2f}ms")
-            
-    except grpc.RpcError as e:
-        print(f"Failed to send probe: {e}")
-        writeRegister("linkStatus", 0, 0)  # Link is down
+def set_register_value(client, register_name, index, value):
+    # Buat register entry
+    register_entry = p4runtime_lib.bmv2.RegisterEntry()
+    register_entry.table_id = register_name
+    register_entry.index = index  # Index register yang mau diatur
+    register_entry.value = value
 
-def main():
-    global switch_connection, p4info_helper
-    
-    # Initialize P4Runtime connection
-    p4info_helper = P4InfoHelper('./p4reroute.p4info.txtpb')
-    
-    try:
-        # Connect to switch
-        switch_connection = bmv2.Bmv2SwitchConnection(
-            name='s1',
-            address='0.0.0.0:9559',
-            device_id=0)
-        
-        switch_connection.MasterArbitrationUpdate()
-        
-        # Main probing loop
-        while True:
-            send_probe_packet(0, 1, 2)  # Adjust ports as needed
-            time.sleep(1)  # Probe every second
-            
-    except KeyboardInterrupt:
-        print(" Shutting down.")
-    except grpc.RpcError as e:
-        print(f"gRPC Error: {e}")
-    finally:
-        ShutdownAllSwitchConnections()
+    # Set register entry
+    client.SetRegisterEntry(register_entry)
+
 
 if __name__ == '__main__':
     main()

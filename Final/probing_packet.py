@@ -1,35 +1,22 @@
-import os
-import platform
-import subprocess
+from scapy.all import Ether, IP, UDP, sendp
 import time
-from scapy.all import sr1, IP, ICMP
 
-def ping(host, iface):
-    # Buat paket ICMP
-    packet = IP(dst=host)/ICMP()
+def send_hello_packet(target_ip, iface):
+    # Buat paket hello
+    hello_packet = Ether()/IP(dst=target_ip)/UDP(sport=12345, dport=12345)/b'Hello, this is a hello packet!'
 
-    try:
-        # Kirim paket dan tunggu balasan
-        response = sr1(packet, iface=iface, timeout=1, verbose=False)
-        if response:
-            return True  # Link hidup
-        else:
-            return False  # Link mati
-    except Exception as e:
-        print(f"Error: {e}")
-        return False  # Link mati
+    # Kirim paket hello melalui interface yang ditentukan
+    sendp(hello_packet, iface=iface, verbose=False)
+    print(f"Hello packet sent to {target_ip} through interface {iface}.")
 
 def main():
-    target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau diping
-    iface = "ens3"  # Ganti dengan nama interface yang mau dipake
+    target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau dikirimi hello packet
+    iface = "eth0"  # Ganti dengan nama interface yang mau dipake
     timeout = 5  # Timeout dalam detik
     start_time = time.time()
 
     while True:
-        if ping(target_ip, iface):
-            print(f"Link ke {target_ip} hidup melalui interface {iface}!")
-        else:
-            print(f"Link ke {target_ip} mati melalui interface {iface}!")
+        send_hello_packet(target_ip, iface)
 
         # Cek waktu
         elapsed_time = time.time() - start_time
@@ -37,7 +24,7 @@ def main():
             print("Probing selesai setelah 5 detik.")
             break
 
-        time.sleep(1)  # Tunggu 1 detik sebelum ping lagi
+        time.sleep(1)  # Tunggu 1 detik sebelum mengirim lagi
 
 if __name__ == "__main__":
     main()
