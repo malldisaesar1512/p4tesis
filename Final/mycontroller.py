@@ -36,12 +36,12 @@ def send_probe_packet(switch_id, ingress_port, egress_port):
         start_time = time.time()
         
         # Send packet
-        switch_connection.TransmitPacket(
+        switch_connection.PacketOut(
             payload=packet,
-            metadata={
-                "ingress_port": ingress_port,
-                "egress_port": egress_port
-            }
+            metadata=[
+                ("egress_port", egress_port),
+                ("ingress_port", ingress_port)
+            ]
         )
         
         # Wait for response (implement your own logic here)
