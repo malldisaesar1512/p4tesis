@@ -1,4 +1,4 @@
-from scapy.all import Ether, IP, UDP, sendp
+from scapy.all import Ether, IP, UDP, sendp, srp, conf
 import time
 
 def send_hello_packet(target_ip, iface):
@@ -8,6 +8,16 @@ def send_hello_packet(target_ip, iface):
     # Kirim paket hello melalui interface yang ditentukan
     sendp(hello_packet, iface=iface, verbose=False)
     print(f"Hello packet sent to {target_ip} through interface {iface}.")
+
+def check_link_status(target_ip, iface):
+    # Kirim paket ICMP untuk mengecek status link
+    response = srp(Ether()/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
+    
+    # Jika ada balasan, link hidup
+    if response:
+        return 1  # Link hidup
+    else:
+        return 0  # Link mati
 
 def main():
     target_ip = "192.168.1.1"  # Ganti dengan IP target yang mau dikirimi hello packet
@@ -19,16 +29,8 @@ def main():
         # Kirim hello packet
         send_hello_packet(target_ip, iface)
 
-        # Cek status pengiriman
-        # Di sini kita anggap pengiriman berhasil, karena sendp tidak mengembalikan status
-        # Namun, kita bisa menandai status link berdasarkan asumsi
-        link_status = 1  # 1 berarti link hidup
-
-        # Simulasi pengecekan status (misalnya, kita bisa menggunakan ping atau metode lain)
-        # Jika ada metode untuk mengecek, bisa ditambahkan di sini
-        # Misalnya, jika tidak ada balasan dalam waktu tertentu, kita set link_status ke 0
-        # Untuk contoh ini, kita anggap selalu berhasil
-        # Jika ingin simulasi, bisa tambahkan logika untuk mengubah link_status
+        # Cek status link
+        link_status = check_link_status(target_ip, iface)
 
         print(f"Link status to {target_ip}: {'Hidup' if link_status == 1 else 'Mati'} ({link_status})")
 
