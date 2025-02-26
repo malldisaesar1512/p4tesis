@@ -155,6 +155,7 @@ register<bit<1>>(NUM_PORT) port_status;
 register<bit<9>>(NUM_PORT) portin;
 register<bit<9>>(NUM_PORT) portout;
 register<bit<48>>(NUM_FLOW) mac_list;
+register<bit<9>>(NUM_PORT) linkstatus;
 
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<48>>(NUM_FLOW) flow_out;
