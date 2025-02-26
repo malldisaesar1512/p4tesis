@@ -34,7 +34,7 @@ def main():
     )
 
     # Connect ke switch
-    switch.MasterArbitration()
+    switch.MasterArbitrationUpdate()
 
     # Input nilai ke register
     index = int(input("Masukkan index register yang ingin diatur: "))  # Input index register
