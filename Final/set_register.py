@@ -9,7 +9,7 @@ sys.path.append(
 import p4runtime_lib.bmv2
 import p4runtime_lib.helper
 from p4runtime_lib.error_utils import printGrpcError
-from p4runtime_lib.switch import ShutdownAllSwitchConnectionss
+from p4runtime_lib.switch import ShutdownAllSwitchConnections
 
 # Konfigurasi P4Runtime
 SWITCH_ADDRESS = "127.0.0.1:50051"  # Ganti dengan alamat switch
