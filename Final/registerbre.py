@@ -18,7 +18,7 @@ from scapy.all import Ether, IP, UDP, TCP
 
 
 #variabel global
-thrift_port = 9559
+thrift_port = 9090
 
 #definisi
 def read_registerAll(register, thrift_port):
