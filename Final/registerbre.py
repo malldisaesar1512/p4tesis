@@ -14,7 +14,7 @@ from datetime import datetime
 
 from scapy.all import sendp, send, get_if_list, get_if_hwaddr
 from scapy.all import Packet
-from scapy.all import Ether, IP, UDP, TCP
+from scapy.all import Ether, IP, UDP, TCP, ICMP, srp
 
 
 #variabel global
@@ -43,15 +43,39 @@ def write_register(register, idx, value ,thrift_port):
 
     return
 
+def check_link_status(target_ip, iface):
+    # Kirim paket ICMP untuk mengecek status link
+    response = srp(Ether()/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
+    
+    # Jika ada balasan, link hidup
+    if response:
+        return 1  # Link hidup
+    else:
+        return 0  # Link mati
+
 def main():
     register = "linkstatus"
     index = 0
-    value = 1
+    target_ip = "20.20.20.2"  # Ganti dengan IP target yang mau dikirimi hello packet
+    iface = "ens3"  # Ganti dengan nama interface yang mau dipake
+    start_time = time.time()
 
-    print(f"Setting register '{register}' at index '{index}' to value '{value}'' ")
-    write_register(register, index, value, thrift_port)
+    while True:
+        # Cek status link
+        link_status = check_link_status(target_ip, iface)
 
-    print("Register value set successfully.")
+        if link_status == 1:
+             write_register(register, index, 1, thrift_port)
+             print(f"Setting register '{register}' at index '{index}' to value '{1}'' ")
+             print("Register value set successfully.")
+        else:
+            write_register(register, index, 0, thrift_port)
+            print(f"Setting register '{register}' at index '{index}' to value '{0}'' ")
+            print("Register value set successfully.")
+
+        print(f"Link status to {target_ip}: {'Hidup' if link_status == 1 else 'Mati'} ({link_status})")
+        
+        time.sleep(1)  # Tunggu 1 detik sebelum mengirim lagi
 
 if __name__ == "__main__":
     main()
