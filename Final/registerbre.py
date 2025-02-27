@@ -1,4 +1,6 @@
 import argparse
+from atexit import register
+from operator import index
 import sys
 import socket
 import random
@@ -38,13 +40,16 @@ def write_register(register, idx, value ,thrift_port):
     #reg_val = [l for l in stdout.split('\n') if ' %s[%d]' % (register, idx) in l][0].split('= ', 1)[1]
     if stderr:
         print("Error:", stderr.decode('utf-8'))
-        
+
     return
 
 def main():
+    register = "linkstatus"
+    index = 0
+    value = 1
 
-    print(f"Setting register linkstatus at index 0 to value 1")
-    write_register("linkstatus", 0, 1, thrift_port)
+    print(f"Setting register '{register}' at index '{index}' to value '{value}'' ")
+    write_register(register, index, value, thrift_port)
 
     print("Register value set successfully.")
 
