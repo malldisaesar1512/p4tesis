@@ -1,52 +1,85 @@
-
-import grpc
+import argparse
+from atexit import register
+from operator import index
 import sys
-import os
+import socket
+import random
+import struct
 
-sys.path.append(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 './utils/'))
-import p4runtime_lib.bmv2
-import p4runtime_lib.helper
-from p4runtime_lib.error_utils import printGrpcError
-from p4runtime_lib.switch import ShutdownAllSwitchConnections
+import subprocess
+import time 
+from datetime import datetime
 
-# Konfigurasi P4Runtime
-SWITCH_ADDRESS = "127.0.0.1:50051"  # Ganti dengan alamat switch
-REGISTER_NAME = "linkstatus"  # Nama register yang mau diatur
+from scapy.all import sendp, send, get_if_list, get_if_hwaddr
+from scapy.all import Packet
+from scapy.all import Ether, IP, UDP, TCP, ICMP, srp
 
-def set_register_value(client, register_name, index, value):
-    # Buat register entry
-    register_entry = p4runtime_lib.bmv2.RegisterEntry()
-    register_entry.table_id = register_name
-    register_entry.index = index  # Index register yang mau diatur
-    register_entry.value = value
+# Global variable
+thrift_port = 9090
 
-    # Set register entry
-    client.SetRegisterEntry(register_entry)
+# Definitions
+def read_registerAll(register, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="register_read %s" % (register))
+    reg_val = [l for l in stdout.split('\n') if ' %s' % (register) in l][0].split('= ', 1)[1]
+    return reg_val.split(", ")
+
+def read_register(register, idx, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="register_read %s %d" % (register, idx))
+    reg_val = [l for l in stdout.split('\n') if ' %s[%d]' % (register, idx) in l][0].split('= ', 1)[1]
+    return int(reg_val)
+
+def write_register(register, idx, value, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = "register_write %s %d %d" % (register, idx, value)
+    stdout, stderr = p.communicate(input=command.encode('utf-8'))
+    if stderr:
+        print("Error:", stderr.decode('utf-8'))
+    return
+
+def check_link_status(target_ip, iface):
+    # Send ICMP packet to check link status
+    response = srp(Ether()/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
+    
+    # If there is a response, the link is alive
+    if response:
+        return 1  # Link is alive
+    else:
+        return 0  # Link is dead
 
 def main():
-    # Buat koneksi ke switch
-    switch = p4runtime_lib.bmv2.Bmv2SwitchConnection(
-        name='s1',
-        address=SWITCH_ADDRESS,
-        device_id=0
-    )
+    register = "linkstatus"
+    
+    # Define target IPs, their corresponding interfaces, and indices
+    targets = [
+        {"ip": "20.20.20.2", "iface": "ens3", "index": 0},  # First target IP and interface
+        {"ip": "21.21.21.2", "iface": "ens4", "index": 1}   # Second target IP and interface
+    ]
+    
+    start_time = time.time()
 
-    # Connect ke switch
-    switch.MasterArbitrationUpdate()
+    while True:
+        for target in targets:
+            target_ip = target["ip"]
+            iface = target["iface"]
+            index = target["index"]
+            
+            # Check link status
+            link_status = check_link_status(target_ip, iface)
 
-    # Input nilai ke register
-    index = int(input("Masukkan index register yang ingin diatur: "))  # Input index register
-    value = int(input("Masukkan nilai yang ingin diinput ke register: "))  # Input nilai register
+            if link_status == 1:
+                write_register(register, index, 1, thrift_port)
+                print(f"Setting register '{register}' at index '{index}' to value '{1}' for IP {target_ip} on interface {iface}")
+                print("Register value set successfully.")
+            else:
+                write_register(register, index, 0, thrift_port)
+                print(f"Setting register '{register}' at index '{index}' to value '{0}' for IP {target_ip} on interface {iface}")
+                print("Register value set successfully.")
 
-    print(f"Setting register '{REGISTER_NAME}' at index {index} to value {value}")
-    set_register_value(switch, REGISTER_NAME, index, value)
-
-    print("Register value set successfully.")
-
-    # Shutdown all switch connections
-    ShutdownAllSwitchConnections()
+            print(f"Link status to {target_ip} on interface {iface}: {'Hidup' if link_status == 1 else 'Mati'} ({link_status})")
+        
+        time.sleep(1)  # Wait 1 second before sending again
 
 if __name__ == "__main__":
     main()

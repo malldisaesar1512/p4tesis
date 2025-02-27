@@ -81,6 +81,7 @@ struct metadata {
     bit<48> var_macin;
     bit<32> var_ecnstatus;
     bit<48> var_rtt;
+    bit<1> var_linkstatus;
 }
 
 struct headers {
@@ -155,7 +156,7 @@ register<bit<1>>(NUM_PORT) port_status;
 register<bit<9>>(NUM_PORT) portin;
 register<bit<9>>(NUM_PORT) portout;
 register<bit<48>>(NUM_FLOW) mac_list;
-register<bit<9>>(NUM_PORT) linkstatus;
+register<bit<1>>(NUM_PORT) linkstatus;
 
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<48>>(NUM_FLOW) flow_out;
@@ -407,6 +408,7 @@ control MyIngress(inout headers hdr,
             
             gudangrtt.read(meta.var_rtt, (bit<32>)var_flowid);
             cek_enc_status();
+            linkstatus.read(meta.var_linkstatus,0);
             if(meta.var_rtt == 0){
                 gudangrtt.write((bit<32>)var_flowid,0);
                 port_status.write(0, PORT_UP);
@@ -414,7 +416,7 @@ control MyIngress(inout headers hdr,
             else{
                 portin.read(meta.var_portin, (bit<32>)var_flowid);
                 portout.read(var_portout1, (bit<32>)var_flowid);
-                if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3){
+                if(meta.var_rtt >= var_threshold || meta.var_ecnstatus == 3 || meta.var_linkstatus == 0){
                     port_status.read(meta.var_portstatus,0);
                     if(meta.var_portstatus == PORT_DOWN && meta.var_portin == var_portout1){
                         port_status.write(0, PORT_UP);   
