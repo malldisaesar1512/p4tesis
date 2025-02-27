@@ -38,13 +38,9 @@ def write_register(register, idx, value ,thrift_port):
     return
 
 def main():
-    register = "linkstatus"
-
-    index = str(input("Masukkan index register yang ingin diatur: "))  # Input index register
-    value = str(input("Masukkan nilai yang ingin diinput ke register: "))  # Input nilai register
 
     print(f"Setting register '{register}' at index {index} to value {value}")
-    write_register(register, index, value, thrift_port)
+    write_register("linkstatus", 0, 1, thrift_port)
 
     print("Register value set successfully.")
 
