@@ -33,7 +33,7 @@ def read_register(register, idx, thrift_port):
 
 def write_register(register, idx, value ,thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate(input="register_write %s %d %d" % (register, idx, value))
+    stdout, stderr = p.communicate(input="register_write %s %d %d" % (register, idx, value).encode())
     #reg_val = [l for l in stdout.split('\n') if ' %s[%d]' % (register, idx) in l][0].split('= ', 1)[1]
     return
 
