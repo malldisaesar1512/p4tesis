@@ -39,7 +39,7 @@ def write_register(register, idx, value ,thrift_port):
 
 def main():
 
-    print(f"Setting register '{register}' at index {index} to value {value}")
+    print(f"Setting register linkstatus at index 0 to value 1")
     write_register("linkstatus", 0, 1, thrift_port)
 
     print("Register value set successfully.")
