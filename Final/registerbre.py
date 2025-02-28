@@ -57,24 +57,27 @@ def main():
     register = "linkstatus"
     index = 0
     target_ip = "20.20.20.2"  # Ganti dengan IP target yang mau dikirimi hello packet
-    iface = "ens3"  # Ganti dengan nama interface yang mau dipake
+    iface = "ens5"  # Ganti dengan nama interface yang mau dipake
+    prev_linkstatus = -1
     start_time = time.time()
 
     while True:
         # Cek status link
         link_status = check_link_status(target_ip, iface)
-
-        if link_status == 1:
-             write_register(register, index, 1, thrift_port)
-             print(f"Setting register '{register}' at index '{index}' to value '{1}'' ")
-             print("Register value set successfully.")
-        else:
-            write_register(register, index, 0, thrift_port)
-            print(f"Setting register '{register}' at index '{index}' to value '{0}'' ")
-            print("Register value set successfully.")
+        if link_status != prev_linkstatus:
+            if link_status == 1:
+                write_register(register, index, 1, thrift_port)
+                print(f"Setting register '{register}' at index '{index}' to value '{1}'' ")
+                print("Register value set successfully.")
+            else:
+                write_register(register, index, 0, thrift_port)
+                print(f"Setting register '{register}' at index '{index}' to value '{0}'' ")
+                print("Register value set successfully.")
 
         print(f"Link status to {target_ip}: {'Hidup' if link_status == 1 else 'Mati'} ({link_status})")
         
+        prev_linkstatus = link_status
+
         time.sleep(1)  # Tunggu 1 detik sebelum mengirim lagi
 
 if __name__ == "__main__":
