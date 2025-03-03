@@ -333,6 +333,7 @@ control MyIngress(inout headers hdr,
         bit<9> var_portout1;
         bit<48> var_flowmark;
         bit<48> var_threshold;
+        bit<9> var_port;
 
         var_flowid = 0;
         var_threshold = 250000; //refer to ITU-T G.1010
@@ -439,6 +440,7 @@ control MyIngress(inout headers hdr,
             port_status.read(meta.var_portstatus,0);    
             if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
+                var_port=standard_metadata.egress_spec;
                 var_portout1 = 2;
                 portout.write((bit<32>)var_flowid, var_portout1);
                 port_status.write(0, PORT_DOWN);
