@@ -162,6 +162,7 @@ register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<48>>(NUM_FLOW) flow_out;
 register<bit<48>>(NUM_FLOW) flow_in;
 register<bit<32>>(NUM_PORT) enc_status;
+register<bit<9>>(NUM_PORT) port_status1;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
@@ -426,7 +427,7 @@ control MyIngress(inout headers hdr,
                         port_status.write(0, PORT_DOWN);
                     }
                 }
-                if(meta.var_rtt <= var_threshold && meta.var_ecnstatus == 0 && meta.var_linkstatus == 1){
+                if(meta.var_rtt <= var_threshold || meta.var_ecnstatus == 0 || meta.var_linkstatus == 1){
                     port_status.read(meta.var_portstatus,0);
                     if(meta.var_portstatus == PORT_DOWN){
                         port_status.write(0, PORT_DOWN);   
@@ -443,12 +444,15 @@ control MyIngress(inout headers hdr,
                 var_port=standard_metadata.egress_spec;
                 var_portout1 = 2;
                 portout.write((bit<32>)var_flowid, var_portout1);
+                port_status1.write(0, var_port);
                 port_status.write(0, PORT_DOWN);
             }
             else{
                 ipv4_lpm.apply();
+                var_port=standard_metadata.egress_spec;
                 var_portout1 = 1;
                 portout.write((bit<32>)var_flowid, var_portout1);
+                port_status1.write(0, var_port);
                 port_status.write(0, PORT_UP);
             }
         }
