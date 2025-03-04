@@ -45,7 +45,7 @@ def write_register(register, idx, value ,thrift_port):
 
 def check_link_status(srcmac, dstmac, target_ip, iface):
     # Kirim paket ICMP untuk mengecek status link
-    response = sendp(Ether(src=srcmac,dst=dstmac)/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
+    response = srp(Ether(src=srcmac,dst=dstmac)/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
     
     # Jika ada balasan, link hidup
     if response:
