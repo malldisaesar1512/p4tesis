@@ -338,7 +338,6 @@ control MyIngress(inout headers hdr,
 
         var_flowid = 0;
         var_threshold = 250000; //refer to ITU-T G.1010
-        meta.var_linkstatus = 1;
 
 
         if(hdr.ipv4.isValid()){
