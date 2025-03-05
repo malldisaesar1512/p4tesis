@@ -43,9 +43,9 @@ def write_register(register, idx, value ,thrift_port):
 
     return
 
-def check_link_status(srcmac, dstmac, target_ip, iface):
+def check_link_status(srcmac, dstmac, from_ip, target_ip, iface):
     # Kirim paket ICMP untuk mengecek status link
-    response = srp(Ether(src=srcmac,dst=dstmac)/IP(dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
+    response = srp(Ether(src=srcmac,dst=dstmac)/IP(src=from_ip,dst=target_ip)/ICMP(), iface=iface, timeout=1, verbose=False)[0]
     
     # Jika ada balasan, link hidup
     if response:
@@ -58,6 +58,7 @@ def main():
     srcmac = "50:00:00:00:01:00"
     dstmac = "50:00:00:00:02:01"
     index = 0
+    from_ip = "11.11.11.1"
     target_ip = "20.20.20.2"  # Ganti dengan IP target yang mau dikirimi hello packet
     iface = "ens5"  # Ganti dengan nama interface yang mau dipake
     prev_linkstatus = -1
@@ -65,7 +66,7 @@ def main():
 
     while True:
         # Cek status link
-        link_status = check_link_status(srcmac, dstmac, target_ip, iface)
+        link_status = check_link_status(srcmac, dstmac, from_ip, target_ip, iface)
         if link_status != prev_linkstatus:
             if link_status == 1:
                 write_register(register, index, 1, thrift_port)
