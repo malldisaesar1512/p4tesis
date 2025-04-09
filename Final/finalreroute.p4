@@ -6,7 +6,7 @@ const bit<16> TYPE_IPV4 = 0x800;
 const bit<8>  TYPE_TCP  = 6;
 const bit<8>  TYPE_UDP  = 17;
 const bit<8>  TYPE_ICMP  = 1;
-const bit<8> TYPE_OSFP = 89;
+// const bit<8> TYPE_OSFP = 89;
 
 const bit<1> PORT_DOWN = 0;
 const bit<1> PORT_UP = 1;
@@ -420,10 +420,10 @@ control MyIngress(inout headers hdr,
                 portout.read(var_portout1, (bit<32>)var_flowid);
                 if((meta.var_rtt >= var_threshold) || (meta.var_ecnstatus == 3) || (meta.var_linkstatus == 0)){
                     port_status.read(meta.var_portstatus,0);
-                    if((meta.var_portstatus == PORT_DOWN) && (meta.var_portin == var_portout1)){
+                    if((meta.var_portstatus == PORT_DOWN) && (meta.var_linkstatus == 1)){
                         port_status.write(0, PORT_UP);   
                     }
-                    if((meta.var_portstatus == PORT_UP) && (meta.var_portin == var_portout1)){
+                    if((meta.var_portstatus == PORT_UP) && (meta.var_linkstatus == 0)){
                         port_status.write(0, PORT_DOWN);
                     }
                 }
@@ -441,18 +441,14 @@ control MyIngress(inout headers hdr,
             port_status.read(meta.var_portstatus,0);    
             if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
-                var_port=standard_metadata.egress_spec;
                 var_portout1 = 2;
                 portout.write((bit<32>)var_flowid, var_portout1);
-                port_status1.write(0, var_port);
                 port_status.write(0, PORT_DOWN);
             }
             else{
                 ipv4_lpm.apply();
-                var_port=standard_metadata.egress_spec;
                 var_portout1 = 1;
                 portout.write((bit<32>)var_flowid, var_portout1);
-                port_status1.write(0, var_port);
                 port_status.write(0, PORT_UP);
             }
         }
