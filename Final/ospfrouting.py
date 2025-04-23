@@ -78,10 +78,10 @@ def main():
    print("Mulai menangkap trafik Mikrotik's OSPF...")
    
    def process_packet(pkt):
-      if IP in pkt and pkt[IP].proto==89 and pkt.haslayer(ospo.OSPF):
+      if IP in pkt and pkt[IP].proto==89 and pkt.haslayer(ospf.OSPF):
           parse_ospf_packet(pkt)
 
-          if pkt[ospo.OSPF].type==1:
+          if pkt[ospf.OSPF].type==1:
               send_hello_packet(iface=iface)
 
    sniff(filter="ip proto 89", prn=process_packet, iface=iface)
