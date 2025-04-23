@@ -15,7 +15,7 @@ def create_ospf_hello_packet(dst_ip):
         area=AREA_ID,
         type=1,  # Hello packet
     )/OSPF_Hello(
-        networkmask="255.255.255.0",
+        mask="255.255.255.0",
         hellointerval=HELLO_INTERVAL,
         options=[],  # Tambahkan opsi jika diperlukan
     )
