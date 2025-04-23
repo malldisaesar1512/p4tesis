@@ -18,11 +18,7 @@ lsr_packets_received = []
 lsu_routes_received = []
 
 def parse_ospf_packet(pkt):
-    """
-    Fungsi untuk memproses paket OSPF yang diterima,
-    lalu menyimpan informasi penting ke variabel sesuai tipe paketan.
-    """
-    ospf_layer = pkt.getlayer(OSPF)
+    ospf_layer = pkt.getlayer(ospf.OSPF)   # <-- pakai ospf.OSPF
     
     if not ospf_layer:
         return None
@@ -30,8 +26,7 @@ def parse_ospf_packet(pkt):
     pkt_type = ospf_layer.type
     
     if pkt_type == OSPF_HELLO:
-        # Ambil info dasar dari Hello Packet seperti Router ID dan Area ID
-        hello_info = {
+        hello_info={
             "router_id": ospf_layer.routerid,
             "area_id": ospf_layer.area,
             "hello_interval": getattr(ospf_layer, 'hellointerval', None),
@@ -40,13 +35,10 @@ def parse_ospf_packet(pkt):
         print(f"[INFO] Menerima Paket HELLO: {hello_info}")
         hello_packets_received.append(hello_info)
         
-        # Di sini bisa ditambahkan logika balas Hello jika perlu
-        
     elif pkt_type == OSPF_DBD:
-        dbd_info = {
+        dbd_info={
             "seq_num": getattr(ospf_layer, 'seqnum', None),
             "flags": getattr(ospf_layer, 'flags', None),
-            # Bisa ditambah field lain sesuai kebutuhan...
         }
         print(f"[INFO] Menerima Paket DBD: {dbd_info}")
         dbd_packets_received.append(dbd_info)
@@ -63,17 +55,14 @@ def parse_ospf_packet(pkt):
          lsu_routes_received.append(lsu_data)
 
 def send_hello_packet(dst_ip="224.0.0.5", iface="ens5"):
-     """
-     Fungsi membuat dan mengirimkan paket Hello ke alamat multicast atau neighbor tertentu.
-     """
-     src_ip=get_if_addr(iface)   # Mendapatkan IP interface lokal
+     src_ip=get_if_addr(iface)
    
-     ether=Ether(dst="01:00:5e:00:00:05")   # MAC multicast grup All SPF routers   
+     ether=Ether(dst="01:00:5e:00:00:05")   
      
-     ip_pkt=IP(src=src_ip,dst=dst_ip,proto=89)   # Proto 89 adalah protokol untuk OSPF
+     ip_pkt=IP(src=src_ip,dst=dst_ip,proto=89)  
       
      hello_pkt=(ether/ip_pkt/
-                OSPF(
+                ospo.OSPF(
                     type=1,
                     routerid=src_ip,
                     area='0.0.0.0',
@@ -85,17 +74,14 @@ def send_hello_packet(dst_ip="224.0.0.5", iface="ens5"):
      sendp(hello_pkt,iface=iface)
      
 def main():
-    
-   iface="ens5"   # Ganti sesuai nama interface di komputer/laptop Anda
-   
+   iface="ens5"
    print("Mulai menangkap trafik Mikrotik's OSPF...")
    
    def process_packet(pkt):
-      if IP in pkt and pkt[IP].proto==89 and pkt.haslayer(OSPF):
+      if IP in pkt and pkt[IP].proto==89 and pkt.haslayer(ospo.OSPF):
           parse_ospf_packet(pkt)
 
-          # Contoh sederhana balas hanya saat menerima HELLO          
-          if pkt[OSPF].type==1:
+          if pkt[ospo.OSPF].type==1:
               send_hello_packet(iface=iface)
 
    sniff(filter="ip proto 89", prn=process_packet, iface=iface)
