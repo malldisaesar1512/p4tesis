@@ -1,6 +1,8 @@
 from scapy.all import *
 from scapy.layers.inet import IP
 from scapy.layers.l2 import Ether
+from scapy.contrib import ospf
+
 
 # Konstanta tipe paket OSPF
 OSPF_HELLO = 1
@@ -60,7 +62,7 @@ def parse_ospf_packet(pkt):
          print(f"[INFO] Menerima Paket LSU dengan panjang payload: {len(lsu_data)} bytes")
          lsu_routes_received.append(lsu_data)
 
-def send_hello_packet(dst_ip="224.0.0.5", iface="eth0"):
+def send_hello_packet(dst_ip="224.0.0.5", iface="ens5"):
      """
      Fungsi membuat dan mengirimkan paket Hello ke alamat multicast atau neighbor tertentu.
      """
@@ -84,7 +86,7 @@ def send_hello_packet(dst_ip="224.0.0.5", iface="eth0"):
      
 def main():
     
-   iface="eth0"   # Ganti sesuai nama interface di komputer/laptop Anda
+   iface="ens5"   # Ganti sesuai nama interface di komputer/laptop Anda
    
    print("Mulai menangkap trafik Mikrotik's OSPF...")
    
