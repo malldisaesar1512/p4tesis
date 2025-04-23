@@ -98,7 +98,7 @@ def main():
           if pkt[OSPF].type==1:
               send_hello_packet(iface=iface)
 
-   sniff(filter="ip proto \89", prn=process_packet, iface=iface)
+   sniff(filter="ip proto 89", prn=process_packet, iface=iface)
 
 
 if __name__=="__main__":
