@@ -62,7 +62,7 @@ def send_hello_packet(dst_ip="224.0.0.5", iface="ens5"):
      ip_pkt=IP(src=src_ip,dst=dst_ip,proto=89)  
       
      hello_pkt=(ether/ip_pkt/
-                ospo.OSPF(
+                ospf.OSPF(
                     type=1,
                     routerid=src_ip,
                     area='0.0.0.0',
