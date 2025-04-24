@@ -23,7 +23,7 @@ def create_ospf_hello_packet(dst_ip):
     )/OSPF_Hello(
         mask=NETWORK_MASK,
         hellointerval=HELLO_INTERVAL,
-        options=[E_Router_LSA()]  # opsi router LSA dasar; bisa disesuaikan jika perlu 
+        options=[]  # opsi router LSA dasar; bisa disesuaikan jika perlu 
     )
     return pkt
 
