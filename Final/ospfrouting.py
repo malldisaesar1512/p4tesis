@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+from ensurepip import version
+from enum import Flag
 import time
 from collections import defaultdict
+from tkinter import E
 from scapy.all import *
 from scapy.contrib.ospf import *
 
@@ -17,13 +20,17 @@ NEIGHBORS_DB = set()
 def create_ospf_hello_packet(dst_ip):
     """Membuat paket Hello OSPF"""
     pkt = IP(dst=dst_ip)/OSPF_Hdr(
+        version=2,  # Versi OSPF
+        authtype=0,  # Tipe otentikasi (0 untuk tidak ada)
         src=ROUTER_ID,
         area=AREA_ID,
         type=1  # Hello Packet type
     )/OSPF_Hello(
         mask=NETWORK_MASK,
         hellointerval=HELLO_INTERVAL,
-        options=[]  # opsi router LSA dasar; bisa disesuaikan jika perlu 
+        options=2,  # opsi router LSA dasar; bisa disesuaikan jika perlu 
+        prio=128,  # Prioritas router
+        deadinterval=4 * HELLO_INTERVAL,  # Interval mati (dead interval)
     )
     return pkt
 
