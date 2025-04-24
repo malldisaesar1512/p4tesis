@@ -104,7 +104,7 @@ def process_hello(packet):
       NEIGHBORS_DB.add(router_srcid)  # Simpan neighbor
       
       replypkt=create_ospf_hello_packet(packet[IP].src)      
-      send(replypkt,v erbose=False )
+      send(replypkt,verbose=False )
       
       print(f"[Hello] Balasan dikirim ke router ID: {router_srcid}")
 
