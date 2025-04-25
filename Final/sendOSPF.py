@@ -4,6 +4,7 @@ import time
 
 # Konfigurasi parameter OSPF
 router_id = "10.10.1.2"  # Router ID
+router_id2 = "192.168.1.1" # Router ID 2
 area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 
@@ -53,12 +54,35 @@ def send_ospf_dbd(neighbor_router_ip):
         eth /
         ip_dbd /
         ospf_hdr_dbd /
-        OSPF_DBD(
+        OSPF_DBDesc(
             options=0x02,
             iface_mtu=1500,
-            flags='I',   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
-            seqnum=random.randint(10000,50000),
-            lsas=[]
+            flags='IMMS',   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
+            ddseq=random.randint(10000,50000)
+        ) /
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=1,  # Router LSA
+            id=router_id,
+            adrouter=router_id,
+            seq=0x80000123  # Sequence number
+        ) /
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=1,  # Network LSA
+            id=router_id2,
+            adrouter=router_id2,
+            seq=0x80000124  # Sequence number
+        ) /
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=2,  # Summary LSA
+            id=router_id2,
+            adrouter=router_id,
+            seq=0x80000125  # Sequence number
         )
      )
     
