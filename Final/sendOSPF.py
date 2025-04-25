@@ -56,7 +56,7 @@ def send_ospf_dbd(neighbor_router_ip):
         ospf_hdr_dbd /
         OSPF_DBDesc(
             options=0x02,
-            iface_mtu=1500,
+            mtu=1500,
             flags='IMMS',   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
             ddseq=random.randint(10000,50000)
         ) /
