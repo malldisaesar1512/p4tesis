@@ -1,5 +1,6 @@
 from scapy.all import *
 from scapy.contrib.ospf import *
+import time
 
 # Konfigurasi parameter OSPF
 router_id = "10.10.1.2"  # Router ID
@@ -30,5 +31,12 @@ ospf_hello = OSPF_Hello(
 # Menggabungkan semua layer menjadi satu paket lengkap
 ospf_packet = eth / ip / ospf_header / ospf_hello
 
-# Mengirimkan paket menggunakan sendp() pada interface yang ditentukan
-sendp(ospf_packet, iface=interface, verbose=1)
+# Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
+def send_ospf_hello_periodically(interval):
+    while True:
+        sendp(ospf_packet, iface=interface, verbose=1)
+        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        time.sleep(interval)
+
+# Mengirim paket OSPF Hello setiap 10 detik
+send_ospf_hello_periodically(10)
