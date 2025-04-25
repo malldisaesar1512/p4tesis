@@ -38,5 +38,67 @@ def send_ospf_hello_periodically(interval):
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         time.sleep(interval)
 
-# Mengirim paket OSPF Hello setiap 10 detik
-send_ospf_hello_periodically(10)
+def send_ospf_dbd(neighbor_router_ip):
+    """Kirim paket Database Description (DBD) ke neighbor"""
+    
+    # Header IP unicast ke neighbor router IP (asumsi router_ip adalah alamat source dari neighbor)
+    ip_dbd = IP(src=router_id, dst=str(neighbor_router_ip))
+    
+    # Header OSPF tipe 2: Database Description Packet 
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id, area=area_id)
+    
+    # Buat DBD packet dengan flag Init bit set (bit kedua), seq number awal misal 1.
+    
+    ospf_dbd_pkt = (
+        eth /
+        ip_dbd /
+        ospf_hdr_dbd /
+        OSPF_DBD(
+            options=0x02,
+            iface_mtu=1500,
+            flags='I',   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
+            seqnum=random.randint(10000,50000),
+            lsas=[]
+        )
+     )
+    
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip}")
+    sendp(ospf_dbd_pkt , iface=interface , verbose=True)
+
+
+def handle_incoming_packet(packet):
+   if not packet.haslayer(OSPF_Hdr):
+       return
+   
+   ospfhdr_layer = packet.getlayer(OSPF_Hdr)
+   
+   if ospfhdr_layer.type == 1:  
+       # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
+       src_ip_of_neighbor = packet[IP].src  
+       print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
+       
+       try:
+           send_ospf_dbd(src_ip_of_neighbor)
+       except Exception as e:
+           print(f"Error sending DBD: {e}")
+
+def sniff_packets():
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
+
+
+if __name__ == "__main__":
+   
+   hello_thread = threading.Thread(target=lambda : send_ospf_hello_periodically(10))
+   hello_thread.daemon=True
+   hello_thread.start()
+   
+   recv_thread = threading.Thread(target=lambda : sniff_packets())
+   recv_thread.daemon=True
+   recv_thread.start()
+   
+   try:
+      while True:
+          time.sleep(1)
+          
+   except KeyboardInterrupt:
+      print("Program terminated by user.")
