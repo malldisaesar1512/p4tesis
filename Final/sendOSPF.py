@@ -1,3 +1,4 @@
+from Final.ospfrouting import HELLO_INTERVAL
 from scapy.all import *
 from scapy.contrib.ospf import *
 
@@ -18,12 +19,12 @@ ospf_header = OSPF_Hdr(version=2, type=1, src=router_id, area=area_id)
 # Membuat paket OSPF Hello dengan parameter standar
 ospf_hello = OSPF_Hello(
     mask="255.255.255.0",
-    helloint=10,
+    HELLO_INTERVAL=10,
     options=0x02,
     priority=128,
-    deadint=40,
-    desig_rtr="10.10.1.2",
-    backup_rtr="0.0.0.0",
+    deadinterval=40,
+    router="10.10.1.2",
+    backup="0.0.0.0",
     neighbors=[]
 )
 
