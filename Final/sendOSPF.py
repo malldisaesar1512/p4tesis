@@ -1,4 +1,5 @@
 from scapy.all import *
+load_contrib('ospf')
 
 # Konfigurasi parameter OSPF
 router_id = "10.10.1.2"  # Router ID
