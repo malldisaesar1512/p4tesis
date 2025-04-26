@@ -106,7 +106,7 @@ def handle_incoming_packet(packet):
    if ospfhdr_layer.type == 1: # Hello Packet
        # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
        src_ip_of_neighbor = packet[IP].src
-
+       ospf_hello.neighbors = [src_ip_of_neighbor]  # Simpan neighbor router IP
        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
        
        try:
