@@ -35,7 +35,8 @@ ospf_packet = eth / ip / ospf_header / ospf_hello
 
 # Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
 def send_ospf_hello_periodically(interval):
-    while i == 0:
+    i = 0
+    while i==0:
         sendp(ospf_packet, iface=interface, verbose=1)
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         i = i + 1
