@@ -27,7 +27,7 @@ ospf_hello = OSPF_Hello(
     deadinterval=40,
     router=router_id,
     backup="0.0.0.0",
-    neighbors="10.10.1.1"
+    neighbors=[]
 )
 
 # Menggabungkan semua layer menjadi satu paket lengkap
@@ -41,6 +41,10 @@ def send_ospf_hello_periodically(interval):
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         i = i + 1
         time.sleep(interval)
+
+def send_ospf_2way():
+    sendp(ospf_packet, iface=interface, verbose=1)
+    print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 def send_ospf_dbd(neighbor_router_ip):
     """Kirim paket Database Description (DBD) ke neighbor"""
@@ -101,10 +105,12 @@ def handle_incoming_packet(packet):
    
    if ospfhdr_layer.type == 1: # Hello Packet
        # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
-       src_ip_of_neighbor = packet[IP].src  
+       src_ip_of_neighbor = packet[IP].src
+
        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
        
        try:
+           send_ospf_2way()           # Kirim DBD ke neighbor router IP
            send_ospf_dbd(src_ip_of_neighbor)
        except Exception as e:
            print(f"Error sending DBD: {e}")
