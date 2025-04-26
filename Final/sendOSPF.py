@@ -26,7 +26,7 @@ ospf_hello = OSPF_Hello(
     deadinterval=40,
     router=router_id,
     backup="0.0.0.0",
-    neighbors=[]
+    neighbors="10.10.1.1"
 )
 
 # Menggabungkan semua layer menjadi satu paket lengkap
