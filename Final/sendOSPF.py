@@ -7,6 +7,7 @@ router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.1" # Router ID 2
 area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
+i = 0
 
 # Membuat paket Ethernet
 eth = Ether()
@@ -34,9 +35,10 @@ ospf_packet = eth / ip / ospf_header / ospf_hello
 
 # Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
 def send_ospf_hello_periodically(interval):
-    while True:
+    while i == 0:
         sendp(ospf_packet, iface=interface, verbose=1)
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        i = i + 1
         time.sleep(interval)
 
 def send_ospf_dbd(neighbor_router_ip):
