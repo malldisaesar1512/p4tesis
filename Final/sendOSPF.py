@@ -9,7 +9,7 @@ area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 
 # Membuat paket Ethernet
-# eth = Ether()
+eth = Ether()
 
 # Membuat paket IP dengan destination multicast address OSPF (224.0.0.5)
 ip = IP(src=router_id, dst="224.0.0.5")
@@ -24,12 +24,12 @@ ospf_hello = OSPF_Hello(
     options=0x02,
     prio=128,
     deadinterval=40,
-    router="10.10.1.2",
+    router=router_id,
     backup="0.0.0.0"
 )
 
 # Menggabungkan semua layer menjadi satu paket lengkap
-ospf_packet = ip / ospf_header / ospf_hello
+ospf_packet = eth / ip / ospf_header / ospf_hello
 
 # Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
 def send_ospf_hello_periodically(interval):
@@ -50,6 +50,7 @@ def send_ospf_dbd(neighbor_router_ip):
     # Buat DBD packet dengan flag Init bit set (bit kedua), seq number awal misal 1.
     
     ospf_dbd_pkt = (
+        eth /
         ip_dbd /
         ospf_hdr_dbd /
         OSPF_DBDesc(
