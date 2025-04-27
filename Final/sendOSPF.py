@@ -201,7 +201,7 @@ def handle_incoming_packet(packet):
         elif neighbor_state == "ExStart":
             if "MS" in dbd_layer.dbdescr:
                 if master:
-                    if src_ip_of_neighbor == neighbor_ip:
+                    if src_ip_of_neighbor == '10.10.1.1':
                         if dbd_layer.ddseq == dbd_seq_num:
                             neighbor_state = "Exchange"
                             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
@@ -212,7 +212,7 @@ def handle_incoming_packet(packet):
                     else:
                         return
                 else:
-                    if src_ip_of_neighbor == neighbor_ip:
+                    if src_ip_of_neighbor == '10.10.1.1':
                         if dbd_layer.ddseq == dbd_seq_num_neighbor:
                             neighbor_state = "Exchange"
                             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
