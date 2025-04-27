@@ -223,8 +223,9 @@ def handle_incoming_packet(packet):
                     else:
                         return
 
-def sniff_packets():
+def sniff_packets(interval):
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
+   time.sleep(interval)
 
 
 if __name__ == "__main__":
@@ -233,7 +234,7 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets())
+   recv_thread = threading.Thread(target=lambda : sniff_packets(1))
    recv_thread.daemon=True
    recv_thread.start()
    
