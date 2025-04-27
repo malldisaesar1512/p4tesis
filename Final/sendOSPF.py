@@ -123,6 +123,10 @@ def handle_incoming_packet(packet):
             neighbor_state = "2-Way"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
             ospf_hello.neighbors = [src_ip_of_neighbor]
+            print(f" {ospf_hello.neighbors}")
+            sendp(ospf_packet, iface=interface, verbose=0)
+            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+
     #    try:
     #        send_ospf_2way()           # Kirim DBD ke neighbor router IP
     #        send_ospf_dbd(src_ip_of_neighbor)
