@@ -28,7 +28,7 @@ ospf_hello = OSPF_Hello(
     deadinterval=40,
     router=router_id,
     backup="0.0.0.0",
-    neighbors=['10.10.1.1']
+    neighbors=[]
 )
 
 # Menggabungkan semua layer menjadi satu paket lengkap
@@ -122,8 +122,8 @@ def handle_incoming_packet(packet):
        if neighbor_state == "Init":
             neighbor_state = "2-Way"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
-            ospf_hello.neighbors = [src_ip_of_neighbor]
-            print(f" {ospf_hello}")
+            ospf_hello.OSPF_Hello.neighbors = [src_ip_of_neighbor]
+            print(f" {ospf_hello.OSPF_Hello.neighbors}")
             sendp(ospf_packet, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
