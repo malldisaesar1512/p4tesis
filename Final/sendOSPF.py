@@ -177,14 +177,17 @@ def handle_incoming_packet(packet):
         if neighbor_state == "2-Way":
             if "I" in dbd_layer.dbdescr:
                 if "MS" in dbd_layer.dbdescr and src_ip_of_neighbor == neighbor_ip:
-                    master = True
-                    neighbor_state = "ExStart"
-                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
-                    dbd_seq_num_neighbor = dbd_layer.ddseq
-                    if src_ip_of_neighbor == '10.10.1.2':
-                        send_ospf_dbd_first(neighbor_ip, ["MS"], dbd_seq_num)
+                    if src_ip_of_neighbor == neighbor_ip:
+                        master = True
+                        neighbor_state = "ExStart"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
+                        dbd_seq_num_neighbor = dbd_layer.ddseq
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd_first(neighbor_ip, ["MS"], dbd_seq_num)
+                        else:
+                            send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num)
                     else:
-                        send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num)
+                        return
                 else:
                     master = False
                     neighbor_state = "ExStart"
