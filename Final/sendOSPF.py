@@ -115,7 +115,7 @@ def send_ospf_dbd(neighbor_router_ip):
         OSPF_DBDesc(
             options=0x02,
             mtu=1500,
-            dbdescr=["M"],   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
+            dbdescr=["MS"],   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
             ddseq=random.randint(10000,50000)
         ) /
         OSPF_LSA_Hdr(
