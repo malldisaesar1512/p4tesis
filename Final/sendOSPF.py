@@ -8,6 +8,7 @@ router_id2 = "192.168.1.1" # Router ID 2
 area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 neighbor_state = "Init"
+neighbor_ip = "10.10.1.1"
 
 # Membuat paket Ethernet
 eth = Ether()
