@@ -1,6 +1,8 @@
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
+import threading
+import random
 
 # Konfigurasi parameter OSPF
 router_id = "10.10.1.2"  # Router ID
@@ -9,6 +11,9 @@ area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 neighbor_state = "Init"
 neighbor_ip = "10.10.1.1"
+dbd_seq_num = random.randint(10000, 50000)
+dbd_seq_num_neighbor = None
+master = False
 
 # Membuat paket Ethernet
 eth = Ether()
@@ -52,9 +57,10 @@ def send_ospf_hello_periodically(interval):
     while True:
         if neighbor_state == "Init":
             ospf_hello.neighbors = []
+            sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "2-Way":
             ospf_hello.neighbors = [neighbor_ip]
-        sendp(ospf_packet, iface=interface, verbose=0)
+            sendp(ospf_packet2, iface=interface, verbose=0)
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
     # while i==0:
@@ -67,6 +73,30 @@ def send_ospf_2way():
     sendp(ospf_packet, iface=interface, verbose=1)
     print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
+def send_ospf_dbd_first(neighbor_ip, flags, seq_num):
+    """Kirim paket Database Description (DBD) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
+    ip_dbd = IP(src=router_id, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 2: Database Description Packet
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id, area=area_id)
+    
+    # Buat DBD packet dengan flag dan sequence number yang diberikan
+    ospf_dbd_pkt1 = (
+        eth /
+        ip_dbd /
+        ospf_hdr_dbd /
+        OSPF_DBDesc(
+            options=0x02,
+            mtu=1500,
+            dbdescr=flags,
+            ddseq=seq_num
+        )
+    )
+    
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_ip} - Flags: {flags}, Seq: {seq_num}")
+    sendp(ospf_dbd_pkt1, iface=interface, verbose=0)
+
 def send_ospf_dbd(neighbor_router_ip):
     """Kirim paket Database Description (DBD) ke neighbor"""
     
@@ -78,14 +108,14 @@ def send_ospf_dbd(neighbor_router_ip):
     
     # Buat DBD packet dengan flag Init bit set (bit kedua), seq number awal misal 1.
     
-    ospf_dbd_pkt = (
+    ospf_dbd_pkt2 = (
         eth /
         ip_dbd /
         ospf_hdr_dbd /
         OSPF_DBDesc(
             options=0x02,
             mtu=1500,
-            dbdescr=["I","M","MS"],   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
+            dbdescr=["M"],   # 'I' berarti Init bit set; bisa juga angka: flags=(1 << 1) == 2 
             ddseq=random.randint(10000,50000)
         ) /
         OSPF_LSA_Hdr(
@@ -115,11 +145,11 @@ def send_ospf_dbd(neighbor_router_ip):
      )
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip}")
-    sendp(ospf_dbd_pkt , iface=interface , verbose=True)
+    sendp(ospf_dbd_pkt2 , iface=interface , verbose=True)
 
 
 def handle_incoming_packet(packet):
-   global neighbor_state, neighbor_ip
+   global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
 
    if not packet.haslayer(OSPF_Hdr):
        return
@@ -138,12 +168,39 @@ def handle_incoming_packet(packet):
             print(f" {ospf_hello.neighbors}")
             sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M"], dbd_seq_num)
 
-    #    try:
-    #        send_ospf_2way()           # Kirim DBD ke neighbor router IP
-    #        send_ospf_dbd(src_ip_of_neighbor)
-    #    except Exception as e:
-    #        print(f"Error sending DBD: {e}")
+   elif ospfhdr_layer.type == 2:  # DBD Packet
+        dbd_layer = packet.getlayer(OSPF_DBDesc)
+        src_ip_of_neighbor = packet[IP].src
+        
+        if neighbor_state == "2-Way":
+            if "I" in dbd_layer.dbdescr:
+                if "MS" in dbd_layer.dbdescr:
+                    master = True
+                    neighbor_state = "ExStart"
+                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
+                    dbd_seq_num_neighbor = dbd_layer.ddseq
+                    send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num)
+                else:
+                    master = False
+                    neighbor_state = "ExStart"
+                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Slave)")
+                    dbd_seq_num_neighbor = dbd_layer.ddseq
+                    send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num)
+        
+        elif neighbor_state == "ExStart":
+            if "MS" in dbd_layer.dbdescr:
+                if master:
+                    if dbd_layer.ddseq == dbd_seq_num:
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
+                        send_ospf_dbd(src_ip_of_neighbor)
+                else:
+                    if dbd_layer.ddseq == dbd_seq_num_neighbor:
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
+                        send_ospf_dbd(src_ip_of_neighbor)
 
 def sniff_packets():
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
