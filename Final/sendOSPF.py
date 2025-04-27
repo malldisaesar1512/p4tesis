@@ -201,12 +201,18 @@ def handle_incoming_packet(packet):
                     if dbd_layer.ddseq == dbd_seq_num:
                         neighbor_state = "Exchange"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
-                        send_ospf_dbd(src_ip_of_neighbor)
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
                 else:
                     if dbd_layer.ddseq == dbd_seq_num_neighbor:
                         neighbor_state = "Exchange"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
-                        send_ospf_dbd(src_ip_of_neighbor)
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
 
 def sniff_packets():
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
