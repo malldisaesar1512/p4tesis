@@ -118,7 +118,7 @@ def handle_incoming_packet(packet):
        # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
        src_ip_of_neighbor = packet[IP].src
     #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
-       print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
+    #    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
        if neighbor_state == "Init":
             neighbor_state = "2-Way"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
