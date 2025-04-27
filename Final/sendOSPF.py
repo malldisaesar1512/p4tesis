@@ -7,7 +7,7 @@ router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.1" # Router ID 2
 area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
-i = 0
+neighbor_state = "Init"
 
 # Membuat paket Ethernet
 eth = Ether()
@@ -35,12 +35,20 @@ ospf_packet = eth / ip / ospf_header / ospf_hello
 
 # Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
 def send_ospf_hello_periodically(interval):
-    i = 0
-    while i==0:
-        sendp(ospf_packet, iface=interface, verbose=1)
-        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        i = i + 1
+    global neighbor_state
+    while True:
+        if neighbor_state == "Init":
+            ospf_hello.neighbors = []
+        elif neighbor_state == "2-Way":
+            ospf_hello.neighbors = [neighbor_ip]
+        sendp(ospf_packet, iface=interface, verbose=0)
+        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
+    # while i==0:
+    #     sendp(ospf_packet, iface=interface, verbose=1)
+    #     print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    #     i = i + 1
+    #     time.sleep(interval)
 
 def send_ospf_2way():
     sendp(ospf_packet, iface=interface, verbose=1)
@@ -98,6 +106,8 @@ def send_ospf_dbd(neighbor_router_ip):
 
 
 def handle_incoming_packet(packet):
+   global neighbor_state
+
    if not packet.haslayer(OSPF_Hdr):
        return
    
@@ -106,14 +116,17 @@ def handle_incoming_packet(packet):
    if ospfhdr_layer.type == 1: # Hello Packet
        # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
        src_ip_of_neighbor = packet[IP].src
-       ospf_hello.neighbors = [src_ip_of_neighbor]  # Simpan neighbor router IP
+    #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
-       
-       try:
-           send_ospf_2way()           # Kirim DBD ke neighbor router IP
-           send_ospf_dbd(src_ip_of_neighbor)
-       except Exception as e:
-           print(f"Error sending DBD: {e}")
+       if neighbor_state == "Init":
+            neighbor_state = "2-Way"
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
+            ospf_hello.neighbors = [src_ip_of_neighbor]
+    #    try:
+    #        send_ospf_2way()           # Kirim DBD ke neighbor router IP
+    #        send_ospf_dbd(src_ip_of_neighbor)
+    #    except Exception as e:
+    #        print(f"Error sending DBD: {e}")
 
 def sniff_packets():
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
