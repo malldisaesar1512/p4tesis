@@ -168,7 +168,7 @@ def handle_incoming_packet(packet):
             print(f" {ospf_hello.neighbors}")
             sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M"], dbd_seq_num)
+            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
 
    elif ospfhdr_layer.type == 2:  # DBD Packet
         dbd_layer = packet.getlayer(OSPF_DBDesc)
@@ -176,7 +176,7 @@ def handle_incoming_packet(packet):
         
         if neighbor_state == "2-Way":
             if "I" in dbd_layer.dbdescr:
-                if "MS" in dbd_layer.dbdescr:
+                if "MS" in dbd_layer.dbdescr and src_ip_of_neighbor == neighbor_ip:
                     master = True
                     neighbor_state = "ExStart"
                     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
@@ -196,7 +196,7 @@ def handle_incoming_packet(packet):
                         send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num)
         
         elif neighbor_state == "ExStart":
-            if "MS" in dbd_layer.dbdescr:
+            if "MS" in dbd_layer.dbdescr and src_ip_of_neighbor == neighbor_ip:
                 if master:
                     if dbd_layer.ddseq == dbd_seq_num:
                         neighbor_state = "Exchange"
