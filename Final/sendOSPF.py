@@ -170,7 +170,7 @@ def send_ospf_lsr(neighbor_ip):
         ) /
         OSPF_LSReq_Item(
             type=2,
-            id="10.10.2.2",
+            lsid="10.10.2.2",
             adrouter="10.10.2.1"
         )
     )
