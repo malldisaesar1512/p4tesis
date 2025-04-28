@@ -167,6 +167,8 @@ def send_ospf_lsr(neighbor_ip, lsr_type, lsr_id, lsr_adv_router):
         ip_lsr /
         ospf_hdr_lsr /
         OSPF_LSReq(
+        ) /
+        OSPF_LSReq_Item(
             type=lsr_type,
             id=lsr_id,
             adrouter=lsr_adv_router
