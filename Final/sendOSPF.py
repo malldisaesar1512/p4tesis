@@ -214,25 +214,22 @@ def handle_incoming_packet(packet):
                 if master:
                     if src_ip_of_neighbor == '10.10.1.1':
                         print(f"Jalan broo 2...")
-                        if dbd_layer.ddseq == dbd_seq_num:
-                            print(f"Jalan broo 3...")
-                            neighbor_state = "Exchange"
-                            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
-                            if src_ip_of_neighbor == '10.10.1.2':
-                                send_ospf_dbd(neighbor_ip)
-                            else:
-                                send_ospf_dbd(src_ip_of_neighbor)
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
                     else:
                         return
                 else:
                     if src_ip_of_neighbor == '10.10.1.1':
-                        if dbd_layer.ddseq == dbd_seq_num_neighbor:
-                            neighbor_state = "Exchange"
-                            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
-                            if src_ip_of_neighbor == '10.10.1.2':
-                                send_ospf_dbd(neighbor_ip)
-                            else:
-                                send_ospf_dbd(src_ip_of_neighbor)
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
                     else:
                         return
 
