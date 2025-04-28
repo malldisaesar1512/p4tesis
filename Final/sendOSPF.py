@@ -22,7 +22,7 @@ eth = Ether()
 ip = IP(src=router_id, dst="224.0.0.5")
 
 # Membuat header OSPF (versi 2, tipe 1=Hello)
-ospf_header = OSPF_Hdr(version=2, type=1, src=router_id, area=area_id)
+ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
 # Membuat paket OSPF Hello dengan parameter standar
 ospf_hello = OSPF_Hello(
