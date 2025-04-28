@@ -258,7 +258,7 @@ def handle_incoming_packet(packet):
                 if src_ip_of_neighbor == '10.10.1.1':
                     neighbor_state = "Loading"
                     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Loading")
-                    send_ospf_lsr(src_ip_of_neighbor, 2, "10.10.2.2", "10.10.2.1")
+                    send_ospf_lsr(src_ip_of_neighbor, 2, '10.10.2.2', '10.10.2.1')
 
    elif ospfhdr_layer.type == 3:  # LSR Packet
         lsr_layer = packet.getlayer(OSPF_LSReq)
