@@ -153,7 +153,7 @@ def send_ospf_dbd(neighbor_router_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: M+MS ({flag_value}), Seq: {seq_num}")
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
-def send_ospf_lsr(neighbor_ip, lsr_type, lsr_id, lsr_adv_router):
+def send_ospf_lsr(neighbor_ip):
     """Kirim paket Link State Request (LSR) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsr = IP(src=router_id, dst=str(neighbor_ip))
@@ -169,9 +169,9 @@ def send_ospf_lsr(neighbor_ip, lsr_type, lsr_id, lsr_adv_router):
         OSPF_LSReq(
         ) /
         OSPF_LSReq_Item(
-            type=lsr_type,
-            id=lsr_id,
-            adrouter=lsr_adv_router
+            type=2,
+            id="10.10.2.2",
+            adrouter="10.10.2.1"
         )
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip} - Type: {lsr_type}, ID: {lsr_id}, Adv Router: {lsr_adv_router}")
@@ -258,7 +258,7 @@ def handle_incoming_packet(packet):
                 if src_ip_of_neighbor == '10.10.1.1':
                     neighbor_state = "Loading"
                     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Loading")
-                    send_ospf_lsr(src_ip_of_neighbor, 2, '10.10.2.2', '10.10.2.1')
+                    send_ospf_lsr(src_ip_of_neighbor)
 
    elif ospfhdr_layer.type == 3:  # LSR Packet
         lsr_layer = packet.getlayer(OSPF_LSReq)
