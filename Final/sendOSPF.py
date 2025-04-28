@@ -258,7 +258,7 @@ def handle_incoming_packet(packet):
                 if src_ip_of_neighbor == '10.10.1.1':
                     neighbor_state = "Loading"
                     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Loading")
-                    send_ospf_lsr(src_ip_of_neighbor, 1, "10.10.2.1", "10.10.2.1")
+                    send_ospf_lsr(src_ip_of_neighbor, 2, "10.10.2.2", "10.10.2.1")
 
    elif ospfhdr_layer.type == 3:  # LSR Packet
         lsr_layer = packet.getlayer(OSPF_LSReq)
@@ -279,8 +279,8 @@ def handle_incoming_packet(packet):
                     age=360,
                     options=0x02,
                     type=2,  # Network LSA
-                    id="192.168.1.0",
-                    adrouter="192.168.1.1",
+                    id="192.168.1.1",
+                    adrouter="192.168.1.2",
                     seq=0x80000124  # Sequence number
                 )
             ]
