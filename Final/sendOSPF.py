@@ -213,6 +213,7 @@ def handle_incoming_packet(packet):
             if "MS" in dbd_layer.dbdescr:
                 if master:
                     if src_ip_of_neighbor == '10.10.1.1':
+                        print(f"Jalan broo 2...")
                         if dbd_layer.ddseq == dbd_seq_num:
                             neighbor_state = "Exchange"
                             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
