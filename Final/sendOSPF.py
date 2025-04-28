@@ -76,7 +76,7 @@ def send_ospf_2way():
 def send_ospf_dbd_first(neighbor_ip, flags, seq_num):
     """Kirim paket Database Description (DBD) pertama ke neighbor dengan flags dan seq_num yang benar"""
     ip_dbd = IP(src=router_id, dst=str(neighbor_ip))
-    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id, area=area_id)
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id2, area=area_id)
     
     # Konversi list flags string ke bitmask integer
     flag_value = 0
@@ -106,7 +106,7 @@ def send_ospf_dbd_first(neighbor_ip, flags, seq_num):
 def send_ospf_dbd(neighbor_router_ip):
     """Kirim paket Database Description (DBD) lanjutan ke neighbor dengan flags dan seq_num yang benar"""
     ip_dbd = IP(src=router_id, dst=str(neighbor_router_ip))
-    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id, area=area_id)
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id2, area=area_id)
     
     # Flags More + Master/Slave (tanpa Init)
     flag_value = 0x01  #MS
