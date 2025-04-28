@@ -167,11 +167,13 @@ def send_ospf_lsr(neighbor_ip, lsr_type, lsr_id, lsr_adv_router):
         ip_lsr /
         ospf_hdr_lsr /
         OSPF_LSReq(
-            lsr_type=lsr_type,
-            lsr_id=lsr_id,
-            lsr_adv_router=lsr_adv_router
+            type=lsr_type,
+            id=lsr_id,
+            adrouter=lsr_adv_router
         )
     )
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip} - Type: {lsr_type}, ID: {lsr_id}, Adv Router: {lsr_adv_router}")
+    sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
    global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
@@ -254,7 +256,7 @@ def handle_incoming_packet(packet):
                 if src_ip_of_neighbor == '10.10.1.1':
                     neighbor_state = "Loading"
                     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Loading")
-                    send_ospf_lsr(src_ip_of_neighbor, 1, "192.168.1.1", "192.168.1.1")
+                    send_ospf_lsr(src_ip_of_neighbor, 1, "10.10.2.1", "192.168.2.1")
 
    elif ospfhdr_layer.type == 3:  # LSR Packet
         lsr_layer = packet.getlayer(OSPF_LSReq)
