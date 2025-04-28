@@ -182,6 +182,7 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         
         if neighbor_state == "2-Way":
+            print(f"haha")
             if ["I", "M", "MS"] in dbd_layer.dbdescr:
                     if src_ip_of_neighbor == neighbor_ip:
                         master = True
