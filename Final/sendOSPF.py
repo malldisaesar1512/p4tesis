@@ -153,7 +153,25 @@ def send_ospf_dbd(neighbor_router_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: M+MS ({flag_value}), Seq: {seq_num}")
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
-
+def send_ospf_lsr(neighbor_ip, lsr_type, lsr_id, lsr_adv_router):
+    """Kirim paket Link State Request (LSR) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
+    ip_lsr = IP(src=router_id, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 3: Link State Request Packet
+    ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
+    
+    # Buat LSR packet dengan parameter yang diberikan
+    ospf_lsr_pkt = (
+        eth /
+        ip_lsr /
+        ospf_hdr_lsr /
+        OSPF_LSReq(
+            lsr_type=lsr_type,
+            lsr_id=lsr_id,
+            lsr_adv_router=lsr_adv_router
+        )
+    )
 
 def handle_incoming_packet(packet):
    global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
@@ -231,6 +249,48 @@ def handle_incoming_packet(packet):
                             send_ospf_dbd(src_ip_of_neighbor)
                     else:
                         return
+        elif neighbor_state == "Exchange":
+            if "M" in dbd_layer.dbdescr:
+                if src_ip_of_neighbor == '10.10.1.1':
+                    neighbor_state = "Loading"
+                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Loading")
+                    send_ospf_lsr(src_ip_of_neighbor, 1, "192.168.1.1", "192.168.1.1")
+
+   elif ospfhdr_layer.type == 3:  # LSR Packet
+        lsr_layer = packet.getlayer(OSPF_LSReq)
+        src_ip_of_neighbor = packet[IP].src
+        print(f"{lsr_layer.id}")
+        
+        if neighbor_state == "Loading":
+            lsas = [
+                OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,  # Router LSA
+                    id="192.168.1.1",
+                    adrouter="192.168.1.1",
+                    seq=0x80000123  # Sequence number
+                ),
+                OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=2,  # Network LSA
+                    id="192.168.1.0",
+                    adrouter="192.168.1.1",
+                    seq=0x80000124  # Sequence number
+                )
+            ]
+            if src_ip_of_neighbor == '10.10.1.1':
+                send_ospf_lsu(src_ip_of_neighbor, lsas)
+                neighbor_state = "Full"
+                print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSR from {src_ip_of_neighbor}, moving to Full")
+    
+   elif ospfhdr_layer.type == 4:  # LSU Packet
+        src_ip_of_neighbor = packet[IP].src
+        
+        if neighbor_state == "Loading":
+            neighbor_state = "Full"
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
