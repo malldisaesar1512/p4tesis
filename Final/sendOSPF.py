@@ -109,7 +109,7 @@ def send_ospf_dbd(neighbor_router_ip):
     ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id, area=area_id)
     
     # Flags More + Master/Slave (tanpa Init)
-    flag_value = 0x03  # M + MS
+    flag_value = 0x01  # M + MS
     
     # Pastikan dbd_seq_num_neighbor sudah terisi dan bertambah 1
     seq_num = dbd_seq_num_neighbor + 1 if dbd_seq_num_neighbor is not None else dbd_seq_num + 1
