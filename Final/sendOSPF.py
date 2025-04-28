@@ -207,30 +207,30 @@ def handle_incoming_packet(packet):
                         else:
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
         
-#         elif neighbor_state == "ExStart":
-#             print(f"Jalan broo...")
-#             if "MS" in dbd_layer.dbdescr:
-#                 if master:
-#                     if src_ip_of_neighbor == '10.10.1.1':
-#                         print(f"Jalan broo 2...")
-#                         neighbor_state = "Exchange"
-#                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
-#                         if src_ip_of_neighbor == '10.10.1.2':
-#                             send_ospf_dbd(neighbor_ip)
-#                         else:
-#                             send_ospf_dbd(src_ip_of_neighbor)
-#                     else:
-#                         return
-#                 else:
-#                     if src_ip_of_neighbor == '10.10.1.1':
-#                         neighbor_state = "Exchange"
-#                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
-#                         if src_ip_of_neighbor == '10.10.1.2':
-#                             send_ospf_dbd(neighbor_ip)
-#                         else:
-#                             send_ospf_dbd(src_ip_of_neighbor)
-#                     else:
-#                         return
+        elif neighbor_state == "ExStart":
+            print(f"Jalan broo...")
+            if "MS" in dbd_layer.dbdescr:
+                if master:
+                    if src_ip_of_neighbor == '10.10.1.1':
+                        print(f"Jalan broo 2...")
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
+                    else:
+                        return
+                else:
+                    if src_ip_of_neighbor == '10.10.1.1':
+                        neighbor_state = "Exchange"
+                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Slave)")
+                        if src_ip_of_neighbor == '10.10.1.2':
+                            send_ospf_dbd(neighbor_ip)
+                        else:
+                            send_ospf_dbd(src_ip_of_neighbor)
+                    else:
+                        return
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
