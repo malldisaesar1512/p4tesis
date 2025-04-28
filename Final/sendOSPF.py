@@ -180,6 +180,7 @@ def handle_incoming_packet(packet):
    elif ospfhdr_layer.type == 2:  # DBD Packet
         dbd_layer = packet.getlayer(OSPF_DBDesc)
         src_ip_of_neighbor = packet[IP].src
+        print(f"jalan nih...")
         
         if neighbor_state == "2-Way":
             if "I" in dbd_layer.dbdescr:
