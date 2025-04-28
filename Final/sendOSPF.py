@@ -174,7 +174,7 @@ def send_ospf_lsr(neighbor_ip):
             adrouter="10.10.2.1"
         )
     )
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip} - Type: {lsr_type}, ID: {lsr_id}, Adv Router: {lsr_adv_router}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
