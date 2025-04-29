@@ -1,3 +1,4 @@
+from os import link
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
@@ -179,49 +180,54 @@ def send_ospf_lsu(neighbor_ip):
         ip_lsu /
         ospf_hdr_lsu /
         OSPF_LSUpd(
-            lsacount=3,
-        ) / 
-        OSPF_LSA_Hdr(
+            lsacount=2
+        ) /  
+        OSPF_Router_LSA(
             age=360,
             options=0x02,
             type=1,  # Router LSA
             id="10.10.1.2",
             adrouter="10.10.1.2",
-            seq=0x80000123  # Sequence number
-        )/
-        OSPF_Link(
-            id="10.10.1.0",
-            data="10.10.1.0",
-            type=3,
-            metric=1,
-        )/
-        OSPF_Link(
-            id="192.168.1.0",
-            data="192.168.1.0",
-            type=3,
-            metric=1,
-        )/
-        OSPF_LSA_Hdr(
+            seq=0x80000123,  # Sequence number
+            linkcount=2,
+            linklist=[
+                OSPF_Link(
+                    id="10.10.1.0",
+                    data="10.10.1.0",
+                    type=3,
+                    metric=1
+                ),
+                OSPF_Link(
+                    id="192.168.1.0",
+                    data="192.168.1.0",
+                    type=3,
+                    metric=1
+                )
+            ]
+        ) /
+        OSPF_Router_LSA(
             age=360,
             options=0x02,
             type=1,  # router LSA
             id="192.168.1.1",
             adrouter="192.168.1.1",
-            seq=0x80000124  # Sequence number
-        )/
-        OSPF_Link(
-            id="10.10.1.0",
-            data="10.10.1.0",
-            type=3,
-            metric=1,
-        )/
-        OSPF_Link(
-            id="192.168.1.0",
-            data="192.168.1.0",
-            type=3,
-            metric=1,
-        )                   
-
+            seq=0x80000124,  # Sequence number
+            linkcount=2,
+            linklist=[
+                OSPF_Link(
+                    id="10.10.1.0",
+                    data="10.10.1.0",
+                    type=3,
+                    metric=1
+                ),
+                OSPF_Link(
+                    id="192.168.1.0",
+                    data="192.168.1.0",
+                    type=3,
+                    metric=1
+                )
+            ]
+        )
     )
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
