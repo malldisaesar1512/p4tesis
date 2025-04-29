@@ -302,7 +302,7 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets(1))
+   recv_thread = threading.Thread(target=lambda : sniff_packets(5))
    recv_thread.daemon=True
    recv_thread.start()
    
