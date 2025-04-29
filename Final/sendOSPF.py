@@ -139,15 +139,7 @@ def send_ospf_dbd(neighbor_router_ip):
             id=router_id2,
             adrouter=router_id2,
             seq=0x80000124
-        ) /
-        OSPF_LSA_Hdr(
-            age=360,
-            options=0x02,
-            type=2,
-            id=router_id2,
-            adrouter=router_id,
-            seq=0x80000125
-        )
+        ) 
     )
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: M+MS ({flag_value}), Seq: {seq_num}")
@@ -196,6 +188,10 @@ def send_ospf_lsu(neighbor_ip):
             adrouter="192.168.1.2",
             seq=0x80000123  # Sequence number
         )/
+        # OSPF_Link(
+        #     id="10.10.1.0",
+        #     data=""
+        # )/
         OSPF_LSA_Hdr(
             age=360,
             options=0x02,
