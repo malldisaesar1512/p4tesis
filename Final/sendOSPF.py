@@ -180,9 +180,8 @@ def send_ospf_lsu(neighbor_ip):
         ip_lsu /
         ospf_hdr_lsu /
         OSPF_LSUpd(
-            lsacount=2
-        ) /  
-        OSPF_Router_LSA(
+            lsacount=2,
+            lsalist=[OSPF_Router_LSA(
             age=360,
             options=0x02,
             type=1,  # Router LSA
@@ -204,7 +203,7 @@ def send_ospf_lsu(neighbor_ip):
                     metric=1
                 )
             ]
-        ) /
+        ),
         OSPF_Router_LSA(
             age=360,
             options=0x02,
@@ -227,7 +226,9 @@ def send_ospf_lsu(neighbor_ip):
                     metric=1
                 )
             ]
-        )
+        )]
+        )  
+        
     )
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
