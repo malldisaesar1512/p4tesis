@@ -375,8 +375,9 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         print(f"masuk")
         if neighbor_state == "Full":
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
-            send_ospf_lsaack(ipbroadcast)
+            if src_ip_of_neighbor == '10.10.1.1':
+                print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
+                send_ospf_lsaack(ipbroadcast)
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
