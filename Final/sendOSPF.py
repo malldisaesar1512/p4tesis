@@ -187,8 +187,8 @@ def send_ospf_lsu(neighbor_ip, lsas):
         ospf_hdr_lsu /
         OSPF_LSUpd(
             lsacount=3,
-            lsalist=lsas
-        )
+        ) / lsas[0] / lsas[1] / lsas[2]
+
     )
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip} - LSAs: {lsas}")
@@ -290,7 +290,7 @@ def handle_incoming_packet(packet):
                     id="10.10.1.2",
                     adrouter="192.168.1.2",
                     seq=0x80000123  # Sequence number
-                ),
+                )/
                 OSPF_LSA_Hdr(
                     age=360,
                     options=0x02,
@@ -298,7 +298,7 @@ def handle_incoming_packet(packet):
                     id="192.168.1.1",
                     adrouter="192.168.1.1",
                     seq=0x80000124  # Sequence number
-                ),
+                )/
                 OSPF_LSA_Hdr(
                     age=360,
                     options=0x02,
