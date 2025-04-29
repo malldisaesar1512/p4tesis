@@ -215,7 +215,7 @@ def send_ospf_lsu(neighbor_ip):
 
     )
     
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip} - LSAs: {lsas}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
