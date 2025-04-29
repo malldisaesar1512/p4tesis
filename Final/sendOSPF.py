@@ -238,7 +238,7 @@ def send_ospf_lsu(neighbor_ip):
 def send_ospf_lsaack(broadcastip):
     ip_lsack = IP(src=router_id, dst=str(broadcastip))
     
-    # Header OSPF tipe 4: Link State Update Packet
+    # Header OSPF tipe 5: Link State ACK Packet
     ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
     
     # Buat LSU packet dengan LSAs yang diberikan
