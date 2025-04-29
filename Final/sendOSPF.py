@@ -186,7 +186,8 @@ def send_ospf_lsu(neighbor_ip, lsas):
         ip_lsu /
         ospf_hdr_lsu /
         OSPF_LSUpd(
-            lsas=lsas
+            lsacount=3,
+            lsalist=lsas
         )
     )
     
@@ -286,17 +287,25 @@ def handle_incoming_packet(packet):
                     age=360,
                     options=0x02,
                     type=1,  # Router LSA
+                    id="10.10.1.2",
+                    adrouter="192.168.1.2",
+                    seq=0x80000123  # Sequence number
+                ),
+                OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,  # router LSA
                     id="192.168.1.1",
                     adrouter="192.168.1.1",
-                    seq=0x80000123  # Sequence number
+                    seq=0x80000124  # Sequence number
                 ),
                 OSPF_LSA_Hdr(
                     age=360,
                     options=0x02,
                     type=2,  # Network LSA
                     id="192.168.1.1",
-                    adrouter="192.168.1.2",
-                    seq=0x80000124  # Sequence number
+                    adrouter="10.10.1.2",
+                    seq=0x80000125  # Sequence number
                 )
             ]
             if src_ip_of_neighbor == '10.10.1.1':
