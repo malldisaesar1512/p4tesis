@@ -242,7 +242,7 @@ def send_ospf_lsaack(broadcastip):
     ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
     
     # Buat LSU packet dengan LSAs yang diberikan
-    ospf_lsu_pkt = (
+    ospf_lsack_pkt = (
         eth /
         ip_lsack /
         ospf_hdr_lsack /
@@ -267,7 +267,8 @@ def send_ospf_lsaack(broadcastip):
             ]
         )
     )
-
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip")
+    sendp(ospf_lsack_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
    global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
