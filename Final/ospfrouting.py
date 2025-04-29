@@ -52,3 +52,4 @@ def send_ospf_lsr(neighbor_ip):
 
 if __name__ == "__main__":
     send_ospf_lsr('10.10.1.1')
+    sniff(iface=interface, filter="ip proto ospf", prn=lambda x: x.show(), store=0)

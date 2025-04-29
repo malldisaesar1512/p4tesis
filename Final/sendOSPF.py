@@ -293,7 +293,7 @@ def handle_incoming_packet(packet):
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False)
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, )
    time.sleep(waktu)
 
 if __name__ == "__main__":
