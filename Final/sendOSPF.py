@@ -61,8 +61,9 @@ def send_ospf_hello_periodically(interval):
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            ospf_hello.neighbors = [neighbor_ip]
-            sendp(ospf_packet2, iface=interface, verbose=0)
+            sniff_packets(5)
+            # ospf_hello.neighbors = [neighbor_ip]
+            # sendp(ospf_packet2, iface=interface, verbose=0)
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
     # while i==0:
@@ -381,7 +382,7 @@ def handle_incoming_packet(packet):
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, )
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False )
    time.sleep(waktu)
 
 if __name__ == "__main__":
