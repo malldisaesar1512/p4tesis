@@ -172,6 +172,27 @@ def send_ospf_lsr(neighbor_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
+def send_ospf_lsu(neighbor_ip, lsas):
+    """Kirim paket Link State Update (LSU) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
+    ip_lsu = IP(src=router_id, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 4: Link State Update Packet
+    ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=router_id2, area=area_id)
+    
+    # Buat LSU packet dengan LSAs yang diberikan
+    ospf_lsu_pkt = (
+        eth /
+        ip_lsu /
+        ospf_hdr_lsu /
+        OSPF_LSUpd(
+            lsas=lsas
+        )
+    )
+    
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip} - LSAs: {lsas}")
+    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+
 def handle_incoming_packet(packet):
    global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
 
