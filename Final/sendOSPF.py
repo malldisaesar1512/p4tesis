@@ -172,7 +172,7 @@ def send_ospf_lsr(neighbor_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
-def send_ospf_lsu(neighbor_ip, lsas):
+def send_ospf_lsu(neighbor_ip):
     """Kirim paket Link State Update (LSU) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsu = IP(src=router_id, dst=str(neighbor_ip))
@@ -187,7 +187,31 @@ def send_ospf_lsu(neighbor_ip, lsas):
         ospf_hdr_lsu /
         OSPF_LSUpd(
             lsacount=3,
-        ) / lsas[0] / lsas[1] / lsas[2]
+        ) / 
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=1,  # Router LSA
+            id="10.10.1.2",
+            adrouter="192.168.1.2",
+            seq=0x80000123  # Sequence number
+        )/
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=1,  # router LSA
+            id="192.168.1.1",
+            adrouter="192.168.1.1",
+            seq=0x80000124  # Sequence number
+        )/        
+        OSPF_LSA_Hdr(
+            age=360,
+            options=0x02,
+            type=2,  # Network LSA
+            id="192.168.1.1",
+            adrouter="10.10.1.2",
+            seq=0x80000125  # Sequence number
+        )                    
 
     )
     
@@ -282,32 +306,6 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         
         if neighbor_state == "Loading":
-            lsas = [
-                OSPF_LSA_Hdr(
-                    age=360,
-                    options=0x02,
-                    type=1,  # Router LSA
-                    id="10.10.1.2",
-                    adrouter="192.168.1.2",
-                    seq=0x80000123  # Sequence number
-                )/
-                OSPF_LSA_Hdr(
-                    age=360,
-                    options=0x02,
-                    type=1,  # router LSA
-                    id="192.168.1.1",
-                    adrouter="192.168.1.1",
-                    seq=0x80000124  # Sequence number
-                )/
-                OSPF_LSA_Hdr(
-                    age=360,
-                    options=0x02,
-                    type=2,  # Network LSA
-                    id="192.168.1.1",
-                    adrouter="10.10.1.2",
-                    seq=0x80000125  # Sequence number
-                )
-            ]
             if src_ip_of_neighbor == '10.10.1.1':
                 send_ospf_lsu(src_ip_of_neighbor, lsas)
                 neighbor_state = "Full"
