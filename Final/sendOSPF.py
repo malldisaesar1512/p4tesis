@@ -258,7 +258,6 @@ def handle_incoming_packet(packet):
    elif ospfhdr_layer.type == 3:  # LSR Packet
         lsr_layer = packet.getlayer(OSPF_LSReq)
         src_ip_of_neighbor = packet[IP].src
-        print(f"{lsr_layer.id}")
         
         if neighbor_state == "Loading":
             lsas = [
