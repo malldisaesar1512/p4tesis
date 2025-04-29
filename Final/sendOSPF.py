@@ -15,6 +15,7 @@ neighbor_ip = "10.10.1.1"
 dbd_seq_num = random.randint(10000, 50000)
 dbd_seq_num_neighbor = None
 master = False
+ipbroadcast = "224.0.0.5"
 
 # Membuat paket Ethernet
 eth = Ether()
@@ -234,8 +235,8 @@ def send_ospf_lsu(neighbor_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
-def send_ospf_lsaack():
-    ip_lsack = IP(src=router_id, dst=str("224.0.0.5"))
+def send_ospf_lsaack(broadcastip):
+    ip_lsack = IP(src=router_id, dst=str(broadcastip))
     
     # Header OSPF tipe 4: Link State Update Packet
     ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
@@ -321,11 +322,9 @@ def handle_incoming_packet(packet):
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
         
         elif neighbor_state == "ExStart":
-            print(f"Jalan broo...")
             if "MS" in dbd_layer.dbdescr:
                 if master:
                     if src_ip_of_neighbor == '10.10.1.1':
-                        print(f"Jalan broo 2...")
                         neighbor_state = "Exchange"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to Exchange (Master)")
                         if src_ip_of_neighbor == '10.10.1.2':
@@ -374,7 +373,7 @@ def handle_incoming_packet(packet):
         print(f"masuk")
         if neighbor_state == "Full":
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
-            send_ospf_lsaack()
+            send_ospf_lsaack(ipbroadcast)
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
@@ -387,7 +386,7 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets(5))
+   recv_thread = threading.Thread(target=lambda : sniff_packets(1))
    recv_thread.daemon=True
    recv_thread.start()
    
