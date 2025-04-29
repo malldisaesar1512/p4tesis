@@ -234,6 +234,40 @@ def send_ospf_lsu(neighbor_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
+def send_ospf_lsaack():
+    ip_lsack = IP(src=router_id, dst=str("224.0.0.5"))
+    
+    # Header OSPF tipe 4: Link State Update Packet
+    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+    
+    # Buat LSU packet dengan LSAs yang diberikan
+    ospf_lsu_pkt = (
+        eth /
+        ip_lsack /
+        ospf_hdr_lsack /
+                OSPF_LSAck(
+                    lsaheaders=[
+                    OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=router_id,
+                    adrouter=router_id,
+                    seq=0x80000123
+                ),
+                OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=router_id2,
+                    adrouter=router_id2,
+                    seq=0x80000124
+                )
+            ]
+        )
+    )
+
+
 def handle_incoming_packet(packet):
    global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
 
@@ -333,6 +367,12 @@ def handle_incoming_packet(packet):
         if neighbor_state == "Loading":
             neighbor_state = "Full"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
+   
+   elif ospfhdr_layer.type == 5: #LSAck Packet
+        lsa_layer = packet.getlayer(OSPF_LSUpd)
+        src_ip_of_neighbor = packet[IP].src
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
+        send_ospf_lsaack()
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
