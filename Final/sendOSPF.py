@@ -166,13 +166,8 @@ def send_ospf_lsr(neighbor_ip):
         eth /
         ip_lsr /
         ospf_hdr_lsr /
-        OSPF_LSReq(
-        ) /
-        OSPF_LSReq_Item(
-            type=1,
-            id="10.10.2.1",
-            adrouter="10.10.2.1"
-        )
+        OSPF_LSReq() /
+        OSPF_LSReq_Item(type=1, id="10.10.2.1", adrouter="10.10.2.1")
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
