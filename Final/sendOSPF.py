@@ -159,7 +159,8 @@ def send_ospf_lsr(neighbor_ip):
         ip_lsr /
         ospf_hdr_lsr /
         OSPF_LSReq() /
-        OSPF_LSReq_Item(type=1, id="10.10.2.1", adrouter="10.10.2.1")
+        OSPF_LSReq_Item(type=1, id="10.10.2.1", adrouter="10.10.2.1")/
+        OSPF_LSReq_Item(type=1, id="192.168.2.1", adrouter="192.168.2.1")
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
@@ -185,13 +186,21 @@ def send_ospf_lsu(neighbor_ip):
             options=0x02,
             type=1,  # Router LSA
             id="10.10.1.2",
-            adrouter="192.168.1.2",
+            adrouter="10.10.1.2",
             seq=0x80000123  # Sequence number
         )/
-        # OSPF_Link(
-        #     id="10.10.1.0",
-        #     data=""
-        # )/
+        OSPF_Link(
+            id="10.10.1.0",
+            data="10.10.1.0",
+            type=3,
+            metric=1,
+        )/
+        OSPF_Link(
+            id="192.168.1.0",
+            data="192.168.1.0",
+            type=3,
+            metric=1,
+        )/
         OSPF_LSA_Hdr(
             age=360,
             options=0x02,
@@ -199,15 +208,19 @@ def send_ospf_lsu(neighbor_ip):
             id="192.168.1.1",
             adrouter="192.168.1.1",
             seq=0x80000124  # Sequence number
-        )/        
-        OSPF_LSA_Hdr(
-            age=360,
-            options=0x02,
-            type=2,  # Network LSA
-            id="192.168.1.1",
-            adrouter="10.10.1.2",
-            seq=0x80000125  # Sequence number
-        )                    
+        )/
+        OSPF_Link(
+            id="10.10.1.0",
+            data="10.10.1.0",
+            type=3,
+            metric=1,
+        )/
+        OSPF_Link(
+            id="192.168.1.0",
+            data="192.168.1.0",
+            type=3,
+            metric=1,
+        )                   
 
     )
     
