@@ -307,7 +307,7 @@ def handle_incoming_packet(packet):
         
         if neighbor_state == "Loading":
             if src_ip_of_neighbor == '10.10.1.1':
-                send_ospf_lsu(src_ip_of_neighbor, lsas)
+                send_ospf_lsu(src_ip_of_neighbor)
                 neighbor_state = "Full"
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSR from {src_ip_of_neighbor}, moving to Full")
     
