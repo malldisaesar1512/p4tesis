@@ -369,7 +369,7 @@ def handle_incoming_packet(packet):
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
-        lsa_layer = packet.getlayer(OSPF_LSUpd)
+        lsack_layer = packet.getlayer(OSPF_LSAck)
         src_ip_of_neighbor = packet[IP].src
         print(f"masuk")
         if neighbor_state == "Full":
