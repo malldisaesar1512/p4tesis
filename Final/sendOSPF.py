@@ -267,7 +267,7 @@ def send_ospf_lsaack(broadcastip):
             ]
         )
     )
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
