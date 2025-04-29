@@ -365,10 +365,10 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         
         if neighbor_state == "Loading":
-            neighbor_state = "Full"
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
-            send_ospf_lsaack(ipbroadcast)
+            if src_ip_of_neighbor == '10.10.1.1':
+                neighbor_state = "Full"
+                print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
+                send_ospf_lsaack(ipbroadcast)
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
