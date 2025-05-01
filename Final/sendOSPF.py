@@ -57,7 +57,7 @@ ospf_hellofull = OSPF_Hello(
     prio=128,
     deadinterval=40,
     router=router_id,
-    backup=neighbor_ip,
+    backup=area_id,
     neighbors=[neighbor_ip]
 )
 
@@ -77,7 +77,7 @@ def send_ospf_hello_periodically(interval):
         elif neighbor_state == "Full":
             ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
             ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
-            # sendp(ospf_packet3, iface=interface, verbose=0)
+            sendp(ospf_packet3, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
@@ -394,6 +394,7 @@ def handle_incoming_packet(packet):
         print(f"LSU ID: {lsu_id}")
         lsu_adrouter = lsu_layer.lsalist[0].adrouter
         lsu_seq = lsu_layer.lsalist[0].seq
+        lsu_type = lsu_layer.lsalist[0].type
 
         # neighbor_state = "Loading"
         
@@ -412,7 +413,7 @@ def handle_incoming_packet(packet):
                     OSPF_LSA_Hdr(
                     age=360,
                     options=0x02,
-                    type=1,
+                    type=lsu_type,
                     id=lsu_id,
                     adrouter=lsu_adrouter,
                     seq=lsu_seq
