@@ -57,7 +57,7 @@ ospf_hellofull = OSPF_Hello(
     prio=128,
     deadinterval=40,
     router=router_id2,
-    backup=router_id,
+    backup=neighbor_ip,
     neighbors=[neighbor_ip]
 )
 
