@@ -61,21 +61,6 @@ ospf_hellofull = OSPF_Hello(
     neighbors=[neighbor_ip]
 )
 
-ospf_lsack_full = (
-                OSPF_LSAck(
-                    lsaheaders=[
-                    OSPF_LSA_Hdr(
-                    age=360,
-                    options=0x02,
-                    type=1,
-                    id=lsu_id,
-                    adrouter=lsu_adrouter,
-                    seq=lsu_seq
-                )
-            ]
-        )
-    )
-
 # Menggabungkan semua layer menjadi satu paket lengkap
 ospf_packet = eth / ip / ospf_header / ospf_hello
 ospf_packet2 = eth / ip / ospf_header / ospf_hello2
@@ -417,6 +402,21 @@ def handle_incoming_packet(packet):
         if neighbor_state == "Full":
             if src_ip_of_neighbor == '10.10.1.1':
                 ospf_lsackfull = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+                
+                ospf_lsack_full = (
+                OSPF_LSAck(
+                    lsaheaders=[
+                    OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=lsu_id,
+                    adrouter=lsu_adrouter,
+                    seq=lsu_seq
+                            )
+                        ]
+                    )
+                )
                 ospf_lsack2 = eth / ip / ospf_lsackfull / ospf_lsack_full
                 sendp(ospf_lsack2, iface=interface, verbose=0)
                 print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
