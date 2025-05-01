@@ -387,7 +387,7 @@ def handle_incoming_packet(packet):
     
    elif ospfhdr_layer.type == 4:  # LSU Packet
         src_ip_of_neighbor = packet[IP].src
-        lsu_layer = packet.getlayer(OSPF_Hdr)
+        lsu_layer = packet.getlayer(OSPF_LSUpd)
         print(f"LSU Layer: {lsu_layer}")
         lsu_id = lsu_layer.id
         lsu_adrouter = lsu_layer.adrouter
