@@ -72,7 +72,7 @@ def send_ospf_hello_periodically(interval):
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            sniff_packets(interval)
+            # sniff_packets(interval)
             # ospf_hello.neighbors = [neighbor_ip]
             # sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
