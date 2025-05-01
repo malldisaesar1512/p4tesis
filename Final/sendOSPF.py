@@ -384,16 +384,18 @@ def handle_incoming_packet(packet):
     
    elif ospfhdr_layer.type == 4:  # LSU Packet
         src_ip_of_neighbor = packet[IP].src
+
+        neighbor_state = "Loading"
         
         if neighbor_state == "Loading":
             if src_ip_of_neighbor == '10.10.1.1':
                 neighbor_state = "Full"
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
                 send_ospf_lsaack(ipbroadcast)
-        if neighbor_state == "Full":
-            if src_ip_of_neighbor == '10.10.1.1':
-                # send_ospf_lsaack(ipbroadcast)
-                send_ospf_lsu(src_ip_of_neighbor)
+        # if neighbor_state == "Full":
+        #     if src_ip_of_neighbor == '10.10.1.1':
+        #         # send_ospf_lsaack(ipbroadcast)
+        #         send_ospf_lsu(src_ip_of_neighbor)
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
