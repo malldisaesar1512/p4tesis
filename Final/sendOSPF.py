@@ -404,7 +404,7 @@ def handle_incoming_packet(packet):
 
 def sniff_packets():
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=20 )
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=12)
    
 
 if __name__ == "__main__":
