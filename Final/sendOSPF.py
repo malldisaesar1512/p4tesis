@@ -1,4 +1,5 @@
 from os import link
+from socket import timeout
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
@@ -69,11 +70,11 @@ def send_ospf_hello_periodically(interval):
     global neighbor_state
     while True:
         if neighbor_state == "Down":
-            sniff_packets(interval)
+            # sniff_packets(interval)
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            sniff_packets(interval)
+            # sniff_packets(interval)
             # ospf_hello.neighbors = [neighbor_ip]
             # sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -400,7 +401,7 @@ def handle_incoming_packet(packet):
 
 def sniff_packets(waktu):
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False )
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=waktu )
    time.sleep(waktu)
 
 if __name__ == "__main__":
@@ -409,9 +410,9 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-#    recv_thread = threading.Thread(target=lambda : sniff_packets(10))
-#    recv_thread.daemon=True
-#    recv_thread.start()
+   recv_thread = threading.Thread(target=lambda : sniff_packets(10))
+   recv_thread.daemon=True
+   recv_thread.start()
    
    try:
       while True:
