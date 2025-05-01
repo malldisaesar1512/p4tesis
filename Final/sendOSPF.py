@@ -64,7 +64,7 @@ ospf_hellofull = OSPF_Hello(
 # Menggabungkan semua layer menjadi satu paket lengkap
 ospf_packet = eth / ip / ospf_header / ospf_hello
 ospf_packet2 = eth / ip / ospf_header / ospf_hello2
-ospf_packet3 = eth / ip / ospf_header / ospf_hellofull
+
 
 # Fungsi untuk mengirim paket OSPF Hello setiap 10 detik
 def send_ospf_hello_periodically(interval):
@@ -293,6 +293,7 @@ def handle_incoming_packet(packet):
    
    ospfhdr_layer = packet.getlayer(OSPF_Hdr)
 #    ospfhdr_layer2 = packet.getlayer(OSPF_Hello)
+   checksum = ospfhdr_layer.chksum
 
    if ospfhdr_layer.type == 1:
          # Hello Packet
@@ -310,6 +311,8 @@ def handle_incoming_packet(packet):
             send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
        elif neighbor_state == "Full":
             if src_ip_of_neighbor == "10.10.1.1":
+                ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id, chksum = checksum)
+                ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
                 sendp(ospf_packet3, iface=interface, verbose=0)
                 print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
