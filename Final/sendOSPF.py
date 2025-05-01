@@ -69,10 +69,11 @@ def send_ospf_hello_periodically(interval):
     global neighbor_state
     while True:
         if neighbor_state == "Down":
+            sniff_packets(interval)
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            # sniff_packets(interval)
+            sniff_packets(interval)
             # ospf_hello.neighbors = [neighbor_ip]
             # sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -392,7 +393,6 @@ def handle_incoming_packet(packet):
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
         src_ip_of_neighbor = packet[IP].src
-        print(f"masuk")
         if neighbor_state == "Full":
             if src_ip_of_neighbor == '10.10.1.1':
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
@@ -409,9 +409,9 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets(10))
-   recv_thread.daemon=True
-   recv_thread.start()
+#    recv_thread = threading.Thread(target=lambda : sniff_packets(10))
+#    recv_thread.daemon=True
+#    recv_thread.start()
    
    try:
       while True:
