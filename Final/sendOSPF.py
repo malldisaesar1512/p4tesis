@@ -401,10 +401,10 @@ def handle_incoming_packet(packet):
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSAck from {src_ip_of_neighbor}")
                 send_ospf_lsaack(ipbroadcast)
 
-def sniff_packets(waktu):
+def sniff_packets():
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=waktu )
-   time.sleep(waktu)
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=5 )
+   
 
 if __name__ == "__main__":
    
@@ -412,7 +412,7 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets(5))
+   recv_thread = threading.Thread(target=lambda : sniff_packets())
    recv_thread.daemon=True
    recv_thread.start()
    
