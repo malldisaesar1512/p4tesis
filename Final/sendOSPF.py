@@ -291,13 +291,15 @@ def handle_incoming_packet(packet):
        return
    
    ospfhdr_layer = packet.getlayer(OSPF_Hdr)
-   
-   if ospfhdr_layer.type == 1: # Hello Packet
+   ospfhdr_layer2 = packet.getlayer(OSPF_Hello)
+
+   if ospfhdr_layer.type == 1:
+         # Hello Packet
        # Paket hello diterima -> kirim DBD sebagai respons ke source IP di layer IP 
        src_ip_of_neighbor = packet[IP].src
     #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
     #    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
-       if neighbor_state == "Down":
+       if neighbor_state == "Down" or ospfhdr_layer2.neighbors == []:
             neighbor_state = "2-Way"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
             neighbor_ip = src_ip_of_neighbor
