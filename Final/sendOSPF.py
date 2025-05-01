@@ -389,7 +389,7 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         lsu_layer = packet.getlayer(OSPF_LSUpd)
         print(f"LSU Layer: {lsu_layer}")
-        lsu_id = lsu_layer.lsaheaders[0].id
+        lsu_id = lsu_layer.lsaheaders
         print(f"LSU ID: {lsu_id}")
         lsu_adrouter = lsu_layer.adrouter
         lsu_seq = lsu_layer.seq
