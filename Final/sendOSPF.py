@@ -305,7 +305,7 @@ def handle_incoming_packet(packet):
             send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
        elif neighbor_state == "Full":
             if src_ip_of_neighbor == "10.10.1.1":
-                sendp(ospf_packet2, iface=interface, verbose=0)
+                sendp(ospf_hellofull, iface=interface, verbose=0)
                 print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
    elif ospfhdr_layer.type == 2:  # DBD Packet
