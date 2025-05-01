@@ -391,8 +391,8 @@ def handle_incoming_packet(packet):
         print(f"LSU Layer: {lsu_layer}")
         lsu_id = lsu_layer.lsalist[0].id
         print(f"LSU ID: {lsu_id}")
-        lsu_adrouter = lsu_layer.adrouter
-        lsu_seq = lsu_layer.seq
+        lsu_adrouter = lsu_layer.lsalist[0].adrouter
+        lsu_seq = lsu_layer.lsalist[0].seq
 
         # neighbor_state = "Loading"
         
