@@ -385,6 +385,9 @@ def handle_incoming_packet(packet):
                 neighbor_state = "Full"
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
                 send_ospf_lsaack(ipbroadcast)
+        if neighbor_state == "Full":
+            if src_ip_of_neighbor == '10.10.1.1':
+                send_ospf_lsaack(ipbroadcast)
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
@@ -406,7 +409,7 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets(5))
+   recv_thread = threading.Thread(target=lambda : sniff_packets(10))
    recv_thread.daemon=True
    recv_thread.start()
    
