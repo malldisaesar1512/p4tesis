@@ -74,7 +74,7 @@ def send_ospf_hello_periodically(interval):
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            sniff_packets(2)
+            sniff_packets()
             # ospf_hello.neighbors = [neighbor_ip]
             # sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -291,7 +291,7 @@ def handle_incoming_packet(packet):
        return
    
    ospfhdr_layer = packet.getlayer(OSPF_Hdr)
-   ospfhdr_layer2 = packet.getlayer(OSPF_Hello)
+#    ospfhdr_layer2 = packet.getlayer(OSPF_Hello)
 
    if ospfhdr_layer.type == 1:
          # Hello Packet
@@ -299,7 +299,7 @@ def handle_incoming_packet(packet):
        src_ip_of_neighbor = packet[IP].src
     #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
     #    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
-       if neighbor_state == "Down" or ospfhdr_layer2.neighbors == []:
+       if neighbor_state == "Down":
             neighbor_state = "2-Way"
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
             neighbor_ip = src_ip_of_neighbor
