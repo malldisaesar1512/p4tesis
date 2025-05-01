@@ -391,7 +391,8 @@ def handle_incoming_packet(packet):
                 send_ospf_lsaack(ipbroadcast)
         if neighbor_state == "Full":
             if src_ip_of_neighbor == '10.10.1.1':
-                send_ospf_lsaack(ipbroadcast)
+                # send_ospf_lsaack(ipbroadcast)
+                send_ospf_lsu(src_ip_of_neighbor)
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
