@@ -77,7 +77,7 @@ def send_ospf_hello_periodically(interval):
         elif neighbor_state == "Full":
             ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
             ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
-            sendp(ospf_packet3, iface=interface, verbose=0)
+            # sendp(ospf_packet3, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
