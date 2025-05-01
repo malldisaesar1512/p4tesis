@@ -49,6 +49,17 @@ ospf_hello2 = OSPF_Hello(
     neighbors=[neighbor_ip]
 )
 
+ospf_hellofull = OSPF_Hello(
+    mask="255.255.255.0",
+    hellointerval=10,
+    options=0x02,
+    prio=128,
+    deadinterval=40,
+    router=router_id,
+    backup=neighbor_ip,
+    neighbors=[neighbor_ip]
+)
+
 # Menggabungkan semua layer menjadi satu paket lengkap
 ospf_packet = eth / ip / ospf_header / ospf_hello
 ospf_packet2 = eth / ip / ospf_header / ospf_hello2
@@ -61,10 +72,10 @@ def send_ospf_hello_periodically(interval):
             ospf_hello.neighbors = []
             sendp(ospf_packet2, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            sniff_packets(5)
+            sniff_packets(1)
             # ospf_hello.neighbors = [neighbor_ip]
             # sendp(ospf_packet2, iface=interface, verbose=0)
-        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
     # while i==0:
     #     sendp(ospf_packet, iface=interface, verbose=1)
