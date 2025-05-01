@@ -56,10 +56,25 @@ ospf_hellofull = OSPF_Hello(
     options=0x02,
     prio=128,
     deadinterval=40,
-    router=router_id,
+    router=router_id2,
     backup=neighbor_ip,
     neighbors=[neighbor_ip]
 )
+
+ospf_lsack_full = (
+                OSPF_LSAck(
+                    lsaheaders=[
+                    OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=lsu_id,
+                    adrouter=lsu_adrouter,
+                    seq=lsu_seq
+                )
+            ]
+        )
+    )
 
 # Menggabungkan semua layer menjadi satu paket lengkap
 ospf_packet = eth / ip / ospf_header / ospf_hello
@@ -286,7 +301,7 @@ def send_ospf_lsaack(broadcastip):
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
-   global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master
+   global neighbor_state, neighbor_ip, dbd_seq_num, dbd_seq_num_neighbor, master, lsu_id, lsu_adrouter, lsu_seq
 
    if not packet.haslayer(OSPF_Hdr):
        return
@@ -311,7 +326,7 @@ def handle_incoming_packet(packet):
             send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
        elif neighbor_state == "Full":
             if src_ip_of_neighbor == "10.10.1.1":
-                ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id, chksum = checksum)
+                ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
                 ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
                 sendp(ospf_packet3, iface=interface, verbose=0)
                 print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -387,18 +402,27 @@ def handle_incoming_packet(packet):
     
    elif ospfhdr_layer.type == 4:  # LSU Packet
         src_ip_of_neighbor = packet[IP].src
+        lsu_layer = packet.getlayer(OSPF_LSA_Hdr)
+        lsu_id = lsu_layer.id
+        lsu_adrouter = lsu_layer.adrouter
+        lsu_seq = lsu_layer.seq
 
-        neighbor_state = "Loading"
+        # neighbor_state = "Loading"
         
         if neighbor_state == "Loading":
             if src_ip_of_neighbor == '10.10.1.1':
                 neighbor_state = "Full"
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
                 send_ospf_lsaack(ipbroadcast)
-        # if neighbor_state == "Full":
-        #     if src_ip_of_neighbor == '10.10.1.1':
-        #         # send_ospf_lsaack(ipbroadcast)
-        #         send_ospf_lsu(src_ip_of_neighbor)
+        if neighbor_state == "Full":
+            if src_ip_of_neighbor == '10.10.1.1':
+                ospf_lsackfull = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+                ospf_lsack2 = eth / ip / ospf_lsackfull / ospf_lsack_full
+                sendp(ospf_lsack2, iface=interface, verbose=0)
+                print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                #  ospf_lsackfull = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+                #  sendp(ospf_lsack_full, iface=interface, verbose=0)
+                # send_ospf_lsu(src_ip_of_neighbor)
    
    elif ospfhdr_layer.type == 5: #LSAck Packet
         lsack_layer = packet.getlayer(OSPF_LSAck)
