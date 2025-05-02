@@ -307,15 +307,17 @@ def handle_incoming_packet(packet):
     #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
     #    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
        if neighbor_state == "Down":
-            neighbor_state = "Init"
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving Init")
-            neighbor_ip = src_ip_of_neighbor
-            print(f" {ospf_hello.neighbors}")
-            sendp(ospf_packet2, iface=interface, verbose=0)
+            if src_ip_of_neighbor == '10.10.1.1':
+                neighbor_state = "Init"
+                print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving Init")
+                neighbor_ip = src_ip_of_neighbor
+                print(f" {ospf_hello.neighbors}")
+                sendp(ospf_packet2, iface=interface, verbose=0)
        elif neighbor_state == "Init":
-            neighbor_state = "2-Way"
-            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}, Moving to 2-Way")
-            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
+            if src_ip_of_neighbor == '10.10.1.1':
+                neighbor_state = "2-Way"
+                print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}, Moving to 2-Way")
+                send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
     #    elif neighbor_state == "Full":
     #         if src_ip_of_neighbor == "10.10.1.1":
     #             ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
