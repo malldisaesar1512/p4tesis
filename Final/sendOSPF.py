@@ -314,12 +314,12 @@ def handle_incoming_packet(packet):
             sendp(ospf_packet2, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
-    #    elif neighbor_state == "Full":
-    #         if src_ip_of_neighbor == "10.10.1.1":
-    #             ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
-    #             ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
-    #             sendp(ospf_packet3, iface=interface, verbose=0)
-    #             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+       elif neighbor_state == "Full":
+            if src_ip_of_neighbor == "10.10.1.1":
+                ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
+                ospf_packet3 = eth / ip / ospf_header1 / ospf_hellofull
+                sendp(ospf_packet3, iface=interface, verbose=0)
+                print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
    elif ospfhdr_layer.type == 2:  # DBD Packet
         dbd_layer = packet.getlayer(OSPF_DBDesc)
