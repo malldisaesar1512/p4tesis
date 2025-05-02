@@ -307,17 +307,13 @@ def handle_incoming_packet(packet):
     #    ospf_hello.neighbors = src_ip_of_neighbor  # Simpan neighbor router IP
     #    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, sending DBD...")
        if neighbor_state == "Down":
-            if src_ip_of_neighbor == '10.10.1.1':
-                neighbor_state = "Init"
-                print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving Init")
-                neighbor_ip = src_ip_of_neighbor
-                print(f" {ospf_hello.neighbors}")
-                sendp(ospf_packet2, iface=interface, verbose=0)
-       elif neighbor_state == "Init":
-            if src_ip_of_neighbor == '10.10.1.1':
-                neighbor_state = "2-Way"
-                print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}, Moving to 2-Way")
-                send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
+            neighbor_state = "2-Way"
+            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received HELLO from {src_ip_of_neighbor}, moving to 2-Way")
+            neighbor_ip = src_ip_of_neighbor
+            print(f" {ospf_hello.neighbors}")
+            sendp(ospf_packet2, iface=interface, verbose=0)
+            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
     #    elif neighbor_state == "Full":
     #         if src_ip_of_neighbor == "10.10.1.1":
     #             ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
@@ -330,9 +326,10 @@ def handle_incoming_packet(packet):
         src_ip_of_neighbor = packet[IP].src
         
         if neighbor_state == "2-Way":
+            print(f"haha")
             if "I" in dbd_layer.dbdescr:
                     print(f"masuk")
-                    if src_ip_of_neighbor == '10.10.1.1':
+                    if src_ip_of_neighbor == neighbor_ip:
                         master = True
                         neighbor_state = "ExStart"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
@@ -340,13 +337,11 @@ def handle_incoming_packet(packet):
                         if src_ip_of_neighbor == '10.10.1.2':
                             # send_ospf_dbd(neighbor_ip)
                             send_ospf_dbd_first(neighbor_ip, ["MS"], dbd_seq_num_neighbor)
-                            # send_ospf_dbd_first(neighbor_ip, ["I", "M", "MS"], dbd_seq_num)
                         else:
                             # send_ospf_dbd(src_ip_of_neighbor)
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
-                            # send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
 
-                    elif src_ip_of_neighbor == "10.10.1.1":
+                    else:
                         master = False
                         neighbor_state = "ExStart"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Slave)")
@@ -357,7 +352,7 @@ def handle_incoming_packet(packet):
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
         
         elif neighbor_state == "ExStart":
-            if "I" in dbd_layer.dbdescr:
+            if "MS" in dbd_layer.dbdescr:
                 if master:
                     if src_ip_of_neighbor == '10.10.1.1':
                         neighbor_state = "Exchange"
