@@ -332,7 +332,7 @@ def handle_incoming_packet(packet):
         if neighbor_state == "2-Way":
             if "I" in dbd_layer.dbdescr:
                     print(f"masuk")
-                    if src_ip_of_neighbor == neighbor_ip:
+                    if src_ip_of_neighbor == '10.10.1.1':
                         master = True
                         neighbor_state = "ExStart"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Master)")
@@ -344,7 +344,7 @@ def handle_incoming_packet(packet):
                             # send_ospf_dbd(src_ip_of_neighbor)
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
 
-                    else:
+                    elif src_ip_of_neighbor == "10.10.1.1":
                         master = False
                         neighbor_state = "ExStart"
                         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received DBD from {src_ip_of_neighbor}, moving to ExStart (Slave)")
