@@ -339,12 +339,12 @@ def handle_incoming_packet(packet):
                         dbd_seq_num_neighbor = dbd_layer.ddseq
                         if src_ip_of_neighbor == '10.10.1.2':
                             # send_ospf_dbd(neighbor_ip)
-                            # send_ospf_dbd_first(neighbor_ip, ["MS"], dbd_seq_num_neighbor)
-                            send_ospf_dbd_first(neighbor_ip, ["I", "M", "MS"], dbd_seq_num)
+                            send_ospf_dbd_first(neighbor_ip, ["MS"], dbd_seq_num_neighbor)
+                            # send_ospf_dbd_first(neighbor_ip, ["I", "M", "MS"], dbd_seq_num)
                         else:
                             # send_ospf_dbd(src_ip_of_neighbor)
-                            # send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
-                            send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
+                            send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
+                            # send_ospf_dbd_first(src_ip_of_neighbor, ["I", "M", "MS"], dbd_seq_num)
 
                     elif src_ip_of_neighbor == "10.10.1.1":
                         master = False
