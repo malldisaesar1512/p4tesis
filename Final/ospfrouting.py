@@ -272,6 +272,7 @@ def handle_incoming_packet(packet):
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
                     if 0x00 in dbd_layer.dbdescr:
                         router_status = "Master"
+                        print(f"{router_status} DBD")
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
                         neighbor_state = "Exchange"
@@ -280,6 +281,7 @@ def handle_incoming_packet(packet):
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     else:
                         router_status = "Slave"
+                        print(f"{router_status} DBD")
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
                         neighbor_state = "Exchange"
