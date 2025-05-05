@@ -1,3 +1,5 @@
+from os import link
+from socket import timeout
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
