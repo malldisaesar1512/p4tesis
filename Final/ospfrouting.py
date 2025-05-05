@@ -111,7 +111,6 @@ def send_hello_periodically(interval):
         elif neighbor_state == "Full":
             ospf_hello_first.neighbors = [neighbor_default]
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-        print(f"{ospf_packet_hello_first.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
@@ -185,17 +184,18 @@ def handle_incoming_packet(packet):
         ospfhdr_layer = packet.getlayer(OSPF_Hdr)
         # Cek tipe paket OSPF
         if ospfhdr_layer.type == 1:  # Hello packet
-            print("Received Hello packet")
             src_neighbor = packet[IP].src
 
             if neighbor_state == "Down":
                 if src_neighbor != router_id:
+                    print("Received Hello packet")
                     neighbor_state = "Init"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_neighbor} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 2:  # DBD packet
             print("Received DBD packet")
