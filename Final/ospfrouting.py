@@ -102,14 +102,14 @@ def send_hello_periodically(interval):
     while True:
         if neighbor_state == "Down":
             # neighbor_default = ""
-            ospf_hello_first.neighbors = []
+            ospf_hello_first.neighbors = [neighbor_default]
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
             # ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
             # print(f"{ospf_packet_hello1.show()}")
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            ospf_hello_first.neighbors = [neighbor_ip]
+            ospf_hello_first.neighbors = [neighbor_default]
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         print(f"{ospf_packet_hello_first.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
