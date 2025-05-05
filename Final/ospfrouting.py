@@ -106,6 +106,7 @@ def send_hello_periodically(interval):
             ospf_hello_pkt.neighbors = [neighbor_ip]
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         sendp(ospf_packet_hello1, iface=interface, verbose=0)
+        print(f"{ospf_packet_hello1.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
