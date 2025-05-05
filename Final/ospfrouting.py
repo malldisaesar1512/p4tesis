@@ -21,6 +21,8 @@ router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.1"  # Router ID 2 (Neighbor)
 # area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
+backup_default = "0.0.0.0"
+neighbor_default = "10.10.1.1"
 
 
 #Membuat paket Ethernet
@@ -30,15 +32,15 @@ ip_broadcast = IP(src=router_id, dst="224.0.0.5")
 
 ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
-ospf_hello_pkt = OSPF_Hello(
+ospf_hello_first = OSPF_Hello(
     mask="255.255.255.0",
     hellointerval=hello_interval,
     options=0x02,
     prio=priority_default,
     deadinterval=dead_interval,
     router=router_id,
-    backup=[area_id],  # Backup router ID
-    neighbors=['10.10.1.1']  # Daftar neighbor IP
+    backup=[backup_default],  # Backup router ID
+    neighbors=[neighbor_default]  # Daftar neighbor IP
 )
 
 
@@ -92,21 +94,23 @@ lsa_link = OSPF_Link( #LinkLSA
 # # Membuat header OSPF (versi 2, tipe 1=Hello)
 # ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
-ospf_packet_hello1 = eth / ip_broadcast / ospf_header / ospf_hello_pkt
+# ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state
+    global neighbor_state, neighbor_default
     while True:
         if neighbor_state == "Down":
-            ospf_hello_pkt.neighbors = []
-            ospf_hello_pkt.backup = ['0.0.0.0']
+            neighbor_default = ''
+            ospf_hello_first.neighbors = [neighbor_default]
+            ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
+            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
             # ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
             # print(f"{ospf_packet_hello1.show()}")
+            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
         elif neighbor_state == "Full":
-            ospf_hello_pkt.neighbors = [neighbor_ip]
+            ospf_hello_first.neighbors = [neighbor_ip]
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-        sendp(ospf_packet_hello1, iface=interface, verbose=0)
         print(f"{ospf_packet_hello1.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
