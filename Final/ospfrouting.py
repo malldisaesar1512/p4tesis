@@ -73,7 +73,7 @@ lsa_default = OSPF_LSA_Hdr(
 lsa_link = OSPF_Link( #LinkLSA
                 type=1,
                 id=router_id2,
-                adrouter=router_id2,
+                data=router_id2,
                 metric=10
             )
 
