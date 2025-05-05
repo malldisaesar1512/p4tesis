@@ -189,13 +189,14 @@ def handle_incoming_packet(packet):
             src_neighbor = packet[IP].src
 
             if neighbor_state == "Down":
-                neighbor_state = "Init"
-                neighbor_ip = src_neighbor
-                print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
-                ospf_hello_first.neighbors = [src_neighbor]
-                ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
-                sendp(ospf_packet_hello2, iface=interface, verbose=0)
-                print(f"Sent OSPF Hello packet to {src_neighbor} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                if src_neighbor != router_id:
+                    neighbor_state = "Init"
+                    neighbor_ip = src_neighbor
+                    print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
+                    ospf_hello_first.neighbors = [src_neighbor]
+                    ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
+                    sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    print(f"Sent OSPF Hello packet to {src_neighbor} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 2:  # DBD packet
             print("Received DBD packet")
             dbd_layer = packet.getlayer(OSPF_DBDesc)
