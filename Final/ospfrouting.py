@@ -19,23 +19,23 @@ router_status = "Master"
 id_dbd = ''
 router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.1"  # Router ID 2 (Neighbor)
-area_id = "0.0.0.0"        # Area ID
+# area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 
 
 #Membuat paket Ethernet
 eth = Ether()
 
-ip_broadcast = IP(src=router_id, dst=broadcast_ip)
+ip_broadcast = IP(src=router_id, dst="224.0.0.5")
 
 ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
 ospf_hello_pkt = OSPF_Hello(
     mask="255.255.255.0",
-    hellointerval=10,
+    hellointerval=hello_interval,
     options=0x02,
-    prio=128,
-    deadinterval=40,
+    prio=priority_default,
+    deadinterval=dead_interval,
     router=router_id,
     backup=[],
     neighbors=['10.10.1.1']  # Daftar neighbor IP
@@ -100,6 +100,7 @@ def send_hello_periodically(interval):
     while True:
         if neighbor_state == "Down":
             ospf_hello_pkt.neighbors = []
+            ospf_hello_pkt.backup = ['0.0.0.0']
             # ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
             # print(f"{ospf_packet_hello1.show()}")
         elif neighbor_state == "Full":
