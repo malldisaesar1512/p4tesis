@@ -270,6 +270,7 @@ def handle_incoming_packet(packet):
             elif neighbor_state == "Exstart":
                 if src_ip != router_id:
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
+                    print(f"{dbd_layer.show()}")
                     if dbd_layer.dbdescr == 0x00:
                         router_status = "Master"
                         print(f"{router_status} DBD")
