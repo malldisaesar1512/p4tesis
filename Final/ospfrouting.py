@@ -25,6 +25,7 @@ interface = "ens5"         # Network interface
 backup_default = "0.0.0.0"
 neighbor_default = "10.10.1.1"
 lsadb_list = []
+lsreq_list = []
 
 
 #Membuat paket Ethernet
@@ -189,12 +190,25 @@ def send_ospf_dbd(neighbor_router_ip):
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
 def send_ospf_lsr(neighbor_ip):
+    global lsreq_list
     """Kirim paket Link State Request (LSR) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsr = IP(src=router_id, dst=str(neighbor_ip))
     
     # Header OSPF tipe 3: Link State Request Packet
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
+
+    for i in range(jumlah_lsa):
+        lsa = lsadb_list[i]
+        id_lsa = lsa.id
+        adrouter_lsa = lsa.adrouter
+        type_lsa = lsa.type
+        a = OSPF_LSReq_Item(
+            type=type_lsa,
+            id=id_lsa,
+            adrouter=adrouter_lsa
+        )
+        lsreq_list.append(a)
     
     # Buat LSR packet dengan parameter yang diberikan
     ospf_lsr_pkt = (
@@ -202,19 +216,16 @@ def send_ospf_lsr(neighbor_ip):
         ip_lsr /
         ospf_hdr_lsr /
         OSPF_LSReq(
-        ) /
-        OSPF_LSReq_Item(
-            type=1,
-            id="10.10.2.1",
-            adrouter="10.10.2.1"
-        )
+         request = [lsreq_list]
+        ) 
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
+    print(f"LSR List: {lsreq_list}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list
+    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -292,10 +303,14 @@ def handle_incoming_packet(packet):
                         # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                    
                     for i in range(jumlah_lsa):
                         lsa = dbd_layer.lsaheaders[i]
                         lsadb_list.append(lsa)
                         print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                    
+                    send_ospf_lsr(src_ip)
+
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
             print(f"{lsadb_list}")
