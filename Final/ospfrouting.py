@@ -40,7 +40,7 @@ ospf_hello_first = OSPF_Hello(
     deadinterval=dead_interval,
     router=router_id,
     backup= backup_default,  # Backup router ID
-    neighbors=[neighbor_default]  # Daftar neighbor IP
+    neighbors=[]  # Daftar neighbor IP
 )
 
 
