@@ -184,7 +184,7 @@ def send_ospf_dbd(neighbor_router_ip):
          
     )
     
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: M+MS ({flag_value}), Seq: {seq_num}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: MS ({flag_value}), Seq: {seq_num}")
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
 def send_ospf_lsr(neighbor_ip):
@@ -255,7 +255,6 @@ def handle_incoming_packet(packet):
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 2:  # DBD packet
-            dbd_layer = packet.getlayer(OSPF_DBDesc)
             src_ip = packet[IP].src
 
             if neighbor_state == "2-Way":
@@ -270,42 +269,46 @@ def handle_incoming_packet(packet):
                 # send_ospf_dbd_first(src_ip, seq_random)
             elif neighbor_state == "Exstart":
                 if src_ip != router_id:
+                    dbd_layer = packet.getlayer(OSPF_DBDesc)
                     if 0x00 in dbd_layer.dbdescr:
                         router_status = "Master"
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
                         neighbor_state = "Exchange"
-                        send_ospf_dbd_first(src_ip, seq_random)
+                        # send_ospf_dbd_first(src_ip, seq_random)
+                        send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     else:
                         router_status = "Slave"
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
                         neighbor_state = "Exchange"
-                        send_ospf_dbd_first(src_ip, seq_random)
-                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            elif neighbor_state == "Exchange":
-                if src_ip != router_id:
-                    if router_status == "Master":
-                        print(f"Received DBD from {src_ip}, moving to Loading state as Master")
-                        neighbor_state = "Loading"
+                        # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-                    else:
-                        print(f"Received DBD from {src_ip}, moving to Loading state as Slave")
-                        neighbor_state = "Loading"
-                        send_ospf_dbd(src_ip)
-                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            
-            
-                
-                # send_ospf_lsr(src_neighbor)
-            # neighbor_state = "2-Way"
-            # dbd_seq_num_neighbor = ospf_hdr.seq
-            # master = True
+            # elif neighbor_state == "Exchange":
+            #     if src_ip != router_id:
+            #         if router_status == "Master":
+            #             print(f"Received DBD from {src_ip}, moving to Loading state as Master")
+            #             neighbor_state = "Loading"
+            #             send_ospf_dbd(src_ip)
+            #             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            #         elif router_status == "Slave":
+            #             print(f"Received DBD from {src_ip}, moving to Loading state as Slave")
+            #             neighbor_state = "Loading"
+            #             send_ospf_dbd(src_ip)
+            #             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
-            neighbor_state = "ExStart"
+            src_ip = packet[IP].src
+            if src_ip != router_id:
+                lsr_layer = packet.getlayer(OSPF_LSReq)
+                print(f"Received LSR from {src_ip}, ready to Full state")
+                neighbor_state = "Loading"
+                send_ospf_lsr(src_ip)
+                print(f"Sent LSR packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+
+
         elif ospfhdr_layer.type == 4:  # LSU packet
             print("Received LSU packet")
         elif ospfhdr_layer.type == 5:  # LSAck packet
