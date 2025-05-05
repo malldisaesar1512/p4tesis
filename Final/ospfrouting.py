@@ -160,7 +160,7 @@ def send_ospf_lsr(neighbor_ip):
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, master
+    global neighbor_state, dbd_seq_num, dbd_seq_num_neighbor, master, eth, ip_broadcast, ospf_header, ospf_hello_pkt
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
