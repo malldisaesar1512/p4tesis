@@ -37,7 +37,7 @@ ospf_hello_pkt = OSPF_Hello(
     prio=priority_default,
     deadinterval=dead_interval,
     router=router_id,
-    backup=[],
+    backup=[area_id],  # Backup router ID
     neighbors=['10.10.1.1']  # Daftar neighbor IP
 )
 
