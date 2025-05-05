@@ -224,7 +224,7 @@ def send_ospf_lsr(neighbor_ip):
         ip_lsr /
         ospf_hdr_lsr /
         OSPF_LSReq(
-         requests = [lsreq_list]
+         requests = lsreq_list
         ) 
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
