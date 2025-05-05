@@ -101,8 +101,8 @@ def send_hello_periodically(interval):
     global neighbor_state, neighbor_default
     while True:
         if neighbor_state == "Down":
-            neighbor_default = ""
-            ospf_hello_first.neighbors = ""
+            # neighbor_default = ""
+            ospf_hello_first.neighbors = ''
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
             # ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
