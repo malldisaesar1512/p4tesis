@@ -24,6 +24,7 @@ router_id2 = "192.168.1.1"  # Router ID 2 (Neighbor)
 interface = "ens5"         # Network interface
 backup_default = "0.0.0.0"
 neighbor_default = "10.10.1.1"
+lsadb_list = []
 
 
 #Membuat paket Ethernet
@@ -213,7 +214,7 @@ def send_ospf_lsr(neighbor_ip):
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt
+    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -293,21 +294,11 @@ def handle_incoming_packet(packet):
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     for i in range(jumlah_lsa):
                         lsa = dbd_layer.lsaheaders[i]
+                        lsadb_list.append(lsa)
                         print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-            # elif neighbor_state == "Exchange":
-            #     if src_ip != router_id:
-            #         if router_status == "Master":
-            #             print(f"Received DBD from {src_ip}, moving to Loading state as Master")
-            #             neighbor_state = "Loading"
-            #             send_ospf_dbd(src_ip)
-            #             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            #         elif router_status == "Slave":
-            #             print(f"Received DBD from {src_ip}, moving to Loading state as Slave")
-            #             neighbor_state = "Loading"
-            #             send_ospf_dbd(src_ip)
-            #             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
+            print(f"{lsadb_list}")
             src_ip = packet[IP].src
             if src_ip != router_id:
                 lsr_layer = packet.getlayer(OSPF_LSReq)
