@@ -111,7 +111,7 @@ def send_hello_periodically(interval):
         elif neighbor_state == "Full":
             ospf_hello_first.neighbors = [neighbor_ip]
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-        print(f"{ospf_packet_hello1.show()}")
+        print(f"{ospf_packet_hello_first.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
