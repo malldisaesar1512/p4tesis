@@ -200,10 +200,10 @@ def send_ospf_lsr(neighbor_ip):
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
 
     for i in lsadb_list:
-        print(f"LSA {i}: {i.show()}") # Menampilkan informasi LSA
-        id_lsa = id[i]
-        adrouter_lsa = adrouter[i]
-        type_lsa = type[i]
+        # print(f"LSA {i}: {i.show()}") # Menampilkan informasi LSA
+        id_lsa = i.id
+        adrouter_lsa = i.adrouter
+        type_lsa = i.type
         
         if type_lsa == 'router':
             type_lsa = 1
