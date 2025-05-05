@@ -181,14 +181,16 @@ def handle_incoming_packet(packet):
         ospfhdr_layer = packet.getlayer(OSPF_Hdr)
         # Cek tipe paket OSPF
         if ospfhdr_layer.type == 1:  # Hello packet
-            src_neighbor = packet[IP].src
+            src_ip = packet[IP].src
+            neighbor_ip = packet[OSPF_Hdr].src
+
 
             if neighbor_state == "Down":
                 if src_neighbor != router_id:
                     print("Received Hello packet")
                     neighbor_state = "Init"
                     neighbor_ip = src_neighbor
-                    print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
+                    print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
