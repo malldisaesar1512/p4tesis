@@ -88,11 +88,11 @@ master = False
 eth = Ether()
 
 # Membuat header OSPF (versi 2, tipe 1=Hello)
-ospf_header = OSPF_Hdr(version=2, type=1, src=router_id, area=area_id)
+ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state
+    global neighbor_state, eth, ip_broadcast, ospf_header, ospf_hello_pkt
     while True:
         if neighbor_state == "Down":
             ospf_hello_pkt.neighbors = []
