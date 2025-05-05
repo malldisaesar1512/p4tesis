@@ -198,7 +198,7 @@ def send_ospf_lsr(neighbor_ip):
     # Header OSPF tipe 3: Link State Request Packet
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
 
-    for i in range(jumlah_lsa):
+    for i in jumlah_lsa:
         lsa = lsadb_list[i]
         id_lsa = str(lsa.id)
         adrouter_lsa = str(lsa.adrouter)
@@ -227,7 +227,7 @@ def send_ospf_lsr(neighbor_ip):
         ) 
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
-    print(f"LSR List: {lsreq_list}")
+    # print(f"LSR List: {lsreq_list}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
@@ -311,7 +311,7 @@ def handle_incoming_packet(packet):
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     
-                    for i in range(jumlah_lsa):
+                    for i in jumlah_lsa:
                         lsa = dbd_layer.lsaheaders[i]
                         lsadb_list.append(lsa)
                         # print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
