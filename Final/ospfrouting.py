@@ -265,6 +265,7 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Exstart"
                     print(f"Received DBD from {src_ip}, moving to Exstart state")
                     send_ospf_dbd_first(src_ip, seq_random)
+                    print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 # neighbor_state = "Exstart"
                 # print(f"Received DBD from {src_ip}, moving to Exstart state")
                 # send_ospf_dbd_first(src_ip, seq_random)
@@ -276,22 +277,26 @@ def handle_incoming_packet(packet):
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
                         neighbor_state = "Exchange"
                         send_ospf_dbd_first(src_ip, seq_random)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     else:
                         router_status = "Slave"
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
                         neighbor_state = "Exchange"
                         send_ospf_dbd_first(src_ip, seq_random)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif neighbor_state == "Exchange":
                 if src_ip != router_id:
                     if router_status == "Master":
                         print(f"Received DBD from {src_ip}, moving to Loading state as Master")
                         neighbor_state = "Loading"
                         send_ospf_dbd(src_ip)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     else:
                         print(f"Received DBD from {src_ip}, moving to Loading state as Slave")
                         neighbor_state = "Loading"
                         send_ospf_dbd(src_ip)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             
             
                 
