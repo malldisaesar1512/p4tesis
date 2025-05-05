@@ -200,7 +200,8 @@ def send_ospf_lsr(neighbor_ip):
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
 
     for i in lsadb_list:
-        # lsa = lsadb_list[i]
+        lsa = lsadb_list[i]
+        print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
         id_lsa = id[i]
         adrouter_lsa = adrouter[i]
         type_lsa = type[i]
