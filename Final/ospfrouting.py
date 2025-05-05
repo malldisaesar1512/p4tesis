@@ -96,7 +96,7 @@ ospf_packet_hello1 = eth / ip_broadcast / ospf_header / ospf_hello_pkt
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, eth, ip_broadcast, ospf_header, ospf_hello_pkt
+    global neighbor_state
     while True:
         if neighbor_state == "Down":
             ospf_hello_pkt.neighbors = []
