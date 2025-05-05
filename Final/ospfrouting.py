@@ -26,6 +26,7 @@ backup_default = "0.0.0.0"
 neighbor_default = "10.10.1.1"
 lsadb_list = []
 lsreq_list = []
+a = []
 
 
 #Membuat paket Ethernet
@@ -190,7 +191,7 @@ def send_ospf_dbd(neighbor_router_ip):
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
 def send_ospf_lsr(neighbor_ip):
-    global lsreq_list
+    global lsreq_list, lsadb_list, a
     """Kirim paket Link State Request (LSR) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsr = IP(src=router_id, dst=str(neighbor_ip))
@@ -199,10 +200,10 @@ def send_ospf_lsr(neighbor_ip):
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
 
     for i in lsadb_list:
-        lsa = lsadb_list[i]
-        id_lsa = lsa.id
-        adrouter_lsa = lsa.adrouter
-        type_lsa = lsa.type
+        # lsa = lsadb_list[i]
+        id_lsa = id[i]
+        adrouter_lsa = adrouter[i]
+        type_lsa = type[i]
         
         if type_lsa == 'router':
             type_lsa = 1
