@@ -193,7 +193,7 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Init"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
-                    ospf_hello_first.neighbors = [src_neighbor]
+                    ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
                     print(f"Sent OSPF Hello packet to {src_neighbor} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
