@@ -50,6 +50,7 @@ def send_ospf_hello_periodically(interval):
         elif neighbor_state == "2-Way":
             ospf_hello.neighbors = [neighbor_ip]
         sendp(ospf_packet, iface=interface, verbose=0)
+        print(f"{ospf_packet.show()}")
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
