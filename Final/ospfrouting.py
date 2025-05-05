@@ -39,7 +39,7 @@ ospf_hello_first = OSPF_Hello(
     prio=priority_default,
     deadinterval=dead_interval,
     router=router_id,
-    backup=[backup_default],  # Backup router ID
+    backup= backup_default,  # Backup router ID
     neighbors=[neighbor_default]  # Daftar neighbor IP
 )
 
@@ -101,8 +101,8 @@ def send_hello_periodically(interval):
     global neighbor_state, neighbor_default
     while True:
         if neighbor_state == "Down":
-            neighbor_default = ''
-            ospf_hello_first.neighbors = [neighbor_default]
+            neighbor_default = ""
+            ospf_hello_first.neighbors = neighbor_default
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
             # ospf_header1 = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
@@ -192,8 +192,8 @@ def handle_incoming_packet(packet):
                 neighbor_state = "Init"
                 neighbor_ip = src_neighbor
                 print(f"Received Hello from {src_neighbor}, moving to Init state or 2-Way")
-                ospf_hello_pkt.neighbors = [src_neighbor]
-                ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_pkt
+                ospf_hello_first.neighbors = [src_neighbor]
+                ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                 sendp(ospf_packet_hello2, iface=interface, verbose=0)
                 print(f"Sent OSPF Hello packet to {src_neighbor} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 2:  # DBD packet
