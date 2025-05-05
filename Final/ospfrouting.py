@@ -240,7 +240,7 @@ def handle_incoming_packet(packet):
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
-                    print(f"{ospf_packet_hello2.show()}")
+                    # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif neighbor_state == "Init":
                 if src_ip != router_id:
@@ -264,11 +264,11 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Exstart"
                     print(f"Received DBD from {src_ip}, moving to Exstart state")
                     send_ospf_dbd_first(src_ip, seq_random)
-                    # print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                    print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 # neighbor_state = "Exstart"
                 # print(f"Received DBD from {src_ip}, moving to Exstart state")
                 # send_ospf_dbd_first(src_ip, seq_random)
-            elif neighbor_state == "ExStart":
+            elif neighbor_state == "Exstart":
                 if src_ip != router_id:
                     if 0x00 in dbd_layer.dbdescr:
                         router_status = "Master"
