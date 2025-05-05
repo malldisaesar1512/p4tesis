@@ -314,7 +314,7 @@ def handle_incoming_packet(packet):
                         lsa = dbd_layer.lsaheaders[i]
                         lsadb_list.append(lsa)
                         print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-                    
+                    print(f"LSA List: {lsadb_list}")
                     send_ospf_lsr(src_ip)
 
         elif ospfhdr_layer.type == 3:  # LSR packet
