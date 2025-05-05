@@ -199,9 +199,10 @@ def send_ospf_lsr(neighbor_ip):
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
 
     for i in lsadb_list:
-        id_lsa = id[i]
-        adrouter_lsa = adrouter[i]
-        type_lsa = type[i]
+        lsa = lsadb_list[i]
+        id_lsa = lsa.id
+        adrouter_lsa = lsa.adrouter
+        type_lsa = lsa.type
         
         if type_lsa == 'router':
             type_lsa = 1
