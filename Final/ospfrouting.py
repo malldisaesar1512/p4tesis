@@ -38,7 +38,7 @@ ospf_hello_pkt = OSPF_Hello(
     deadinterval=40,
     router=router_id,
     backup=[],
-    neighbors=[]  # Daftar neighbor IP
+    neighbors=['10.10.1.1']  # Daftar neighbor IP
 )
 
 
@@ -104,7 +104,7 @@ def send_hello_periodically(interval):
             # print(f"{ospf_packet_hello1.show()}")
         elif neighbor_state == "Full":
             ospf_hello_pkt.neighbors = [neighbor_ip]
-            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         sendp(ospf_packet_hello1, iface=interface, verbose=0)
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
