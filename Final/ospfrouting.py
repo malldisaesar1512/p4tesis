@@ -200,8 +200,8 @@ def send_ospf_lsr(neighbor_ip):
 
     for i in jumlah_lsa:
         lsa = lsadb_list[i]
-        id_lsa = str(lsa.id)
-        adrouter_lsa = str(lsa.adrouter)
+        id_lsa = lsa.id
+        adrouter_lsa = lsa.adrouter
         type_lsa = lsa.type
         
         if type_lsa == 'router':
@@ -314,7 +314,7 @@ def handle_incoming_packet(packet):
                     for i in jumlah_lsa:
                         lsa = dbd_layer.lsaheaders[i]
                         lsadb_list.append(lsa)
-                        # print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                        print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
                     
                     send_ospf_lsr(src_ip)
 
