@@ -138,7 +138,7 @@ def send_ospf_dbd_first(neighbor_ip, seq_num):
         )
     )
     
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD FIRST packet to {neighbor_ip} - Flags: {flags} ({flag_value}), Seq: {seq_num}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD FIRST packet to {neighbor_ip} -  Seq: {seq_num}")
     sendp(ospf_dbd_pkt1, iface=interface, verbose=0)
 
 def send_ospf_lsr(neighbor_ip):
@@ -199,17 +199,17 @@ def handle_incoming_packet(packet):
         elif ospfhdr_layer.type == 2:  # DBD packet
             print("Received DBD packet")
             dbd_layer = packet.getlayer(OSPF_DBDesc)
-            src_neighbor = packet[IP].src
+            src_ip = packet[IP].src
 
             if neighbor_state == "Init":
                 neighbor_state = "2-Way"
-                print(f"Received DBD from {src_neighbor}, moving to 2-Way state")
-                send_ospf_dbd_first(src_neighbor, seq_random)
+                print(f"Received DBD from {src_ip}, moving to 2-Way state")
+                send_ospf_dbd_first(src_ip, seq_random)
             elif neighbor_state == "2-Way":
                 if "I" in dbd_layer.dbdescr:
-                    print(f"Received DBD from {src_neighbor}, moving to ExStart state")
+                    print(f"Received DBD from {src_ip}, moving to ExStart state")
                     neighbor_state = "ExStart"
-                    send_ospf_dbd_first(src_neighbor, seq_random)
+                    send_ospf_dbd_first(src_ip, seq_random)
                 
                 # send_ospf_lsr(src_neighbor)
             # neighbor_state = "2-Way"
