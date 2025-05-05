@@ -289,6 +289,8 @@ def handle_incoming_packet(packet):
                         # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                    for lsa in range(len(dbd_layer.lsaheaders)):
+                        print(f"LSA ID: {lsa.id}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
             # elif neighbor_state == "Exchange":
             #     if src_ip != router_id:
             #         if router_status == "Master":
