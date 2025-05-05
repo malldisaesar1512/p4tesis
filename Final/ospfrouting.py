@@ -77,18 +77,18 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
-# Variabel untuk melacak state neighbor
-neighbor_state = "Down"
-neighbor_ip = router_id2
-dbd_seq_num = random.randint(100000, 500000)
-dbd_seq_num_neighbor = None
-master = False
+# # Variabel untuk melacak state neighbor
+# neighbor_state = "Down"
+# neighbor_ip = router_id2
+# dbd_seq_num = random.randint(100000, 500000)
+# dbd_seq_num_neighbor = None
+# master = False
 
-# Membuat paket Ethernet
-eth = Ether()
+# # Membuat paket Ethernet
+# eth = Ether()
 
-# Membuat header OSPF (versi 2, tipe 1=Hello)
-ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
+# # Membuat header OSPF (versi 2, tipe 1=Hello)
+# ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
@@ -96,11 +96,12 @@ def send_hello_periodically(interval):
     while True:
         if neighbor_state == "Down":
             ospf_hello_pkt.neighbors = []
+            ospf_packet_hello = eth / ip_broadcast / ospf_header / ospf_hello_pkt
+            sendp(ospf_packet_hello, iface=interface, verbose=0)
+            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif neighbor_state == "Full":
             ospf_hello_pkt.neighbors = [neighbor_ip]
-        ospf_packet_hello = eth / ip_broadcast / ospf_header / ospf_hello_pkt
-        sendp(ospf_packet_hello, iface=interface, verbose=0)
-        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
 def send_ospf_dbd_first(neighbor_ip, seq_num):
