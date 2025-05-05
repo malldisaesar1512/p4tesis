@@ -200,9 +200,10 @@ def send_ospf_lsr(neighbor_ip):
 
     for i in range(jumlah_lsa):
         lsa = lsadb_list[i]
-        id_lsa = lsa.id
-        adrouter_lsa = lsa.adrouter
+        id_lsa = str(lsa.id)
+        adrouter_lsa = str(lsa.adrouter)
         type_lsa = lsa.type
+        
         if type_lsa == 'router':
             type_lsa = 1
         elif type_lsa == 'network':
@@ -213,7 +214,7 @@ def send_ospf_lsr(neighbor_ip):
             id=id_lsa,
             adrouter=adrouter_lsa
         )
-        
+
         lsreq_list.append(a)
     print(f"LSR List: {lsreq_list}")
     # Buat LSR packet dengan parameter yang diberikan
