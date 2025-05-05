@@ -97,6 +97,7 @@ def send_hello_periodically(interval):
         if neighbor_state == "Down":
             ospf_hello_pkt.neighbors = []
             ospf_packet_hello = eth / ip_broadcast / ospf_header / ospf_hello_pkt
+            print(f"{ospf_packet_hello.summary()}")
             sendp(ospf_packet_hello, iface=interface, verbose=0)
             print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif neighbor_state == "Full":
