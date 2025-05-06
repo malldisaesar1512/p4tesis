@@ -1,5 +1,6 @@
 from os import link
 from socket import timeout
+from Final.fullospf import send_ospf_lsu
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
@@ -8,6 +9,7 @@ import random
 
 #global variable
 neighbor_state = "Down"
+option_default = 0x02
 default_age = 360
 hello_interval = 10
 dead_interval = 40
@@ -26,7 +28,16 @@ backup_default = "0.0.0.0"
 neighbor_default = "10.10.1.1"
 lsadb_list = []
 lsreq_list = []
+lsreqdb_list = []
+lsudb_list = []
 a = []
+b = []
+
+lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
+                OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
+
+router_list_default = ['10.10.1.2','192.168.1.2']
+
 
 
 #Membuat paket Ethernet
@@ -39,7 +50,7 @@ ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
 ospf_hello_first = OSPF_Hello(
     mask="255.255.255.0",
     hellointerval=hello_interval,
-    options=0x02,
+    options=option_default,
     prio=priority_default,
     deadinterval=dead_interval,
     router=router_id,
@@ -61,7 +72,7 @@ lsa_type1 = OSPF_Router_LSA(
         )
 lsa_type2 = OSPF_Network_LSA(
             age=360, # Age of the LSA
-            options=0x02, # Options field
+            options=option_default, # Options field
             type=2,  # Network LSA
             id="10.10.1.2", # LSA ID
             adrouter="10.10.1.2", # Advertising router
@@ -231,9 +242,59 @@ def send_ospf_lsr(neighbor_ip):
     # print(f"LSR List: {lsreq_list}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
+def send_ospf_lsu(neighbor_ip):
+    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq
+    """Kirim paket Link State Update (LSU) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
+    ip_lsu = IP(src=router_id, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 4: Link State Update Packet
+    ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=router_id2, area=area_id)
+
+    for i in lsreqdb_list:
+        type_lsr = i.type
+        id_lsr = i.id
+        adrouter_lsr = i.adrouter
+
+        if type_lsr == 'router' or type_lsr == 1:
+            lsulist = lsa_type1
+            lsulist.linklist = lsadb_link_default
+            lsulist.id = id_lsr
+            lsulist.adrouter = adrouter_lsr
+            lsulist.type = type_lsr
+
+            b = lsulist
+
+            lsudb_list.append(b)
+        elif type_lsr == 'network' or type_lsr == 2:
+            lsulist = lsa_type2
+            lsulist.id = id_lsr
+            lsulist.adrouter = adrouter_lsr
+            lsulist.type = type_lsr
+            lsulist.routerlist = lsadb_link_default
+
+            b = lsulist
+            lsudb_list.append(b)
+
+    
+    # Buat LSU packet dengan LSAs yang diberikan
+    ospf_lsu_pkt = (
+        eth /
+        ip_lsu /
+        ospf_hdr_lsu /
+        OSPF_LSUpd(
+            lsacount=jumlah_lsreq,
+            lsalist= lsudb_list
+        )  
+        
+    )
+
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
+    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa
+    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -312,23 +373,31 @@ def handle_incoming_packet(packet):
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     
-                    for i in range(jumlah_lsa):
+                    for i in range(jumlah_lsa): #add LSA to list
                         lsa = dbd_layer.lsaheaders[i]
                         lsadb_list.append(lsa)
-                        print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-                    print(f"LSA List: {lsadb_list}")
-                    send_ospf_lsr(src_ip)
+                    #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                    # print(f"LSA List: {lsadb_list}")
+                    send_ospf_lsr(src_ip) #kirim LSR ke neighbor
 
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
             print(f"{lsadb_list}")
             src_ip = packet[IP].src
-            if src_ip != router_id:
-                lsr_layer = packet.getlayer(OSPF_LSReq)
-                print(f"Received LSR from {src_ip}, ready to Full state")
-                neighbor_state = "Loading"
-                send_ospf_lsr(src_ip)
-                print(f"Sent LSR packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            if neighbor_state == "Exchange":
+                if src_ip != router_id:
+                    lsr_layer = packet.getlayer(OSPF_LSReq)
+                    jumlah_lsreq = len(lsr_layer.requests)
+                    print(f"Received LSR from {src_ip}, ready to Full state")
+                    neighbor_state = "Loading"
+
+                    for i in range(jumlah_lsreq):
+                        lsr = lsr_layer.requests[i]
+                        lsreqdb_list.append(lsr)
+                        print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
+
+                    send_ospf_lsu(src_ip)
+                    print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
 
         elif ospfhdr_layer.type == 4:  # LSU packet
