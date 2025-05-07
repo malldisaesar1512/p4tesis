@@ -275,6 +275,8 @@ def send_ospf_lsu(neighbor_ip):
 
             b = lsulist
             lsudb_list.append(b)
+        
+    print(f"LSU List: {lsudb_list}")
 
     
     # Buat LSU packet dengan LSAs yang diberikan
@@ -290,11 +292,11 @@ def send_ospf_lsu(neighbor_ip):
     )
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
-    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    # sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list
+    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -402,6 +404,18 @@ def handle_incoming_packet(packet):
 
         elif ospfhdr_layer.type == 4:  # LSU packet
             print("Received LSU packet")
+            src_ip = packet[IP].src
+            if neighbor_state == "Loading":
+                if src_ip != router_id:
+                    lsu_layer = packet.getlayer(OSPF_LSUpd)
+                    jumlah_lsulsa = len(lsu_layer.lsalist)
+                    print(f"Received LSU from {src_ip}, moving to Full state")
+                    neighbor_state = "Full"
+                    for i in range(jumlah_lsulsa):
+                        lsalsu = lsu_layer.lsalist[i]
+                        lsadb_list.append(lsalsu)
+                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                    # print(f"LSA List: {lsadb_list}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
 
