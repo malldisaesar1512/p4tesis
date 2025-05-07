@@ -1,6 +1,5 @@
 from os import link
 from socket import timeout
-from Final.fullospf import send_ospf_lsu
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
