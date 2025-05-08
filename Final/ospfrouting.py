@@ -291,7 +291,42 @@ def send_ospf_lsu(neighbor_ip):
     )
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
-    # sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+
+def send_ospf_lsaack(broadcastip):
+    ip_lsack = IP(src=router_id, dst=str(broadcastip))
+    
+    # Header OSPF tipe 5: Link State ACK Packet
+    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+    
+    # Buat LSU packet dengan LSAs yang diberikan
+    ospf_lsack_pkt = (
+        eth /
+        ip_lsack /
+        ospf_hdr_lsack /
+                OSPF_LSAck(
+                    lsaheaders=[
+                    OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=router_id,
+                    adrouter=router_id,
+                    seq=0x80000123
+                ),
+                OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=1,
+                    id=router_id2,
+                    adrouter=router_id2,
+                    seq=0x80000124
+                )
+            ]
+        )
+    )
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
+    sendp(ospf_lsack_pkt, iface=interface, verbose=0)
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
