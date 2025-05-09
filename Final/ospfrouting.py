@@ -479,7 +479,7 @@ def handle_incoming_packet(packet):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsudb_list.append(lsalsu)
-                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     # print(f"LSA List: {lsadb_list}")
                     send_ospf_lsaack(src_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
