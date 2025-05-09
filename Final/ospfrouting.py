@@ -325,7 +325,7 @@ def send_ospf_lsaack(broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        if lsack_id == router_id2 or lsack_id == "10.10.2.1":
+        if lsack_id == router_id2 or lsack_id == "10.10.2.1" or lsack_type == 2:
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
