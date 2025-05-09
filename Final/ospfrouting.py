@@ -322,13 +322,14 @@ def send_ospf_lsaack(broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        lsack = lsarouter_default
-        lsack.id = lsack_id
-        lsack.adrouter = lsack_adrouter
-        lsack.type = lsack_type
-        lsack.seq = lsack_seq
-
-        lsacknih = lsack
+        lsacknih = OSPF_LSA_Hdr(
+                age=360,
+                options=0x02,
+                type=lsack_type,
+                id=lsack_id,
+                adrouter=lsack_adrouter,
+                seq=lsack_seq
+            )
         lsack_list.append(lsacknih)
         print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
