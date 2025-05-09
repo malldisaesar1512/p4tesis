@@ -328,9 +328,10 @@ def send_ospf_lsaack(broadcastip):
         lsack.seq = seq_lsack
 
         c = lsack
-
         lsack_list.append(c)
 
+        
+    print(f"lsack.list: {lsack_list}")
 
     ospf_lsack_pkt = (
         eth /
