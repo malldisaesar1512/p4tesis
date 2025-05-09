@@ -36,7 +36,7 @@ lsack_list = []
 lsackdb_list = []
 a = []
 b = []
-c = []
+lsacknih = []
 
 lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
                 OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
@@ -256,7 +256,7 @@ def send_ospf_lsr(neighbor_ip):
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
 
 def send_ospf_lsu(neighbor_ip):
-    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq
+    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b 
     """Kirim paket Link State Update (LSU) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsu = IP(src=router_id, dst=str(neighbor_ip))
@@ -308,7 +308,7 @@ def send_ospf_lsu(neighbor_ip):
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
 def send_ospf_lsaack(broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih
     ip_lsack = IP(src=router_id, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -317,22 +317,20 @@ def send_ospf_lsaack(broadcastip):
     # Buat LSU packet dengan LSAs yang diberikan
 
     for i in lsackdb_list:
-        id_lsaack = i.id
-        adrouter_lsaack = i.adrouter
-        type_lsaack = i.type
-        seq_lsack = i.seq
+        lsack_id = i.id
+        lsack_adrouter = i.adrouter
+        lsack_type = i.type
+        lsack_seq = i.seq
 
         lsack = lsarouter_default
-        lsack.id = id_lsaack
-        lsack.adrouter = adrouter_lsaack
-        lsack.type = type_lsaack
-        lsack.seq = seq_lsack
+        lsack.id = lsack_id
+        lsack.adrouter = lsack_adrouter
+        lsack.type = lsack_type
+        lsack.seq = lsack_seq
 
-        c = lsack
-        print(f"LSA {i}: {c}") # Menampilkan informasi LSA
-
-        lsack_list.append(c)
-
+        lsacknih = lsack
+        lsack_list.append(lsacknih)
+        print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
     print(f"lsack.list: {lsack_list}")
 
