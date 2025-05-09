@@ -234,13 +234,16 @@ def send_ospf_lsr(neighbor_ip):
         elif type_lsa == 'network':
             type_lsa = 2
 
-        a = OSPF_LSReq_Item(
+        if id_lsa == router_id2:
+            continue
+        else:
+            a = OSPF_LSReq_Item(
             type=type_lsa,
             id=id_lsa,
             adrouter=adrouter_lsa
-        )
-
-        lsreq_list.append(a)
+            )
+            lsreq_list.append(a)
+        
     print(f"LSR List: {lsreq_list}")
     # Buat LSR packet dengan parameter yang diberikan
     ospf_lsr_pkt = (
@@ -322,16 +325,19 @@ def send_ospf_lsaack(broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        lsacknih = OSPF_LSA_Hdr(
-                age=360,
-                options=0x02,
-                type=lsack_type,
-                id=lsack_id,
-                adrouter=lsack_adrouter,
-                seq=lsack_seq
-            )
-        lsack_list.append(lsacknih)
-        print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
+        if lsack_id == router_id2:
+            continue
+        else:
+            lsacknih = OSPF_LSA_Hdr(
+                    age=360,
+                    options=0x02,
+                    type=lsack_type,
+                    id=lsack_id,
+                    adrouter=lsack_adrouter,
+                    seq=lsack_seq
+                )
+            lsack_list.append(lsacknih)
+            print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
     print(f"lsack.list: {lsack_list}")
 
