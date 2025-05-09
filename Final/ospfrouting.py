@@ -33,6 +33,7 @@ lsreq_list = []
 lsreqdb_list = []
 lsudb_list = []
 lsack_list = []
+lsackdb_list = []
 a = []
 b = []
 c = []
@@ -307,7 +308,7 @@ def send_ospf_lsu(neighbor_ip):
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
 def send_ospf_lsaack(broadcastip):
-    global lsudb_list, lsack_list
+    global lsudb_list, lsack_list, lsackdb_list
     ip_lsack = IP(src=router_id, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -315,7 +316,7 @@ def send_ospf_lsaack(broadcastip):
     
     # Buat LSU packet dengan LSAs yang diberikan
 
-    for i in lsudb_list:
+    for i in lsackdb_list:
         id_lsaack = i.id
         adrouter_lsaack = i.adrouter
         type_lsaack = i.type
@@ -346,7 +347,7 @@ def send_ospf_lsaack(broadcastip):
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -479,9 +480,9 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Full"
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
-                        lsudb_list.append(lsalsu)
+                        lsackdb_list.append(lsalsu)
                         print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
-                    print(f"LSA List: {len(lsudb_list)}")
+                    print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(src_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
