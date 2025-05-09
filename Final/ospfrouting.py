@@ -328,8 +328,6 @@ def send_ospf_lsaack(broadcastip):
         lsack.type = type_lsaack
         lsack.seq = seq_lsack
 
-        print(f"LSA {i}: {lsack}") # Menampilkan informasi LSA
-
         c = lsack
         print(f"LSA {i}: {c}") # Menampilkan informasi LSA
 
