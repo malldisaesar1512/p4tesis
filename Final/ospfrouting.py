@@ -494,6 +494,14 @@ def handle_incoming_packet(packet):
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
+            src_ip = packet[IP].src
+            if neighbor_state == "Full":
+                if src_ip != router_id:
+                    lsack_layer = packet.getlayer(OSPF_LSAck)
+                    jumlah_lsack = len(lsack_layer.lsaheaders)
+                    print(f"Received LSAck from {src_ip}, moving to Full state")
+                    neighbor_state = "Full"
+                    send_ospf_lsaack(src_ip)
 
 def sniff_packets():
    print("Sniffing packets...")
