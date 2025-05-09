@@ -473,7 +473,7 @@ def handle_incoming_packet(packet):
             if neighbor_state == "Loading":
                 if src_ip != router_id:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
-                    jumlah_lsulsa = len(lsu_layer.lsalist)
+                    jumlah_lsulsa = len(lsu_layer.lsacount)
                     print(f"Received LSU from {src_ip}, moving to Full state")
                     neighbor_state = "Full"
                     for i in range(jumlah_lsulsa):
