@@ -24,7 +24,9 @@ router_id2 = "192.168.1.1"  # Router ID 2 (Neighbor)
 # area_id = "0.0.0.0"        # Area ID
 interface = "ens5"         # Network interface
 backup_default = "0.0.0.0"
-neighbor_default = "10.10.1.1"
+neighbor_default = "10.10.2.1"
+dr = "10.10.1.2"
+bdr = "10.10.1.1"
 lsadb_list = []
 lsreq_list = []
 lsreqdb_list = []
@@ -121,9 +123,17 @@ def send_hello_periodically(interval):
             ospf_hello_first.neighbors = []
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
-        elif neighbor_state == "Full" or neighbor_state == "2-Way":
-            ospf_hello_first.neighbors = [neighbor_default]
+        elif neighbor_state == "Full":
+            ospf_hello_10s = ospf_hello_first
+            ospf_hello_10s.neighbors = [neighbor_default]
+            ospf_hello_10s.backup = bdr
+            ospf_hello_10s.router = dr
+
+            ospf_fullhdr = ospf_hello_10s
             # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_fullhdr
+            sendp(ospf_packet_hello2, iface=interface, verbose=0)
+
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
