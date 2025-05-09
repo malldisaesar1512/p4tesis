@@ -346,7 +346,7 @@ def send_ospf_lsaack(broadcastip):
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa
+    global neighbor_state, dbd_seq_num, seq_exchange, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
 
     # Cek apakah paket adalah paket OSPF
     if packet.haslayer(OSPF_Hdr):
@@ -481,7 +481,7 @@ def handle_incoming_packet(packet):
                         lsalsu = lsu_layer.lsalist[i]
                         lsudb_list.append(lsalsu)
                         print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
-                    # print(f"LSA List: {lsadb_list}")
+                    print(f"LSA List: {lsudb_list}")
                     send_ospf_lsaack(src_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
