@@ -392,7 +392,7 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Full"
                     neighbor_ip = src_neighbor
                     ospf_hello_full = ospf_hello_first
-                    ospf_hello_full.neighbors = [ospfhdr_layer.neighbors]
+                    ospf_hello_full.neighbors = [neighbor_ip]
                     ospf_hello_full.backup = [ospfhdr_layer.backup]
                     ospf_hello_full.router = [ospfhdr_layer.router]
                     # ospf_hello_first.backup = src_ip
