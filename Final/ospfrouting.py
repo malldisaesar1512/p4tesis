@@ -331,6 +331,8 @@ def send_ospf_lsaack(broadcastip):
         print(f"LSA {i}: {lsack}") # Menampilkan informasi LSA
 
         c = lsack
+        print(f"LSA {i}: {c}") # Menampilkan informasi LSA
+
         lsack_list.append(c)
 
         
