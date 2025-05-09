@@ -325,7 +325,7 @@ def send_ospf_lsaack(broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        if lsack_id == router_id2 or lsack_id == "192.168.2.1" or lsack_type == 2:
+        if lsack_id == router_id2 or lsack_id == "10.10.2.1" or lsack_type == 2:
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
@@ -497,8 +497,8 @@ def handle_incoming_packet(packet):
             src_ip = packet[IP].src
             if neighbor_state == "Full":
                 if src_ip != router_id:
-                    lsack_layer = packet.getlayer(OSPF_LSAck)
-                    jumlah_lsack = len(lsack_layer.lsaheaders)
+                    # lsack_layer = packet.getlayer(OSPF_LSAck)
+                    # jumlah_lsack = len(lsack_layer.lsaheaders)
                     print(f"Received LSAck from {src_ip}, moving to Full state")
                     neighbor_state = "Full"
                     send_ospf_lsaack(src_ip)
