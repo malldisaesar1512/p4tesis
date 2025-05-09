@@ -481,7 +481,7 @@ def handle_incoming_packet(packet):
                         lsalsu = lsu_layer.lsalist[i]
                         lsudb_list.append(lsalsu)
                         print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
-                    print(f"LSA List: {lsudb_list}")
+                    print(f"LSA List: {len(lsudb_list)}")
                     send_ospf_lsaack(src_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
