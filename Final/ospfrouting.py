@@ -308,7 +308,7 @@ def send_ospf_lsu(neighbor_ip):
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
 
 def send_ospf_lsaack(broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default
     ip_lsack = IP(src=router_id, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
