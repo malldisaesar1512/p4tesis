@@ -490,7 +490,7 @@ def handle_incoming_packet(packet):
                         lsackdb_list.append(lsalsu)
                         print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     print(f"LSA List: {len(lsackdb_list)}")
-                    send_ospf_lsaack(src_ip)
+                    send_ospf_lsaack(broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
@@ -501,7 +501,7 @@ def handle_incoming_packet(packet):
                     # jumlah_lsack = len(lsack_layer.lsaheaders)
                     print(f"Received LSAck from {src_ip}, moving to Full state")
                     neighbor_state = "Full"
-                    send_ospf_lsaack(src_ip)
+                    send_ospf_lsaack(broadcast_ip)
 
 def sniff_packets():
    print("Sniffing packets...")
