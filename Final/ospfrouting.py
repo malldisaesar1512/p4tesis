@@ -415,17 +415,17 @@ def handle_incoming_packet(packet):
         elif ospfhdr_layer.type == 2:  # DBD packet
             src_ip = packet[IP].src
 
-            if neighbor_state == "2-Way":
-                if src_ip != router_id:
-                    print("Received DBD packet")
-                    neighbor_state = "Exstart"
-                    print(f"Received DBD from {src_ip}, moving to Exstart state")
-                    send_ospf_dbd_first(src_ip, seq_random)
-                    print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            # if neighbor_state == "2-Way":
+            #     if src_ip != router_id:
+            #         print("Received DBD packet")
+            #         neighbor_state = "Exstart"
+            #         print(f"Received DBD from {src_ip}, moving to Exstart state")
+            #         send_ospf_dbd_first(src_ip, seq_random)
+            #         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 # neighbor_state = "Exstart"
                 # print(f"Received DBD from {src_ip}, moving to Exstart state")
                 # send_ospf_dbd_first(src_ip, seq_random)
-            elif neighbor_state == "Exstart":
+            if neighbor_state == "2-Way":
                 if src_ip != router_id:
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
                     jumlah_lsa = len(dbd_layer.lsaheaders)
