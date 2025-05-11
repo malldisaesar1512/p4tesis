@@ -325,7 +325,7 @@ def send_ospf_lsaack(broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        if lsack_id == router_id2 or lsack_id == "10.10.2.1" or lsack_type == 2:
+        if lsack_id == router_id2 or lsack_type == 2:
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
@@ -482,6 +482,19 @@ def handle_incoming_packet(packet):
             print("Received LSU packet")
             src_ip = packet[IP].src
             if neighbor_state == "Loading" or neighbor_state == "Exchange":
+                if src_ip != router_id:
+                    lsu_layer = packet.getlayer(OSPF_LSUpd)
+                    jumlah_lsulsa = lsu_layer.lsacount
+                    print(f"Received LSU from {src_ip}, moving to Full state")
+                    neighbor_state = "Full"
+                    for i in range(jumlah_lsulsa):
+                        lsalsu = lsu_layer.lsalist[i]
+                        lsackdb_list.append(lsalsu)
+                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                    print(f"LSA List: {len(lsackdb_list)}")
+                    send_ospf_lsaack(broadcast_ip)
+                    print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            if neighbor_state == "Full":
                 if src_ip != router_id:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
