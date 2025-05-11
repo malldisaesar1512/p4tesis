@@ -393,6 +393,7 @@ def handle_incoming_packet(packet):
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    send_ospf_dbd_first(src_ip, seq_random)
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif neighbor_state == "Full":
