@@ -481,7 +481,7 @@ def handle_incoming_packet(packet):
         elif ospfhdr_layer.type == 4:  # LSU packet
             print("Received LSU packet")
             src_ip = packet[IP].src
-            if neighbor_state == "Loading":
+            if neighbor_state == "Loading" or neighbor_state == "Exchange":
                 if src_ip != router_id:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
