@@ -10,7 +10,7 @@ import random
 #global variable
 neighbor_state = "Down"
 option_default = 0x02
-default_age = 360
+default_age = 1
 hello_interval = 10
 dead_interval = 40
 priority_default = 128
@@ -66,7 +66,7 @@ ospf_hello_first = OSPF_Hello(
 
 #TYPE OF LSA_PACKET
 lsa_type1 = OSPF_Router_LSA(
-            age=360, # Age of the LSA
+            age = 1, # Age of the LSA
             options=0x02, # Options field
             type=1,  # Router LSA
             id="10.10.1.2", # LSA ID
@@ -76,7 +76,7 @@ lsa_type1 = OSPF_Router_LSA(
             linklist=[] # List of links
         )
 lsa_type2 = OSPF_Network_LSA(
-            age=360, # Age of the LSA
+            age = 1, # Age of the LSA
             options=option_default, # Options field
             type=2,  # Network LSA
             id="10.10.1.2", # LSA ID
@@ -86,7 +86,7 @@ lsa_type2 = OSPF_Network_LSA(
             routerlist=[] # List of routers
         )
 lsarouter_default = OSPF_LSA_Hdr(
-                age=360,
+                age = 1,
                 options=0x02,
                 type=1,
                 id=router_id2,
@@ -191,7 +191,7 @@ def send_ospf_dbd(neighbor_router_ip):
             ddseq=seq_num,
             lsaheaders=[
             OSPF_LSA_Hdr(
-            age=360,
+            age = 1,
             options=0x02,
             type=1,
             id=router_id,
@@ -199,7 +199,7 @@ def send_ospf_dbd(neighbor_router_ip):
             seq=0x80000123
             ),
             OSPF_LSA_Hdr(
-            age=360,
+            age = 1,
             options=0x02,
             type=1,
             id=router_id2,
@@ -329,7 +329,7 @@ def send_ospf_lsaack(broadcastip):
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
-                    age=360,
+                    age = 1,
                     options=0x02,
                     type=lsack_type,
                     id=lsack_id,
