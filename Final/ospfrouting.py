@@ -389,7 +389,7 @@ def handle_incoming_packet(packet):
                     neighbor_state = "2-Way"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to 2-Way state")
-                    ospf_hello_first.backup = src_ip
+                    # ospf_hello_first.backup = src_ip
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
