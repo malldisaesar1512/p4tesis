@@ -427,8 +427,8 @@ def handle_incoming_packet(packet):
                 # send_ospf_dbd_first(src_ip, seq_random)
             if neighbor_state == "2-Way":
                 if src_ip != router_id:
+                    dbd_layer = packet.getlayer(OSPF_DBDesc)
                     if dbd_layer.dbdescr == 0x00:
-                        dbd_layer = packet.getlayer(OSPF_DBDesc)
                         jumlah_lsa = len(dbd_layer.lsaheaders)
                         print(f"{dbd_layer.show()}")
                         print(f"Jumlah LSA: {jumlah_lsa}")
