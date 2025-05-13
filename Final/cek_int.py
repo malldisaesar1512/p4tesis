@@ -1,16 +1,22 @@
-from scapy.all import get_if_list, get_if_addr
+import psutil
+import ipaddress
 
-# Dapatkan daftar semua interface
-interfaces = get_if_list()
+def get_active_interfaces_info():
+    addrs = psutil.net_if_addrs()
+    stats = psutil.net_if_stats()
 
-print("Daftar interface dan IP-nya:")
+    for iface, addr_list in addrs.items():
+        if iface in stats and stats[iface].isup:
+            for addr in addr_list:
+                if addr.family == psutil.AF_INET:
+                    ip = addr.address
+                    netmask = addr.netmask
+                    if ip and netmask and ip != "127.0.0.1":
+                        network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                        print(f"Interface: {iface}")
+                        print(f"  IP Address: {ip}")
+                        print(f"  Netmask: {netmask}")
+                        print(f"  Network: {network.network_address}/{network.prefixlen}")
 
-for iface in interfaces:
-    try:
-        ip = get_if_addr(iface)
-        # Abaikan interface tanpa IP atau loopback
-        if ip and ip != "0.0.0.0" and not ip.startswith("127."):
-            print(f"Interface: {iface}, IP Address: {ip}")
-    except Exception as e:
-        # Beberapa interface mungkin tidak punya IP, abaikan error
-        pass
+if __name__ == "__main__":
+    get_active_interfaces_info()
