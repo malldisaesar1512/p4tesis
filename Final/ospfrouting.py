@@ -257,6 +257,8 @@ def send_ospf_lsr(neighbor_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     # print(f"LSR List: {lsreq_list}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
+    lsreq_list.clear()
+    lsadb_list.clear()
 
 def send_ospf_lsu(neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b 
@@ -309,6 +311,8 @@ def send_ospf_lsu(neighbor_ip):
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    lsudb_list.clear()
+    lsreqdb_list.clear()
 
 def send_ospf_lsaack(broadcastip):
     global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih
@@ -351,6 +355,8 @@ def send_ospf_lsaack(broadcastip):
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
+    lsackdb_list.clear()
+    lsack_list.clear()
 
 def handle_incoming_packet(packet):
     """Fungsi untuk menangani paket yang diterima"""
