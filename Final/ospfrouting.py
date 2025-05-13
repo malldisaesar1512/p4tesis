@@ -294,8 +294,7 @@ def send_ospf_lsu(neighbor_ip):
             b = lsulist
             lsudb_list.append(b)
         
-    print(f"LSU List: {lsudb_list}")
-
+    # print(f"LSU List: {lsudb_list}")
     
     # Buat LSU packet dengan LSAs yang diberikan
     ospf_lsu_pkt = (
@@ -343,7 +342,7 @@ def send_ospf_lsaack(broadcastip):
             lsack_list.append(lsacknih)
             print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
-    print(f"lsack.list: {lsack_list}")
+    # print(f"lsack.list: {lsack_list}")
 
     ospf_lsack_pkt = (
         eth /
@@ -478,7 +477,7 @@ def handle_incoming_packet(packet):
                     for i in range(jumlah_lsreq):
                         lsr = lsr_layer.requests[i]
                         lsreqdb_list.append(lsr)
-                        print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
+                        # print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
 
                     send_ospf_lsu(src_ip)
                     print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -496,8 +495,8 @@ def handle_incoming_packet(packet):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
-                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
-                    print(f"LSA List: {len(lsackdb_list)}")
+                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                    # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             if neighbor_state == "Full":
@@ -509,8 +508,8 @@ def handle_incoming_packet(packet):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
-                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
-                    print(f"LSA List: {len(lsackdb_list)}")
+                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                    # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
