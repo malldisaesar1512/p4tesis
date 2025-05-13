@@ -6,6 +6,9 @@ from scapy.contrib.ospf import *
 import time
 import threading
 import random
+import psutil
+import socket
+import ipaddress
 
 #global variable
 neighbor_state = "Down"
@@ -101,6 +104,32 @@ lsa_link = OSPF_Link( #LinkLSA
                 data=router_id2,
                 metric=10
             )
+
+def get_interfaces_separated_vars():
+    global ips, netmasks, networks, statuses
+
+    addrs = psutil.net_if_addrs()
+    stats = psutil.net_if_stats()
+
+    ips = {}        # Menyimpan IP address per interface
+    netmasks = {}   # Menyimpan netmask per interface
+    networks = {}   # Menyimpan network address per interface
+    statuses = {}   # Menyimpan status ("up"/"down") per interface
+
+    for iface, addr_list in addrs.items():
+        is_up = stats[iface].isup if iface in stats else False
+        for addr in addr_list:
+            if addr.family == socket.AF_INET:
+                ip = addr.address
+                netmask = addr.netmask
+                if ip and netmask and ip != "127.0.0.1":
+                    network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    ips[iface] = ip
+                    netmasks[iface] = netmask
+                    networks[iface] = f"{network.network_address}/{network.prefixlen}"
+                    statuses[iface] = "up" if is_up else "down"
+
+    return ips, netmasks, networks, statuses
 
 
 def send_hello_periodically(interval):
