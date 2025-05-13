@@ -37,6 +37,7 @@ lsackdb_list = []
 a = []
 b = []
 lsacknih = []
+LSA_listdb = []
 
 lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
                 OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
@@ -101,20 +102,6 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
-# # Variabel untuk melacak state neighbor
-# neighbor_state = "Down"
-# neighbor_ip = router_id2
-# dbd_seq_num = random.randint(100000, 500000)
-# dbd_seq_num_neighbor = None
-# master = False
-
-# # Membuat paket Ethernet
-# eth = Ether()
-
-# # Membuat header OSPF (versi 2, tipe 1=Hello)
-# ospf_header = OSPF_Hdr(version=2, type=1, src=router_id2, area=area_id)
-
-# ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
