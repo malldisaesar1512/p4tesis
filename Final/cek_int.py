@@ -1,4 +1,5 @@
 import psutil
+import socket
 import ipaddress
 
 def get_active_interfaces_info():
@@ -8,7 +9,7 @@ def get_active_interfaces_info():
     for iface, addr_list in addrs.items():
         if iface in stats and stats[iface].isup:
             for addr in addr_list:
-                if addr.family == psutil.AF_INET:
+                if addr.family == socket.AF_INET:
                     ip = addr.address
                     netmask = addr.netmask
                     if ip and netmask and ip != "127.0.0.1":
