@@ -48,6 +48,7 @@ list_netmask = []
 list_network = []
 
 ospf_link_list = []
+lsadb_hdr_default = []
 
 lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
                 OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
@@ -143,7 +144,7 @@ def get_interfaces_info_separated():
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default
     while True:
         if neighbor_state == "Down":
             # neighbor_default = ""
@@ -159,8 +160,19 @@ def send_hello_periodically(interval):
             print(f"  Netmask: {netmasks[i]}")
             print(f"  Network: {networks[i]}")
             d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
+            e = OSPF_LSA_Hdr(
+                age=1,
+                options=0x02,
+                type=1,
+                id=ips[i],
+                adrouter=ips[i],
+                seq=0x80000123+i
+            )
+            
             ospf_link_list.append(d)
+            lsadb_hdr_default.append(e)
         # print(f"LSA Link List: {ospf_link_list}")
+        print(f"LSA Header List: {lsadb_hdr_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
