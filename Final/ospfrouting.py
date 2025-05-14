@@ -164,8 +164,8 @@ def send_hello_periodically(interval):
             
             ospf_link_list.append(d)
             lsadb_hdr_default.append(e)
-        # print(f"LSA Link List: {ospf_link_list}")
-        # print(f"LSA Header List: {lsadb_hdr_default}")
+        print(f"LSA Link List: {ospf_link_list}")
+        print(f"LSA Header List: {lsadb_hdr_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
