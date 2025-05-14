@@ -165,7 +165,7 @@ def send_hello_periodically(interval):
             ospf_link_list.append(d)
             lsadb_hdr_default.append(e)
         # print(f"LSA Link List: {ospf_link_list}")
-        print(f"LSA Header List: {lsadb_hdr_default}")
+        # print(f"LSA Header List: {lsadb_hdr_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
@@ -231,24 +231,23 @@ def send_ospf_dbd(neighbor_router_ip):
             mtu=1500,
             dbdescr=flag_value,
             ddseq=seq_num,
-            lsaheaders=[
-            OSPF_LSA_Hdr(
-            age = 1,
-            options=0x02,
-            type=1,
-            id=router_id,
-            adrouter=router_id,
-            seq=0x80000123
-            ),
-            OSPF_LSA_Hdr(
-            age = 1,
-            options=0x02,
-            type=1,
-            id=router_id2,
-            adrouter=router_id2,
-            seq=0x80000124
-            )
-            ]
+            lsaheaders=[lsadb_hdr_default]
+            # OSPF_LSA_Hdr(
+            # age = 1,
+            # options=0x02,
+            # type=1,
+            # id=router_id,
+            # adrouter=router_id,
+            # seq=0x80000123
+            # ),
+            # OSPF_LSA_Hdr(
+            # age = 1,
+            # options=0x02,
+            # type=1,
+            # id=router_id2,
+            # adrouter=router_id2,
+            # seq=0x80000124
+            # )
         ) 
          
     )
