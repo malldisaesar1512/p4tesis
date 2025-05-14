@@ -41,6 +41,11 @@ a = []
 b = []
 lsacknih = []
 LSA_listdb = []
+interface = []
+list_interface = []
+list_ip = []
+list_netmask = []
+list_network = []
 
 lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
                 OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
@@ -105,16 +110,16 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
-def get_interfaces_separated_vars():
+def get_interfaces_info_separated():
     global ips, netmasks, networks, statuses
-
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
-    ips = {}        # Menyimpan IP address per interface
-    netmasks = {}   # Menyimpan netmask per interface
-    networks = {}   # Menyimpan network address per interface
-    statuses = {}   # Menyimpan status ("up"/"down") per interface
+    interfaces = []  # List untuk menyimpan nama interface
+    ips = []         # List untuk menyimpan IP address
+    netmasks = []    # List untuk menyimpan netmask
+    networks = []    # List untuk menyimpan network address
+    statuses = []    # List untuk menyimpan status interface ("up"/"down")
 
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
@@ -124,23 +129,33 @@ def get_interfaces_separated_vars():
                 netmask = addr.netmask
                 if ip and netmask and ip != "127.0.0.1":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-                    ips[iface] = ip
-                    netmasks[iface] = netmask
-                    networks[iface] = f"{network.network_address}/{network.prefixlen}"
-                    statuses[iface] = "up" if is_up else "down"
+                    interfaces.append(iface)
+                    ips.append(ip)
+                    netmasks.append(netmask)
+                    networks.append(f"{network.network_address}/{network.prefixlen}")
+                    statuses.append("up" if is_up else "down")
 
-    return ips, netmasks, networks, statuses
+    return interfaces, ips, netmasks, networks, statuses
 
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, neighbor_default
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses
     while True:
         if neighbor_state == "Down":
             # neighbor_default = ""
             ospf_hello_first.neighbors = []
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
+
+        interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
+        for i in range(len(interfaces)):
+            print(f"Interface: {interfaces[i]}")
+            print(f"  Status: {statuses[i]}")
+            print(f"  IP Address: {ips[i]}")
+            print(f"  Netmask: {netmasks[i]}")
+            print(f"  Network: {networks[i]}")
+
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
         #     ospf_hello_10s.neighbors = [neighbor_default]
@@ -549,9 +564,9 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets())
-   recv_thread.daemon=True
-   recv_thread.start()
+#    recv_thread = threading.Thread(target=lambda : sniff_packets())
+#    recv_thread.daemon=True
+#    recv_thread.start()
    
    try:
       while True:
