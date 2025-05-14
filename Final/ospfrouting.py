@@ -150,11 +150,13 @@ def send_hello_periodically(interval):
 
         interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
         for i in range(len(interfaces)):
+            lsadb_link_default[i] = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
             print(f"Interface: {interfaces[i]}")
             print(f"  Status: {statuses[i]}")
             print(f"  IP Address: {ips[i]}")
             print(f"  Netmask: {netmasks[i]}")
             print(f"  Network: {networks[i]}")
+        print(f"LSA Link List: {lsadb_link_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
