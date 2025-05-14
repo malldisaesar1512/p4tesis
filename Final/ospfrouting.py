@@ -131,10 +131,11 @@ def get_interfaces_info_separated():
                 netmask = addr.netmask
                 if ip and netmask and ip != "127.0.0.1":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    network_address = str(network.network_address)  # tanpa prefix
                     interfaces.append(iface)
                     ips.append(ip)
                     netmasks.append(netmask)
-                    networks.append(f"{network.network_address}")
+                    networks.append(network_address)
                     statuses.append("up" if is_up else "down")
 
     return interfaces, ips, netmasks, networks, statuses
