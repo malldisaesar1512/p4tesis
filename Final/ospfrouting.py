@@ -160,7 +160,7 @@ def send_hello_periodically(interval):
             print(f"  Network: {networks[i]}")
             d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
             ospf_link_list.append(d)
-        print(f"LSA Link List: {ospf_link_list}")
+        # print(f"LSA Link List: {ospf_link_list}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
