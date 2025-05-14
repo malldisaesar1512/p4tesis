@@ -134,7 +134,7 @@ def get_interfaces_info_separated():
                     interfaces.append(iface)
                     ips.append(ip)
                     netmasks.append(netmask)
-                    networks.append(f"{network.network_address}/{network.prefixlen}")
+                    networks.append(f"{network.network_address}")
                     statuses.append("up" if is_up else "down")
 
     return interfaces, ips, netmasks, networks, statuses
