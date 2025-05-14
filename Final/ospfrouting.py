@@ -160,14 +160,7 @@ def send_hello_periodically(interval):
             print(f"  Netmask: {netmasks[i]}")
             print(f"  Network: {networks[i]}")
             d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
-            e = OSPF_LSA_Hdr(
-                age=1,
-                options=0x02,
-                type=1,
-                id=ips[i],
-                adrouter=ips[i],
-                seq=0x80000123+i
-            )
+            e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=ips[i], adrouter=ips[i], seq=0x80000123+i)
             
             ospf_link_list.append(d)
             lsadb_hdr_default.append(e)
