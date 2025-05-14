@@ -158,7 +158,7 @@ def send_hello_periodically(interval):
             print(f"  IP Address: {ips[i]}")
             print(f"  Netmask: {netmasks[i]}")
             print(f"  Network: {networks[i]}")
-            d = OSPF_Link(id="{ips[i]}", data="{networks[i]}", type=3, metric=1)
+            d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
             ospf_link_list.append(d)
         print(f"LSA Link List: {ospf_link_list}")
 
