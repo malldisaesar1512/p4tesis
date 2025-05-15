@@ -41,7 +41,7 @@ a = []
 b = []
 lsacknih = []
 LSA_listdb = []
-interface = []
+# interface = []
 list_interface = []
 list_ip = []
 list_netmask = []
@@ -52,10 +52,6 @@ lsadb_hdr_default = []
 
 lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
                 OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
-
-router_list_default = ['10.10.1.2','192.168.1.2']
-
-
 
 #Membuat paket Ethernet
 eth = Ether()
@@ -157,6 +153,7 @@ def send_hello_periodically(interval):
                 d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
                 e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=ips[i], adrouter=ips[i], seq=0x80000123+i)
                 
+                
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
 
@@ -224,7 +221,7 @@ def send_ospf_dbd(neighbor_router_ip):
             mtu=1500,
             dbdescr=flag_value,
             ddseq=seq_num,
-            lsaheaders=[lsadb_hdr_default]
+            lsaheaders=lsadb_hdr_default
             # OSPF_LSA_Hdr(
             # age = 1,
             # options=0x02,
@@ -323,7 +320,7 @@ def send_ospf_lsu(neighbor_ip):
             lsulist.id = id_lsr
             lsulist.adrouter = adrouter_lsr
             lsulist.type = type_lsr
-            lsulist.routerlist = lsadb_link_default
+            lsulist.routerlist = ips
 
             b = lsulist
             lsudb_list.append(b)
@@ -567,9 +564,9 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-#    recv_thread = threading.Thread(target=lambda : sniff_packets())
-#    recv_thread.daemon=True
-#    recv_thread.start()
+   recv_thread = threading.Thread(target=lambda : sniff_packets())
+   recv_thread.daemon=True
+   recv_thread.start()
    
    try:
       while True:
