@@ -368,7 +368,8 @@ def send_ospf_lsu(neighbor_ip):
                     lsulist.seq = info['sequence']
 
             b = lsulist
-            lsudb_list.append(b)
+
+        lsudb_list.append(b)
         
     print(f"LSU List: {lsudb_list}")
     
