@@ -153,12 +153,13 @@ def get_interfaces_info_with_interface_name():
                 netmask = addr.netmask
                 if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    network_address = str(network.network_address)
                     ips.append(ip)
                     interface_info = {
                         "interface": iface,
                         "ip_address": ip,
                         "netmask": netmask,
-                        "network": f"{network.network_address}/{network.prefixlen}",
+                        "network": network_address,
                         "status": "up" if is_up else "down",
                         "sequence": seq_random+h
                     }
@@ -176,7 +177,7 @@ def send_hello_periodically(interval):
             # neighbor_default = ""
             interfaces_info = get_interfaces_info_with_interface_name()
             for info in interfaces_info:
-                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=3, metric=1)
+                d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
                 e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
                 
                 
@@ -348,9 +349,9 @@ def send_ospf_lsu(neighbor_ip):
             lsulist.adrouter = adrouter_lsr
             lsulist.type = type_lsr
 
-            for i in interfaces_info:
-                if i['ip_address'] == id_lsr:
-                    lsulist.seq = i['sequence']
+            for info in interfaces_info:
+                if info['ip_address'] == id_lsr:
+                    lsulist.seq = info['sequence']
 
             b = lsulist
 
@@ -362,9 +363,9 @@ def send_ospf_lsu(neighbor_ip):
             lsulist.type = type_lsr
             lsulist.routerlist = ips
 
-            for i in interfaces_info:
-                if i['ip_address'] == id_lsr:
-                    lsulist.seq = i['sequence']
+            for info in interfaces_info:
+                if info['ip_address'] == id_lsr:
+                    lsulist.seq = info['sequence']
 
             b = lsulist
             lsudb_list.append(b)
