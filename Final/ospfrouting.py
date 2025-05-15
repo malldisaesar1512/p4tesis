@@ -146,6 +146,7 @@ def get_interfaces_info_with_interface_name():
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
         for addr in addr_list:
+            i = 0
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
@@ -157,9 +158,10 @@ def get_interfaces_info_with_interface_name():
                         "netmask": netmask,
                         "network": f"{network.network_address}/{network.prefixlen}",
                         "status": "up" if is_up else "down",
-                        "sequence": seq_random+addr.index
+                        "sequence": seq_random+i
                     }
                     interfaces.append(interface_info)
+                    i=i+1
 
     return interfaces
 
