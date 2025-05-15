@@ -149,7 +149,7 @@ def get_interfaces_info_with_interface_name():
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1":
+                if ip and netmask and ip != "127.0.0.1" and ip!="10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
                     interface_info = {
                         "interface": iface,
@@ -157,7 +157,7 @@ def get_interfaces_info_with_interface_name():
                         "netmask": netmask,
                         "network": f"{network.network_address}/{network.prefixlen}",
                         "status": "up" if is_up else "down",
-                        "sequence": seq_random
+                        "sequence": seq_random+1
                     }
                     interfaces.append(interface_info)
 
@@ -170,11 +170,6 @@ def send_hello_periodically(interval):
     while True:
         if neighbor_state == "Down":
             # neighbor_default = ""
-            ospf_hello_first.neighbors = []
-            ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
-            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
-
-            # interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
             interfaces_info = get_interfaces_info_with_interface_name()
             for info in interfaces_info:
                 d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=3, metric=1)
@@ -184,8 +179,16 @@ def send_hello_periodically(interval):
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
 
-        print(f"link list: {ospf_link_list}")
-        print(f"LSA list: {lsadb_hdr_default}")
+            ospf_hello_first.neighbors = []
+            ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
+            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
+
+            print(f"link list: {ospf_link_list}")
+            print(f"LSA list: {lsadb_hdr_default}")
+            
+
+            # interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
+
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
         #     ospf_hello_10s.neighbors = [neighbor_default]
