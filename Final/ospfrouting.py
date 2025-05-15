@@ -164,7 +164,7 @@ def get_interfaces_info_with_interface_name():
                     interfaces.append(interface_info)
                     h=h+1
 
-    return interfaces, ips
+    return interfaces
 
 
 def send_hello_periodically(interval):
