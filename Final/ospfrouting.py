@@ -109,16 +109,39 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
-def get_interfaces_info_separated():
-    global ips, netmasks, networks, statuses
+# def get_interfaces_info_separated():
+#     global ips, netmasks, networks, statuses
+#     addrs = psutil.net_if_addrs()
+#     stats = psutil.net_if_stats()
+
+#     interfaces = []  # List untuk menyimpan nama interface
+#     ips = []         # List untuk menyimpan IP address
+#     netmasks = []    # List untuk menyimpan netmask
+#     networks = []    # List untuk menyimpan network address
+#     statuses = []    # List untuk menyimpan status interface ("up"/"down")
+
+#     for iface, addr_list in addrs.items():
+#         is_up = stats[iface].isup if iface in stats else False
+#         for addr in addr_list:
+#             if addr.family == socket.AF_INET:
+#                 ip = addr.address
+#                 netmask = addr.netmask
+#                 if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
+#                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+#                     network_address = str(network.network_address)  # tanpa prefix
+#                     interfaces.append(iface)
+#                     ips.append(ip)
+#                     netmasks.append(netmask)
+#                     networks.append(network_address)
+#                     statuses.append("up" if is_up else "down")
+
+#     return interfaces, ips, netmasks, networks, statuses
+
+def get_interfaces_info_with_interface_name():
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
-    interfaces = []  # List untuk menyimpan nama interface
-    ips = []         # List untuk menyimpan IP address
-    netmasks = []    # List untuk menyimpan netmask
-    networks = []    # List untuk menyimpan network address
-    statuses = []    # List untuk menyimpan status interface ("up"/"down")
+    interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
 
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
@@ -126,16 +149,19 @@ def get_interfaces_info_separated():
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
+                if ip and netmask and ip != "127.0.0.1":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-                    network_address = str(network.network_address)  # tanpa prefix
-                    interfaces.append(iface)
-                    ips.append(ip)
-                    netmasks.append(netmask)
-                    networks.append(network_address)
-                    statuses.append("up" if is_up else "down")
+                    interface_info = {
+                        "interface": iface,
+                        "ip_address": ip,
+                        "netmask": netmask,
+                        "network": f"{network.network_address}/{network.prefixlen}",
+                        "status": "up" if is_up else "down",
+                        "sequence": seq_random
+                    }
+                    interfaces.append(interface_info)
 
-    return interfaces, ips, netmasks, networks, statuses
+    return interfaces
 
 
 def send_hello_periodically(interval):
@@ -148,15 +174,18 @@ def send_hello_periodically(interval):
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
-            interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
-            for i in range(len(interfaces)):
-                d = OSPF_Link(id=ips[i], data=networks[i], type=3, metric=1)
-                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=ips[i], adrouter=ips[i], seq=0x80000123+i)
+            # interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
+            interfaces_info = get_interfaces_info_with_interface_name()
+            for info in interfaces_info:
+                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=3, metric=1)
+                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
                 
                 
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
 
+        print(f"link list: {ospf_link_list}")
+        print(f"LSA list: {lsadb_hdr_default}")
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
         #     ospf_hello_10s.neighbors = [neighbor_default]
@@ -307,7 +336,7 @@ def send_ospf_lsu(neighbor_ip):
 
         if type_lsr == 'router' or type_lsr == 1:
             lsulist = lsa_type1
-            lsulist.linklist = lsadb_link_default
+            lsulist.linklist = ospf_link_list
             lsulist.id = id_lsr
             lsulist.adrouter = adrouter_lsr
             lsulist.type = type_lsr
@@ -564,9 +593,9 @@ if __name__ == "__main__":
    hello_thread.daemon=True
    hello_thread.start()
    
-   recv_thread = threading.Thread(target=lambda : sniff_packets())
-   recv_thread.daemon=True
-   recv_thread.start()
+#    recv_thread = threading.Thread(target=lambda : sniff_packets())
+#    recv_thread.daemon=True
+#    recv_thread.start()
    
    try:
       while True:
