@@ -142,6 +142,7 @@ def get_interfaces_info_with_interface_name():
     stats = psutil.net_if_stats()
 
     interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
+    ips = []         # List untuk menyimpan IP address
     h = 0
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
@@ -151,6 +152,7 @@ def get_interfaces_info_with_interface_name():
                 netmask = addr.netmask
                 if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    ips.append(ip)
                     interface_info = {
                         "interface": iface,
                         "ip_address": ip,
@@ -162,12 +164,12 @@ def get_interfaces_info_with_interface_name():
                     interfaces.append(interface_info)
                     h=h+1
 
-    return interfaces
+    return interfaces, ips
 
 
 def send_hello_periodically(interval):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info
     while True:
         if neighbor_state == "Down":
             # neighbor_default = ""
@@ -298,7 +300,7 @@ def send_ospf_lsr(neighbor_ip):
         elif type_lsa == 'network':
             type_lsa = 2
 
-        if id_lsa == router_id2 or id_lsa == router_id:
+        if id_lsa in interfaces_info:
             continue
         else:
             a = OSPF_LSReq_Item(
@@ -345,6 +347,10 @@ def send_ospf_lsu(neighbor_ip):
             lsulist.adrouter = adrouter_lsr
             lsulist.type = type_lsr
 
+            for i in interfaces_info:
+                if i['ip_address'] == id_lsr:
+                    lsulist.seq = i['sequence']
+
             b = lsulist
 
             lsudb_list.append(b)
@@ -354,6 +360,10 @@ def send_ospf_lsu(neighbor_ip):
             lsulist.adrouter = adrouter_lsr
             lsulist.type = type_lsr
             lsulist.routerlist = ips
+
+            for i in interfaces_info:
+                if i['ip_address'] == id_lsr:
+                    lsulist.seq = i['sequence']
 
             b = lsulist
             lsudb_list.append(b)
