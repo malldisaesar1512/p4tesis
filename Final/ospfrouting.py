@@ -175,13 +175,16 @@ def send_hello_periodically(interval):
             # neighbor_default = ""
             interfaces_info = get_interfaces_info_with_interface_name()
             print(f"Interfaces: {interfaces_info}")
+            print(type(interfaces_info))
             for info in interfaces_info:
-                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=3, metric=1)
-                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+                print(type(info), info)
+                # for info in interfaces_info:
+                # d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=3, metric=1)
+                # e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
                 
                 
-                ospf_link_list.append(d)
-                lsadb_hdr_default.append(e)
+                # ospf_link_list.append(d)
+                # lsadb_hdr_default.append(e)
 
             ospf_hello_first.neighbors = []
             ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
