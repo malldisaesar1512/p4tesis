@@ -265,7 +265,7 @@ def send_ospf_lsr(neighbor_ip):
         elif type_lsa == 'network':
             type_lsa = 2
 
-        if id_lsa == router_id2:
+        if id_lsa == router_id2 or id_lsa == router_id:
             continue
         else:
             a = OSPF_LSReq_Item(
