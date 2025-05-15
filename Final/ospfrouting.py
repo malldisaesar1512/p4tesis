@@ -138,6 +138,7 @@ lsa_link = OSPF_Link( #LinkLSA
 #     return interfaces, ips, netmasks, networks, statuses
 
 def get_interfaces_info_with_interface_name():
+    global ips, netmasks, networks, statuses, interfaces_info
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
@@ -175,6 +176,7 @@ def send_hello_periodically(interval):
             # neighbor_default = ""
             interfaces_info = get_interfaces_info_with_interface_name()
             print(f"Interfaces: {interfaces_info}")
+            print(f"ips: {ips}")
             print(type(interfaces_info))
             for info in interfaces_info:
                 print(type(info), info)
