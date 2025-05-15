@@ -142,15 +142,14 @@ def get_interfaces_info_with_interface_name():
     stats = psutil.net_if_stats()
 
     interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
-
+    h = 0
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
         for addr in addr_list:
-            i = 0
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1" and ip!="10.0.137.31":
+                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
                     interface_info = {
                         "interface": iface,
@@ -158,10 +157,10 @@ def get_interfaces_info_with_interface_name():
                         "netmask": netmask,
                         "network": f"{network.network_address}/{network.prefixlen}",
                         "status": "up" if is_up else "down",
-                        "sequence": seq_random+i
+                        "sequence": seq_random+h
                     }
                     interfaces.append(interface_info)
-                    i=i+1
+                    h=h+1
 
     return interfaces
 
