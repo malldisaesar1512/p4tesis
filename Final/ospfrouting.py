@@ -325,7 +325,7 @@ def send_ospf_lsu(neighbor_ip):
             b = lsulist
             lsudb_list.append(b)
         
-    # print(f"LSU List: {lsudb_list}")
+    print(f"LSU List: {lsudb_list}")
     
     # Buat LSU packet dengan LSAs yang diberikan
     ospf_lsu_pkt = (
