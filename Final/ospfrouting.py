@@ -157,7 +157,7 @@ def get_interfaces_info_with_interface_name():
                         "netmask": netmask,
                         "network": f"{network.network_address}/{network.prefixlen}",
                         "status": "up" if is_up else "down",
-                        "sequence": seq_random+1
+                        "sequence": seq_random+addr.index
                     }
                     interfaces.append(interface_info)
 
