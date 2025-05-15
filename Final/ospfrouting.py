@@ -175,7 +175,7 @@ def send_hello_periodically(interval):
             # neighbor_default = ""
             interfaces_info = get_interfaces_info_with_interface_name()
             for i in interfaces_info:
-                d = OSPF_Link(id=i['ip_address'], data=i['ip_address'], type=3, metric=1)
+                d = OSPF_Link(id=i.ip_address, data=i.ip_address, type=3, metric=1)
                 e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=i['ip_address'], adrouter=i['ip_address'], seq=i['sequence'])
                 
                 
