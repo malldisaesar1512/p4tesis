@@ -29,7 +29,7 @@ id_dbd = ''
 router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.2"  # Router ID 2 (Neighbor)
 # area_id = "0.0.0.0"        # Area ID
-interface = "ens5"         # Network interface
+# interface = "ens5"         # Network interface
 backup_default = "0.0.0.0"
 neighbor_default = "10.10.2.1"
 dr = "10.10.1.2"
@@ -214,10 +214,10 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
-def send_ospf_dbd_first(neighbor_ip, seq_num):
+def send_ospf_dbd_first(interface, src_broadcast, source_ip, neighbor_ip, seq_num):
     """Kirim paket Database Description (DBD) pertama ke neighbor dengan flags dan seq_num yang benar"""
-    ip_dbd = IP(src=router_id, dst=str(neighbor_ip))
-    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id2, area=area_id)
+    ip_dbd = IP(src=src_broadcast, dst=str(neighbor_ip))
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=source_ip, area=area_id)
     
     # Konversi list flags string ke bitmask integer
     # flag_value = 0
@@ -244,10 +244,10 @@ def send_ospf_dbd_first(neighbor_ip, seq_num):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD FIRST packet to {neighbor_ip} -  Seq: {seq_num}")
     sendp(ospf_dbd_pkt1, iface=interface, verbose=0)
 
-def send_ospf_dbd(neighbor_router_ip):
+def send_ospf_dbd(interface, src_broadcast, source_ip, neighbor_router_ip):
     """Kirim paket Database Description (DBD) lanjutan ke neighbor dengan flags dan seq_num yang benar"""
-    ip_dbd = IP(src=router_id, dst=str(neighbor_router_ip))
-    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=router_id2, area=area_id)
+    ip_dbd = IP(src=src_broadcast, dst=str(neighbor_router_ip))
+    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=source_ip, area=area_id)
     
     # Flags More + Master/Slave (tanpa Init)
     flag_value = 0x01  #MS
@@ -272,14 +272,14 @@ def send_ospf_dbd(neighbor_router_ip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: MS ({flag_value}), Seq: {seq_num}")
     sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
-def send_ospf_lsr(neighbor_ip):
+def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
     global lsreq_list, lsadb_list, a
     """Kirim paket Link State Request (LSR) ke neighbor"""
     # Header IP unicast ke neighbor router IP
-    ip_lsr = IP(src=router_id, dst=str(neighbor_ip))
+    ip_lsr = IP(src=src_broadcast, dst=str(neighbor_ip))
     
     # Header OSPF tipe 3: Link State Request Packet
-    ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=router_id2, area=area_id)
+    ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=source_ip, area=area_id)
 
     for i in lsadb_list:
         # print(f"LSA {i}: {i.show()}") # Menampilkan informasi LSA
@@ -318,14 +318,14 @@ def send_ospf_lsr(neighbor_ip):
     lsreq_list.clear()
     lsadb_list.clear()
 
-def send_ospf_lsu(neighbor_ip):
+def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b 
     """Kirim paket Link State Update (LSU) ke neighbor"""
     # Header IP unicast ke neighbor router IP
-    ip_lsu = IP(src=router_id, dst=str(neighbor_ip))
+    ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip))
     
     # Header OSPF tipe 4: Link State Update Packet
-    ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=router_id2, area=area_id)
+    ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
 
     for i in lsreqdb_list:
         type_lsr = i.type
@@ -379,12 +379,12 @@ def send_ospf_lsu(neighbor_ip):
     lsudb_list.clear()
     lsreqdb_list.clear()
 
-def send_ospf_lsaack(broadcastip):
+def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih
-    ip_lsack = IP(src=router_id, dst=str(broadcastip))
+    ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
-    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=router_id2, area=area_id)
+    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=source_ip, area=area_id)
     
     # Buat LSU packet dengan LSAs yang diberikan
 
@@ -594,9 +594,9 @@ def handle_incoming_packet(packet, interface):
                         neighbors_state[interface_key] = "Full"
                         send_ospf_lsaack(broadcast_ip)
 
-def sniff_packets(interface):
+def sniff_packets(interface, src_broadcast, source_ip):
    print("Sniffing packets...")
-   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt, interface), store=False, timeout=100000000)
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt, interface,src_broadcast,source_ip), store=False, timeout=100000000)
 
 if __name__ == "__main__":
     
@@ -626,7 +626,7 @@ if __name__ == "__main__":
             hello_thread.daemon=True
             hello_thread.start()
     
-            recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface']))
+            recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface'], info['ip_address'], source_ip))
             recv_thread.daemon=True
             recv_thread.start()
             threads.append(recv_thread)
