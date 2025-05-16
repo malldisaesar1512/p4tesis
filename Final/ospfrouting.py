@@ -423,7 +423,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     lsackdb_list.clear()
     lsack_list.clear()
 
-def handle_incoming_packet(packet, interface):
+def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
     global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
 
