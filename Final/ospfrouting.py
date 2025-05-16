@@ -608,14 +608,16 @@ if __name__ == "__main__":
         }
         iplist = ipaddress.IPv4Address(info['ip_address'])
 
-        print(f"Interface: {info['interface']}")
+        
 
         if target_ip < iplist:
             target_ip = iplist
             source_ip = str(target_ip)
         elif target_ip == iplist:
+            print(f"Interface: {info['interface']}")
             continue
         elif target_ip > iplist:
+            # print(f"Interface: {info['interface']}")
             continue
 
         print(f"{source_ip}")
