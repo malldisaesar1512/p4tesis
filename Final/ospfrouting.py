@@ -429,7 +429,7 @@ def handle_incoming_packet(packet, interface):
     global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
 
     # Cek apakah paket adalah paket OSPF
-    for interface_key, state in neighbor_states.items():
+    for interface_key, state in neighbors_state.items():
         if packet.haslayer(OSPF_Hdr):
             ospf_hdr = packet[OSPF_Hdr]
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received OSPF packet: {ospf_hdr.summary()}")
