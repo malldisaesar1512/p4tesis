@@ -468,7 +468,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         ospf_hello_first.router = src_ip
                         ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
                         sendp(ospf_packet_hello2, iface=interface, verbose=0)
-                        send_ospf_dbd_first(src_ip, seq_random)
+                        send_ospf_dbd_first(interface, src_broadcast, source_ip, src_ip, seq_random)
                         # print(f"{ospf_packet_hello2.show()}")
                         print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 elif interface_key == interface and state == "Full":
@@ -514,7 +514,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
                             neighbors_state[interface_key] = "Exchange"
                             # send_ospf_dbd_first(src_ip, seq_random)
-                            send_ospf_dbd(src_ip)
+                            send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                         else:
                             return
@@ -532,7 +532,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             lsadb_list.append(lsa)
                         #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
                         # print(f"LSA List: {lsadb_list}")
-                        send_ospf_lsr(src_ip) #kirim LSR ke neighbor
+                        send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
 
             elif ospfhdr_layer.type == 3:  # LSR packet
                 print("Received LSR packet")
@@ -550,7 +550,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             lsreqdb_list.append(lsr)
                             # print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
 
-                        send_ospf_lsu(src_ip)
+                        send_ospf_lsu(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
 
 
@@ -568,7 +568,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             lsackdb_list.append(lsalsu)
                             # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                         # print(f"LSA List: {len(lsackdb_list)}")
-                        send_ospf_lsaack(broadcast_ip)
+                        send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                         print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 if interface_key == interface and state == "Full":
                     if src_ip != router_id:
@@ -581,7 +581,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             lsackdb_list.append(lsalsu)
                             # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                         # print(f"LSA List: {len(lsackdb_list)}")
-                        send_ospf_lsaack(broadcast_ip)
+                        send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                         print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif ospfhdr_layer.type == 5:  # LSAck packet
                 print("Received LSAck packet")
@@ -592,7 +592,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # jumlah_lsack = len(lsack_layer.lsaheaders)
                         print(f"Received LSAck from {src_ip}, moving to Full state")
                         neighbors_state[interface_key] = "Full"
-                        send_ospf_lsaack(broadcast_ip)
+                        send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
 
 def sniff_packets(interface, src_broadcast, source_ip):
    print("Sniffing packets...")
