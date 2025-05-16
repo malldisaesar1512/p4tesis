@@ -617,8 +617,7 @@ if __name__ == "__main__":
             # print(f"Interface: {info['interface']}")
             continue
         elif target_ip > iplist:
-            print(f"Interface: {info['interface']}")
-            continue
+            source_ip = str(target_ip)
 
         print(f"{source_ip}")
         print(f"Interface: {info['interface']}")
