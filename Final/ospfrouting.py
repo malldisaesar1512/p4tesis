@@ -627,10 +627,10 @@ if __name__ == "__main__":
             hello_thread.daemon=True
             hello_thread.start()
     
-            # recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface']))
-            # recv_thread.daemon=True
-            # recv_thread.start()
-            # threads.append(recv_thread)
+            recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface']))
+            recv_thread.daemon=True
+            recv_thread.start()
+            threads.append(recv_thread)
         else:
             continue
     ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
