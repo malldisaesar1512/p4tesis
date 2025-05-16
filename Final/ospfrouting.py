@@ -619,6 +619,7 @@ if __name__ == "__main__":
         print(f"{source_ip}")
 
         if info['interface'] != 'ens4':
+            print(f"Interface: {info['interface']}")
    
             hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
             hello_thread.daemon=True
