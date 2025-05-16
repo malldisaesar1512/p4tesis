@@ -550,7 +550,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         for i in range(jumlah_lsreq):
                             lsr = lsr_layer.requests[i]
                             lsreqdb_list.append(lsr)
-                            # print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
+                            print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
 
                         send_ospf_lsu(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
