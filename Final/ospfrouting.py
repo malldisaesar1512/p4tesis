@@ -618,10 +618,9 @@ if __name__ == "__main__":
 
         print(f"{source_ip}")
         print(f"Interface: {info['interface']}")
-        
+
         if info['interface'] != 'ens4':
             
-   
             hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
             hello_thread.daemon=True
             hello_thread.start()
@@ -630,7 +629,8 @@ if __name__ == "__main__":
             # recv_thread.daemon=True
             # recv_thread.start()
             # threads.append(recv_thread)
-    
+        else:
+            continue
     try:
         while True:
             time.sleep(1)
