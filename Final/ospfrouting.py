@@ -1,6 +1,9 @@
+from asyncio import threads
+from cmath import inf
 from os import link
 import os
 from socket import timeout
+from turtle import st
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
@@ -46,6 +49,8 @@ list_interface = []
 list_ip = []
 list_netmask = []
 list_network = []
+neighbors_state = []
+target_ip = ipaddress.IPv4Address("0.0.0.0")
 
 ospf_link_list = []
 lsadb_hdr_default = []
@@ -169,30 +174,32 @@ def get_interfaces_info_with_interface_name():
     return interfaces
 
 
-def send_hello_periodically(interval):
+def send_hello_periodically(interval, interface, ip_address, source_ip):
     """Kirim paket Hello OSPF secara berkala"""
     global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info
     while True:
-        if neighbor_state == "Down":
-            # neighbor_default = ""
-            interfaces_info = get_interfaces_info_with_interface_name()
-            for info in interfaces_info:
-                d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
-                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
-                
-                
+        interfaces_info = get_interfaces_info_with_interface_name()
+        for info in interfaces_info:
+            d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
+            e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+
+            if d in ospf_link_list and e in lsadb_hdr_default:
+                continue
+            else:
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
-
+        
+        if neighbor_state == "Down":
+            # neighbor_default = ""
+            ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
+            ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
             ospf_hello_first.neighbors = []
-            ospf_packet_hello_first = eth / ip_broadcast / ospf_header / ospf_hello_first
+            ospf_hello_first.router = ip_address
+            ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
-            print(f"link list: {ospf_link_list}")
-            print(f"LSA list: {lsadb_hdr_default}")
-            
-
-            # interfaces, ips, netmasks, networks, statuses = get_interfaces_info_separated()
+        print(f"link list: {ospf_link_list}")
+        print(f"LSA list: {lsadb_hdr_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
@@ -259,22 +266,6 @@ def send_ospf_dbd(neighbor_router_ip):
             dbdescr=flag_value,
             ddseq=seq_num,
             lsaheaders=lsadb_hdr_default
-            # OSPF_LSA_Hdr(
-            # age = 1,
-            # options=0x02,
-            # type=1,
-            # id=router_id,
-            # adrouter=router_id,
-            # seq=0x80000123
-            # ),
-            # OSPF_LSA_Hdr(
-            # age = 1,
-            # options=0x02,
-            # type=1,
-            # id=router_id2,
-            # adrouter=router_id2,
-            # seq=0x80000124
-            # )
         ) 
          
     )
@@ -600,23 +591,47 @@ def handle_incoming_packet(packet):
                     neighbor_state = "Full"
                     send_ospf_lsaack(broadcast_ip)
 
-def sniff_packets():
+def sniff_packets(interface):
    print("Sniffing packets...")
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt), store=False, timeout=100000000)
 
 if __name__ == "__main__":
+    
+    threads = []
+
+    interfaces_info = get_interfaces_info_with_interface_name()
+
+    for info in interfaces_info:
+        neighbors_state = {
+            "interface": info['interface'],
+            "state": "Down"
+        }
+        iplist = ipaddress.IPv4Address(info['ip_address'])
+
+        if target_ip < iplist:
+            target_ip = iplist
+            source_ip = str(target_ip)
+        elif target_ip == info['ip_address']:
+            continue
+        elif target_ip > info['ip_address']:
+            continue
+
+        print(f"{source_ip}")
+
+        if info['interface'] != 'ens4':
    
-   hello_thread = threading.Thread(target=lambda : send_hello_periodically(10))
-   hello_thread.daemon=True
-   hello_thread.start()
-   
-   recv_thread = threading.Thread(target=lambda : sniff_packets())
-   recv_thread.daemon=True
-   recv_thread.start()
-   
-   try:
-      while True:
-          time.sleep(1)
+            hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
+            hello_thread.daemon=True
+            hello_thread.start()
+    
+            # recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface']))
+            # recv_thread.daemon=True
+            # recv_thread.start()
+            # threads.append(recv_thread)
+    
+    try:
+        while True:
+            time.sleep(1)
           
-   except KeyboardInterrupt:
-      print("Program terminated by user.")
+    except KeyboardInterrupt:
+        print("Program terminated by user.")
