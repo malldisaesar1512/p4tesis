@@ -614,10 +614,10 @@ if __name__ == "__main__":
             target_ip = iplist
             source_ip = str(target_ip)
         elif target_ip == iplist:
-            print(f"Interface: {info['interface']}")
+            # print(f"Interface: {info['interface']}")
             continue
         elif target_ip > iplist:
-            # print(f"Interface: {info['interface']}")
+            print(f"Interface: {info['interface']}")
             continue
 
         print(f"{source_ip}")
