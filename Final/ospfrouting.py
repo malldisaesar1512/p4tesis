@@ -345,7 +345,6 @@ def send_ospf_lsu(neighbor_ip):
 
             b = lsulist
 
-            lsudb_list.append(b)
         elif type_lsr == 'network' or type_lsr == 2:
             lsulist = lsa_type2
             lsulist.id = id_lsr
