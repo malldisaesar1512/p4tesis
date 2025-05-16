@@ -611,9 +611,9 @@ if __name__ == "__main__":
         if target_ip < iplist:
             target_ip = iplist
             source_ip = str(target_ip)
-        elif target_ip == info['ip_address']:
+        elif target_ip == iplist:
             continue
-        elif target_ip > info['ip_address']:
+        elif target_ip > iplist:
             continue
 
         print(f"{source_ip}")
