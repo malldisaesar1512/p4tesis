@@ -333,38 +333,37 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         id_lsr = i.id
         adrouter_lsr = i.adrouter
 
-        print(f"type_lsr: {type_lsr}, id_lsr: {id_lsr}, adrouter_lsr: {adrouter_lsr}") # Menampilkan informasi LSR
+        for info in interfaces_info:
+                if info['ip_address'] == id_lsr:
+                    seq_lsr = info['sequence']
 
         if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
-            lsulist = lsa_type1
-            lsulist.linklist = ospf_link_list
-            lsulist.id = id_lsr
-            lsulist.adrouter = adrouter_lsr
-            lsulist.type = type_lsr
-
-            for info in interfaces_info:
-                if info['ip_address'] == id_lsr:
-                    lsulist.seq = info['sequence']
-
+            lsulist = OSPF_Router_LSA(
+                        age = 1, # Age of the LSA
+                        options=0x02, # Options field
+                        type=type_lsr,  # Router LSA
+                        id=id_lsr, # LSA ID
+                        adrouter=adrouter_lsr, # Advertising router
+                        seq=seq_lsr,  # Sequence number
+                        linkcount=len(ospf_link_list), # Number of links
+                        linklist=[ospf_link_list] # List of links
+                    )
             
-            
-            print(f"LSA {1}: {lsulist.show()}") # Menampilkan informasi LSA
-
             lsudb_list.append(lsulist)
             print(f"LSA List: {lsudb_list}") # Menampilkan informasi LSA
 
         elif type_lsr == 'network' or type_lsr == 2:
-            lsulist = lsa_type2
-            lsulist.id = id_lsr
-            lsulist.adrouter = adrouter_lsr
-            lsulist.type = type_lsr
-            lsulist.routerlist = ips
-
-            for info in interfaces_info:
-                if info['ip_address'] == id_lsr:
-                    lsulist.seq = info['sequence']
-
-            print(f"LSA {2}: {lsulist.show()}") # Menampilkan informasi LSA
+            lsulist = OSPF_Network_LSA(
+                        age = 1, # Age of the LSA
+                        options=option_default, # Options field
+                        type=2,  # Network LSA
+                        id=id_lsr, # LSA ID
+                        adrouter=adrouter_lsr, # Advertising router
+                        seq=seq_lsr,  # Sequence number
+                        mask="255.255.255.0", # Subnet mask
+                        routerlist=ips # List of routers
+                    )
+                    
             lsudb_list.append(lsulist)
             print(f"LSA List: {lsudb_list}") # Menampilkan informasi LSA
 
