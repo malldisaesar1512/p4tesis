@@ -343,9 +343,6 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
 
-            b = lsulist
-
-            lsudb_list.append(b)
 
         elif type_lsr == 'network' or type_lsr == 2:
             lsulist = lsa_type2
@@ -358,9 +355,9 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
 
-            f = lsulist
+        f = lsulist
 
-            lsudb_list.append(f)
+        lsudb_list.append(f)
         
     print(f"LSU List: {lsudb_list}")
     
@@ -376,8 +373,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         
     )
 
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
-    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    # print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
+    # sendp(ospf_lsu_pkt, iface=interface, verbose=0)
     lsudb_list.clear()
     lsreqdb_list.clear()
 
