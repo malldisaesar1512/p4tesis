@@ -40,6 +40,7 @@ lsreqdb_list = []
 lsudb_list = []
 lsack_list = []
 lsackdb_list = []
+lsulist = None
 a = []
 b = []
 lsacknih = []
@@ -319,7 +320,7 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
     lsadb_list.clear()
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
-    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b 
+    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
     """Kirim paket Link State Update (LSU) ke neighbor"""
     # Header IP unicast ke neighbor router IP
     ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip))
@@ -359,9 +360,9 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
             print(f"LSA {i}: {lsulist}") # Menampilkan informasi LSA
 
-        f = lsulist
+        b = lsulist
 
-        lsudb_list.append(f)
+        lsudb_list.append(b)
         
     print(f"LSU List: {lsudb_list}")
     
