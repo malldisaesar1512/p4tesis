@@ -449,8 +449,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             src_ip = packet[IP].src
             src_neighbor = packet[OSPF_Hdr].src
 
-
             if neighbors_state[interface]["state"] == "Down":
+                print(f"Received Hello from {src_ip}, moving to Init state")
                 if src_ip not in ips:
                     # print("Received Hello packet")
                     neighbors_state[interface]["state"] = "Init"
