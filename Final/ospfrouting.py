@@ -50,7 +50,7 @@ list_interface = []
 list_ip = []
 list_netmask = []
 list_network = []
-tracking_state = []
+tracking_state = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
 
 ospf_link_list = []
