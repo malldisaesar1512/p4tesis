@@ -640,6 +640,7 @@ if __name__ == "__main__":
         else:
             continue
     ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
+    print(f"thread: {threads}")
 
     try:
         while True:
