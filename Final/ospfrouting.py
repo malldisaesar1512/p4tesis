@@ -342,6 +342,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
             for info in interfaces_info:
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
+            
+            print(f"LSA {i}: {lsulist}") # Menampilkan informasi LSA
 
 
         elif type_lsr == 'network' or type_lsr == 2:
@@ -354,6 +356,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
             for info in interfaces_info:
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
+
+            print(f"LSA {i}: {lsulist}") # Menampilkan informasi LSA
 
         f = lsulist
 
