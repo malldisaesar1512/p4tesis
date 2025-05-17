@@ -458,6 +458,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print(f"Received Hello from {src_ip}, moving to Init state")
                 if ip2 in network1 and src_ip not in ips:
                     # print("Received Hello packet")
+                    neighbor_state = "Full"
                     tracking_state[interface]["state"] = "Init"
                     print(tracking_state.get(interface, {}).get("state"))
                     neighbor_ip = src_neighbor
