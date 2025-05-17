@@ -453,7 +453,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print(f"Received Hello from {src_ip}, moving to Init state")
                 if src_ip not in ips:
                     # print("Received Hello packet")
-                    neighbors_state[interface]["state"] = "Init"
+                    neighbors_state[interface]["state"]["state"] = "Init"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
@@ -466,7 +466,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             elif neighbors_state.get(interface, {}).get("state") == "Init":
                 if src_ip not in ips:
                     # print("Received Hello packet")
-                    neighbors_state[interface] = "2-Way"
+                    neighbors_state[interface]["state"] = "2-Way"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to 2-Way state")
                     # ospf_hello_first.backup = src_ip
@@ -480,7 +480,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             elif neighbors_state.get(interface, {}).get("state") == "Full":
                 if src_ip not in ips:
                     print("Received Hello packet")
-                    neighbors_state[interface] = "Full"
+                    neighbors_state[interface]["state"] = "Full"
                     neighbor_ip = src_neighbor
                     ospf_hello_full = ospf_hello_first
                     ospf_hello_full.neighbors = [neighbor_ip]
@@ -518,7 +518,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # print(f"{router_status} DBD")
                         seq_exchange = dbd_layer.ddseq
                         print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
-                        neighbors_state[interface] = "Exchange"
+                        neighbors_state[interface]["state"] = "Exchange"
                         # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -549,7 +549,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     lsr_layer = packet.getlayer(OSPF_LSReq)
                     jumlah_lsreq = len(lsr_layer.requests)
                     print(f"Received LSR from {src_ip}, ready to Full state")
-                    neighbors_state[interface] = "Loading"
+                    neighbors_state[interface]["state"] = "Loading"
 
                     for i in range(jumlah_lsreq):
                         lsr = lsr_layer.requests[i]
@@ -568,7 +568,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
                     print(f"Received LSU from {src_ip}, moving to Full state")
-                    neighbors_state[interface] = "Full"
+                    neighbors_state[interface]["state"] = "Full"
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
@@ -581,7 +581,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
                     print(f"Received LSU from {src_ip}, moving to Full state")
-                    neighbors_state[interface] = "Full"
+                    neighbors_state[interface]["state"] = "Full"
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
@@ -597,7 +597,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # lsack_layer = packet.getlayer(OSPF_LSAck)
                     # jumlah_lsack = len(lsack_layer.lsaheaders)
                     print(f"Received LSAck from {src_ip}, moving to Full state")
-                    neighbors_state[interface] = "Full"
+                    neighbors_state[interface]["state"] = "Full"
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
 
 def sniff_packets(interface, src_broadcast, source_ip):
