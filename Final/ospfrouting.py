@@ -434,6 +434,9 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
     global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
 
+    if interface in neighbors_state and state == "Down":
+        # print(f"Interface {interface} is down, ignoring packet")
+        print(f"Interface {interface} is down, ignoring packet")
     # Cek apakah paket adalah paket OSPF
     for interface_key, state in neighbors_state.items():
         if packet.haslayer(OSPF_Hdr):
