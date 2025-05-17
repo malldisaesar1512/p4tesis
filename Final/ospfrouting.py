@@ -463,7 +463,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            elif neighbors_state.get(interface) == "Init":
+            elif neighbors_state.get(interface, {}).get("state") == "Init":
                 if src_ip not in ips:
                     # print("Received Hello packet")
                     neighbors_state[interface] = "2-Way"
@@ -477,7 +477,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     send_ospf_dbd_first(interface, src_broadcast, source_ip, src_ip, seq_random)
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            elif neighbors_state.get(interface) == "Full":
+            elif neighbors_state.get(interface, {}).get("state") == "Full":
                 if src_ip not in ips:
                     print("Received Hello packet")
                     neighbors_state[interface] = "Full"
@@ -507,7 +507,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 # neighbor_state = "Exstart"
                 # print(f"Received DBD from {src_ip}, moving to Exstart state")
                 # send_ospf_dbd_first(src_ip, seq_random)
-            if neighbors_state.get(interface) == "2-Way":
+            if neighbors_state.get(interface, {}).get("state") == "2-Way":
                 if src_ip not in ips:
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
                     if dbd_layer.dbdescr == 0x00:
@@ -544,7 +544,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             print("Received LSR packet")
             print(f"{lsadb_list}")
             src_ip = packet[IP].src
-            if neighbors_state.get(interface) == "Exchange":
+            if neighbors_state.get(interface, {}).get("state") == "Exchange":
                 if src_ip not in ips:
                     lsr_layer = packet.getlayer(OSPF_LSReq)
                     jumlah_lsreq = len(lsr_layer.requests)
@@ -563,7 +563,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
         elif ospfhdr_layer.type == 4:  # LSU packet
             print("Received LSU packet")
             src_ip = packet[IP].src
-            if neighbors_state.get(interface) == "Loading":
+            if neighbors_state.get(interface, {}).get("state") == "Loading":
                 if src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
@@ -576,7 +576,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-            if neighbors_state.get(interface) == "Full":
+            if neighbors_state.get(interface, {}).get("state") == "Full":
                 if src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
@@ -592,7 +592,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
             src_ip = packet[IP].src
-            if neighbors_state.get(interface) == "Loading":
+            if neighbors_state.get(interface, {}).get("state") == "Loading":
                 if src_ip not in ips:
                     # lsack_layer = packet.getlayer(OSPF_LSAck)
                     # jumlah_lsack = len(lsack_layer.lsaheaders)
