@@ -333,6 +333,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         id_lsr = i.id
         adrouter_lsr = i.adrouter
 
+        print(f"type_lsr: {type_lsr}, id_lsr: {id_lsr}, adrouter_lsr: {adrouter_lsr}") # Menampilkan informasi LSR
+
         if type_lsr == 'router' or type_lsr == '1':
             lsulist = lsa_type1
             lsulist.linklist = ospf_link_list
