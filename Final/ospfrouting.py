@@ -614,7 +614,7 @@ if __name__ == "__main__":
         neighbors_state = {
             info['interface']: {
                 "state": "Down",
-                "ip_address": info['ip_address'],
+                "ip_address": info['ip_address']
                 }
         }
         iplist = ipaddress.IPv4Address(info['ip_address'])
