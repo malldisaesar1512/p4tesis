@@ -453,7 +453,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print(f"Received Hello from {src_ip}, moving to Init state")
                 if src_ip not in ips:
                     # print("Received Hello packet")
-                    neighbors_state[interface]["state"]["state"] = "Init"
+                    neighbors_state[interface]["state"] = "Init"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
