@@ -618,7 +618,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             netmask1 = tracking_state.get(interface, {}).get("netmask")
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
             
-            if tracking_state.get(interface, {}).get("state") == "Loading" or tracking_state.get(interface, {}).get("state") == "Full":
+            if tracking_state.get(interface, {}).get("state") == "Full":
                 if ip2 in network1 and src_ip not in ips:
                     # lsack_layer = packet.getlayer(OSPF_LSAck)
                     # jumlah_lsack = len(lsack_layer.lsaheaders)
