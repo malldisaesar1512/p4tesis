@@ -644,6 +644,7 @@ if __name__ == "__main__":
             continue
     ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
     print(f"thread: {threads}")
+    print(f"neighbors_state: {neighbors_state}")
 
     try:
         while True:
