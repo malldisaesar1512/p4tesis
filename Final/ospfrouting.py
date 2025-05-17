@@ -335,7 +335,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
         print(f"type_lsr: {type_lsr}, id_lsr: {id_lsr}, adrouter_lsr: {adrouter_lsr}") # Menampilkan informasi LSR
 
-        if type_lsr == 'router' or type_lsr == 1:
+        if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
             lsulist = lsa_type1
             lsulist.linklist = ospf_link_list
             lsulist.id = id_lsr
@@ -346,7 +346,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
             
-            print(f"LSA {i}: {lsulist}") # Menampilkan informasi LSA
+            print(f"LSA {1}: {lsulist.show()}") # Menampilkan informasi LSA
 
 
         elif type_lsr == 'network' or type_lsr == 2:
@@ -360,7 +360,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                 if info['ip_address'] == id_lsr:
                     lsulist.seq = info['sequence']
 
-            print(f"LSA {i}: {lsulist}") # Menampilkan informasi LSA
+            print(f"LSA {2}: {lsulist.show()}") # Menampilkan informasi LSA
 
         b = lsulist
 
