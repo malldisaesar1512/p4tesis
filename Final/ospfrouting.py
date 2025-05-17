@@ -456,7 +456,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
 
             if tracking_state.get(interface, {}).get("state") == "Down":
                 print(f"Received Hello from {src_ip}, moving to Init state")
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     # print("Received Hello packet")
                     tracking_state[interface]["state"] = "Init"
                     print(tracking_state.get(interface, {}).get("state"))
@@ -470,7 +470,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif tracking_state.get(interface, {}).get("state") == "Init":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     # print("Received Hello packet")
                     tracking_state[interface]["state"] = "2-Way"
                     neighbor_ip = src_neighbor
@@ -484,7 +484,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             elif tracking_state.get(interface, {}).get("state") == "Full":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     print("Received Hello packet")
                     tracking_state[interface]["state"] = "Full"
                     neighbor_ip = src_neighbor
@@ -508,7 +508,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
 
             # if neighbor_state == "2-Way":
-            #     if ip2 in network1:
+            #     if ip2 in network1 and src_ip not in ips:
             #         print("Received DBD packet")
             #         neighbor_state = "Exstart"
             #         print(f"Received DBD from {src_ip}, moving to Exstart state")
@@ -518,7 +518,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 # print(f"Received DBD from {src_ip}, moving to Exstart state")
                 # send_ospf_dbd_first(src_ip, seq_random)
             if tracking_state.get(interface, {}).get("state") == "2-Way":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
                     if dbd_layer.dbdescr == 0x00:
                         jumlah_lsa = len(dbd_layer.lsaheaders)
@@ -560,7 +560,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
 
             if tracking_state.get(interface, {}).get("state") == "Exchange":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     lsr_layer = packet.getlayer(OSPF_LSReq)
                     jumlah_lsreq = len(lsr_layer.requests)
                     print(f"Received LSR from {src_ip}, ready to Full state")
@@ -584,7 +584,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
 
             if tracking_state.get(interface, {}).get("state") == "Loading":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
                     print(f"Received LSU from {src_ip}, moving to Full state")
@@ -597,7 +597,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             if tracking_state.get(interface, {}).get("state") == "Full":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
                     print(f"Received LSU from {src_ip}, moving to Full state")
@@ -618,7 +618,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
             
             if tracking_state.get(interface, {}).get("state") == "Loading":
-                if ip2 in network1:
+                if ip2 in network1 and src_ip not in ips:
                     # lsack_layer = packet.getlayer(OSPF_LSAck)
                     # jumlah_lsack = len(lsack_layer.lsaheaders)
                     print(f"Received LSAck from {src_ip}, moving to Full state")
