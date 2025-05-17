@@ -200,8 +200,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
 
         totallink = len(ospf_link_list)
         
-        print(f"link list: {ospf_link_list}")
-        print(f"LSA list: {lsadb_hdr_default}")
+        # print(f"link list: {ospf_link_list}")
+        # print(f"LSA list: {lsadb_hdr_default}")
 
         # elif neighbor_state == "Full":
         #     ospf_hello_10s = ospf_hello_first
@@ -305,7 +305,7 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
             )
             lsreq_list.append(a)
         
-    print(f"LSR List: {lsreq_list}")
+    # print(f"LSR List: {lsreq_list}")
     # Buat LSR packet dengan parameter yang diberikan
     ospf_lsr_pkt = (
         eth /
@@ -367,7 +367,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
             lsudb_list.append(lsulist)
 
-    print(f"LSU List: {lsudb_list}")
+    # print(f"LSU List: {lsudb_list}")
     
     # Buat LSU packet dengan LSAs yang diberikan
     ospf_lsu_pkt = (
@@ -413,7 +413,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     seq=lsack_seq
                 )
             lsack_list.append(lsacknih)
-            print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
+            # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
     # print(f"lsack.list: {lsack_list}")
 
@@ -453,7 +453,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
 
                 if interface_key == interface and state == "Down":
                     if src_ip not in ips:
-                        print("Received Hello packet")
+                        # print("Received Hello packet")
                         neighbors_state[interface_key] = "Init"
                         neighbor_ip = src_neighbor
                         print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
@@ -466,7 +466,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 elif interface_key == interface and state == "Init":
                     if src_ip not in ips:
-                        print("Received Hello packet")
+                        # print("Received Hello packet")
                         neighbors_state[interface_key] = "2-Way"
                         neighbor_ip = src_neighbor
                         print(f"Received Hello from {src_ip}, moving to 2-Way state")
@@ -513,10 +513,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         dbd_layer = packet.getlayer(OSPF_DBDesc)
                         if dbd_layer.dbdescr == 0x00:
                             jumlah_lsa = len(dbd_layer.lsaheaders)
-                            print(f"{dbd_layer.show()}")
-                            print(f"Jumlah LSA: {jumlah_lsa}")
+                            # print(f"{dbd_layer.show()}")
+                            # print(f"Jumlah LSA: {jumlah_lsa}")
                             router_status = "Master"
-                            print(f"{router_status} DBD")
+                            # print(f"{router_status} DBD")
                             seq_exchange = dbd_layer.ddseq
                             print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
                             neighbors_state[interface_key] = "Exchange"
@@ -555,7 +555,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         for i in range(jumlah_lsreq):
                             lsr = lsr_layer.requests[i]
                             lsreqdb_list.append(lsr)
-                            print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
+                            # print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.type}, Advertising Router: {lsr.adrouter}")
 
                         send_ospf_lsu(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
