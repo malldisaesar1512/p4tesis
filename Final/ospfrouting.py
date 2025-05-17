@@ -451,7 +451,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             src_neighbor = packet[OSPF_Hdr].src
 
 
-            if neighbors_state.get(interface) == "Down":
+            if neighbors_state[interface]["state"] == "Down":
                 if src_ip not in ips:
                     # print("Received Hello packet")
                     neighbors_state[interface] = "Init"
@@ -613,7 +613,10 @@ if __name__ == "__main__":
 
     for info in interfaces_info:
         neighbors_state = {
-            info['interface']: "Down"
+            info['interface']: {
+                "state": "Down",
+                "ip_address": info['ip_address'],
+                }
         }
         iplist = ipaddress.IPv4Address(info['ip_address'])
 
@@ -632,6 +635,7 @@ if __name__ == "__main__":
             hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
             hello_thread.daemon=True
             hello_thread.start()
+            threads.append(hello_thread)
     
             recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface'], info['ip_address'], source_ip))
             recv_thread.daemon=True
