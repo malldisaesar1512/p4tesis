@@ -199,6 +199,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
         totallink = len(ospf_link_list)
+        print(f"thread: {threads}")
+        print(f"neighbors_state: {tracking_state}")
         
         # print(f"link list: {ospf_link_list}")
         # print(f"LSA list: {lsadb_hdr_default}")
