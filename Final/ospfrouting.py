@@ -634,11 +634,6 @@ if __name__ == "__main__":
     interfaces_info = get_interfaces_info_with_interface_name()
 
     for info in interfaces_info:
-        tracking_state[info['interface']] = {
-                        "state": "Down",
-                        "ip_address": info['ip_address'],
-                        "netmask": info['netmask'],
-                        }
         # tracking_state.append(neighbors_state)
         iplist = ipaddress.IPv4Address(info['ip_address'])
 
@@ -653,6 +648,12 @@ if __name__ == "__main__":
 
 
         if info['interface'] != 'ens4':
+
+            tracking_state[info['interface']] = {
+                "state": "Down",
+                "ip_address": info['ip_address'],
+                "netmask": info['netmask'],
+                }
             
             hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
             hello_thread.daemon=True
