@@ -50,6 +50,7 @@ list_interface = []
 list_ip = []
 list_netmask = []
 list_network = []
+neighbors_state = {}
 tracking_state = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
 
@@ -611,13 +612,11 @@ if __name__ == "__main__":
     interfaces_info = get_interfaces_info_with_interface_name()
 
     for info in interfaces_info:
-        neighbors_state = {
-            info['interface']: {
-                "state": "Down",
-                "ip_address": info['ip_address']
-                }
-        }
-        tracking_state.append(neighbors_state)
+        tracking_state[info['interface']] = {
+                        "state": "Down",
+                        "ip_address": info['ip_address']
+                        }
+        # tracking_state.append(neighbors_state)
         iplist = ipaddress.IPv4Address(info['ip_address'])
 
         if target_ip < iplist:
