@@ -188,15 +188,14 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
         
-        for interface_key, state in neighbors_state.items():
-            if interface_key == interface and state == "Down":
-                # print(f"Neighbor: {neighbor_default}")
-                ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
-                ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
-                ospf_hello_first.neighbors = []
-                ospf_hello_first.router = ip_address
-                ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
-                sendp(ospf_packet_hello_first, iface=interface, verbose=0)
+        if neighbors_state[interface]["state"] == "Down":
+            # print(f"Neighbor: {neighbor_default}")
+            ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
+            ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
+            ospf_hello_first.neighbors = []
+            ospf_hello_first.router = ip_address
+            ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
+            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
         totallink = len(ospf_link_list)
         
@@ -454,7 +453,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             if neighbors_state[interface]["state"] == "Down":
                 if src_ip not in ips:
                     # print("Received Hello packet")
-                    neighbors_state[interface] = "Init"
+                    neighbors_state[interface]["state"] = "Init"
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
