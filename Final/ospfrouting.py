@@ -198,6 +198,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
                 sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
+        totallink = len(ospf_link_list)
+        print(f"Total link: {totallink}")
         print(f"link list: {ospf_link_list}")
         print(f"LSA list: {lsadb_hdr_default}")
 
