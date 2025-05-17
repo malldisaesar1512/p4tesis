@@ -175,7 +175,7 @@ def get_interfaces_info_with_interface_name():
 
 def send_hello_periodically(interval, interface, ip_address, source_ip):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
@@ -199,7 +199,7 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
         totallink = len(ospf_link_list)
-        print(f"Total link: {totallink}")
+        
         print(f"link list: {ospf_link_list}")
         print(f"LSA list: {lsadb_hdr_default}")
 
@@ -347,7 +347,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                         id=id_lsr, # LSA ID
                         adrouter=adrouter_lsr, # Advertising router
                         seq=seq_lsr,  # Sequence number
-                        linkcount=len(ospf_link_list), # Number of links
+                        linkcount=totallink, # Number of links
                         linklist=[ospf_link_list] # List of links
                     )
             
