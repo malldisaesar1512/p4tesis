@@ -350,7 +350,6 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                     )
             
             lsudb_list.append(lsulist)
-            print(f"LSA List: {lsudb_list}") # Menampilkan informasi LSA
 
         elif type_lsr == 'network' or type_lsr == 2:
             lsulist = OSPF_Network_LSA(
@@ -363,9 +362,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                         mask="255.255.255.0", # Subnet mask
                         routerlist=ips # List of routers
                     )
-                    
+
             lsudb_list.append(lsulist)
-            print(f"LSA List: {lsudb_list}") # Menampilkan informasi LSA
 
     print(f"LSU List: {lsudb_list}")
     
@@ -381,8 +379,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         
     )
 
-    # print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
-    # sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
+    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
     lsudb_list.clear()
     lsreqdb_list.clear()
 
@@ -401,7 +399,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
 
-        if lsack_id == router_id2:
+        if lsack_id == source_ip:
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
@@ -452,7 +450,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
 
 
                 if interface_key == interface and state == "Down":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         print("Received Hello packet")
                         neighbors_state[interface_key] = "Init"
                         neighbor_ip = src_neighbor
@@ -465,7 +463,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # print(f"{ospf_packet_hello2.show()}")
                         print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 elif interface_key == interface and state == "Init":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         print("Received Hello packet")
                         neighbors_state[interface_key] = "2-Way"
                         neighbor_ip = src_neighbor
@@ -479,7 +477,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # print(f"{ospf_packet_hello2.show()}")
                         print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 elif interface_key == interface and state == "Full":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         print("Received Hello packet")
                         neighbors_state[interface_key] = "Full"
                         neighbor_ip = src_neighbor
@@ -499,7 +497,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 src_ip = packet[IP].src
 
                 # if neighbor_state == "2-Way":
-                #     if src_ip != router_id:
+                #     if src_ip not in ips:
                 #         print("Received DBD packet")
                 #         neighbor_state = "Exstart"
                 #         print(f"Received DBD from {src_ip}, moving to Exstart state")
@@ -509,7 +507,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"Received DBD from {src_ip}, moving to Exstart state")
                     # send_ospf_dbd_first(src_ip, seq_random)
                 if interface_key == interface and state == "2-Way":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         dbd_layer = packet.getlayer(OSPF_DBDesc)
                         if dbd_layer.dbdescr == 0x00:
                             jumlah_lsa = len(dbd_layer.lsaheaders)
@@ -546,7 +544,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print(f"{lsadb_list}")
                 src_ip = packet[IP].src
                 if interface_key == interface and state == "Exchange":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         lsr_layer = packet.getlayer(OSPF_LSReq)
                         jumlah_lsreq = len(lsr_layer.requests)
                         print(f"Received LSR from {src_ip}, ready to Full state")
@@ -565,7 +563,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print("Received LSU packet")
                 src_ip = packet[IP].src
                 if interface_key == interface and state == "Loading":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         lsu_layer = packet.getlayer(OSPF_LSUpd)
                         jumlah_lsulsa = lsu_layer.lsacount
                         print(f"Received LSU from {src_ip}, moving to Full state")
@@ -578,7 +576,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                         print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                 if interface_key == interface and state == "Full":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         lsu_layer = packet.getlayer(OSPF_LSUpd)
                         jumlah_lsulsa = lsu_layer.lsacount
                         print(f"Received LSU from {src_ip}, moving to Full state")
@@ -594,7 +592,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                 print("Received LSAck packet")
                 src_ip = packet[IP].src
                 if interface_key == interface and state == "Loading":
-                    if src_ip != router_id:
+                    if src_ip not in ips:
                         # lsack_layer = packet.getlayer(OSPF_LSAck)
                         # jumlah_lsack = len(lsack_layer.lsaheaders)
                         print(f"Received LSAck from {src_ip}, moving to Full state")
