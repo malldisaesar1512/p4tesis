@@ -348,7 +348,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                         adrouter=adrouter_lsr, # Advertising router
                         seq=seq_lsr,  # Sequence number
                         linkcount=totallink, # Number of links
-                        linklist=[ospf_link_list] # List of links
+                        linklist=ospf_link_list # List of links
                     )
             
             lsudb_list.append(lsulist)
