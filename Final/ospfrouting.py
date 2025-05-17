@@ -189,7 +189,7 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 ospf_link_list.append(d)
                 lsadb_hdr_default.append(e)
         
-        if neighbors_state.get(interface, {}).get("state") == "Down":
+        if neighbor_state == "Down":
             # print(f"Neighbor: {neighbor_default}")
             ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
             ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
