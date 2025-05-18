@@ -12,6 +12,13 @@ import random
 import psutil
 import socket
 import ipaddress
+import argparse
+from atexit import register
+from operator import index
+import sys
+import struct
+import subprocess
+from datetime import datetime
 
 #global variable
 neighbor_state = "Down"
@@ -114,33 +121,27 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
-# def get_interfaces_info_separated():
-#     global ips, netmasks, networks, statuses
-#     addrs = psutil.net_if_addrs()
-#     stats = psutil.net_if_stats()
+#################### P4 CONTROLLER #####################
+def read_registerAll(register, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="register_read %s" % (register))
+    reg_val = [l for l in stdout.split('\n') if ' %s' % (register) in l][0].split('= ', 1)[1]
+    return reg_val.split(", ")
 
-#     interfaces = []  # List untuk menyimpan nama interface
-#     ips = []         # List untuk menyimpan IP address
-#     netmasks = []    # List untuk menyimpan netmask
-#     networks = []    # List untuk menyimpan network address
-#     statuses = []    # List untuk menyimpan status interface ("up"/"down")
+def read_register(register, idx, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="register_read %s %d" % (register, idx))
+    reg_val = [l for l in stdout.split('\n') if ' %s[%d]' % (register, idx) in l][0].split('= ', 1)[1]
+    return int(reg_val)
 
-#     for iface, addr_list in addrs.items():
-#         is_up = stats[iface].isup if iface in stats else False
-#         for addr in addr_list:
-#             if addr.family == socket.AF_INET:
-#                 ip = addr.address
-#                 netmask = addr.netmask
-#                 if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
-#                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-#                     network_address = str(network.network_address)  # tanpa prefix
-#                     interfaces.append(iface)
-#                     ips.append(ip)
-#                     netmasks.append(netmask)
-#                     networks.append(network_address)
-#                     statuses.append("up" if is_up else "down")
-
-#     return interfaces, ips, netmasks, networks, statuses
+def write_register(register, idx, value, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = "register_write %s %d %d" % (register, idx, value)
+    stdout, stderr = p.communicate(input=command.encode('utf-8'))
+    if stderr:
+        print("Error:", stderr.decode('utf-8'))
+    return
+#################### P4 CONTROLLER #####################
 
 def get_interfaces_info_with_interface_name():
     global ips, netmasks, networks, statuses, interfaces_info
