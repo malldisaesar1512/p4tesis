@@ -428,7 +428,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         
 
         if lsack_type == 'network' or lsack_type == 2:
-            lsdbp4 = i.routelist
+            lsdbp4 = i.routerlist
             netp4 = i.netmask
             db_lsap4[interface] = {"routelist": lsdbp4, "netmask": netp4, "interface": interface}
 
