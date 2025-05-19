@@ -486,8 +486,9 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_hello_first.router = src_ip
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
                     
-                    ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
@@ -500,7 +501,9 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # ospf_hello_first.backup = src_ip
                     ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_hello_first.router = src_ip
-                    ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_hello_first
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
+
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
                     send_ospf_dbd_first(interface, src_broadcast, source_ip, src_ip, seq_random)
                     # print(f"{ospf_packet_hello2.show()}")
@@ -514,11 +517,12 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     ospf_hello_full.neighbors = [neighbor_ip]
                     ospf_hello_full.backup = [ospfhdr_layer.backup]
                     ospf_hello_full.router = [ospfhdr_layer.router]
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
                     
                     # ospf_hello_first.backup = src_ip
                     # ospf_hello_first.neighbors = [neighbor_ip]
                     ospf_packet_hellofull = ospf_hello_full
-                    ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_packet_hellofull
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_packet_hellofull
                     sendp(ospf_packet_hello2, iface=interface, verbose=0)
                     # print(f"{ospf_packet_hello2.show()}")
                     print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
