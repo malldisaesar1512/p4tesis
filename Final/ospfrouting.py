@@ -23,7 +23,7 @@ from datetime import datetime
 #global variable
 neighbor_state = "Down"
 option_default = 0x02
-default_3000
+default_age = 3000
 hello_interval = 10
 dead_interval = 40
 priority_default = 128
