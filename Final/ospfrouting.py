@@ -619,7 +619,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             netmask1 = tracking_state.get(interface, {}).get("netmask")
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
 
-            if tracking_state.get(interface, {}).get("state") == "Loading":
+            if tracking_state.get(interface, {}).get("state") == "Loading" or "Exchange":
                 if ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     jumlah_lsulsa = lsu_layer.lsacount
