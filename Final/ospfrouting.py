@@ -59,6 +59,7 @@ list_netmask = []
 list_network = []
 neighbors_state = {}
 tracking_state = {}
+db_lsap4 = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
 
 ospf_link_list = []
@@ -141,6 +142,23 @@ def write_register(register, idx, value, thrift_port):
     if stderr:
         print("Error:", stderr.decode('utf-8'))
     return
+
+def table_delete(table, idx, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="table_delete %s %d" % (table, idx))
+    return 
+
+def table_add(table, parametro, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="table_add %s" % (parametro))
+    var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
+    return int(var_handle)
+
+def table_entry(table, network, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="table_dump_entry_from_key %s %s" % (table, network))
+    entry_val = [l for l in stdout.split('\n') if ' %s' % ('Dumping') in l][0].split('0x', 1)[1]
+    return int(entry_val)
 #################### P4 CONTROLLER #####################
 
 def get_interfaces_info_with_interface_name():
