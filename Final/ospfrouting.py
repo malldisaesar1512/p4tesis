@@ -23,7 +23,7 @@ from datetime import datetime
 #global variable
 neighbor_state = "Down"
 option_default = 0x02
-default_age = 1
+default_3000
 hello_interval = 10
 dead_interval = 40
 priority_default = 128
@@ -87,7 +87,7 @@ ospf_hello_first = OSPF_Hello(
 
 #TYPE OF LSA_PACKET
 lsa_type1 = OSPF_Router_LSA(
-            age = 1, # Age of the LSA
+            3000, # Age of the LSA
             options=0x02, # Options field
             type=1,  # Router LSA
             id="10.10.1.2", # LSA ID
@@ -97,7 +97,7 @@ lsa_type1 = OSPF_Router_LSA(
             linklist=[] # List of links
         )
 lsa_type2 = OSPF_Network_LSA(
-            age = 1, # Age of the LSA
+            3000, # Age of the LSA
             options=option_default, # Options field
             type=2,  # Network LSA
             id="10.10.1.2", # LSA ID
@@ -107,7 +107,7 @@ lsa_type2 = OSPF_Network_LSA(
             routerlist=[] # List of routers
         )
 lsarouter_default = OSPF_LSA_Hdr(
-                age = 1,
+                3000,
                 options=0x02,
                 type=1,
                 id=router_id2,
@@ -199,7 +199,10 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
-            d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
+            if info["interface"] == "ens4":
+                d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
+            else:
+                d = OSPF_Link(id=info['network'], data=info['network'], type=2, metric=1)
             e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
 
             if d in ospf_link_list and e in lsadb_hdr_default:
@@ -218,8 +221,9 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
             sendp(ospf_packet_hello_first, iface=interface, verbose=0)
 
         totallink = len(ospf_link_list)
-        print(f"thread: {threads}")
+        # print(f"thread: {threads}")
         print(f"neighbors_state: {tracking_state}")
+        print(f"lisdbp4: {db_lsap4}")
         
         # print(f"link list: {ospf_link_list}")
         # print(f"LSA list: {lsadb_hdr_default}")
@@ -362,7 +366,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
         if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
             lsulist = OSPF_Router_LSA(
-                        age = 1, # Age of the LSA
+                        3000, # Age of the LSA
                         options=0x02, # Options field
                         type=type_lsr,  # Router LSA
                         id=id_lsr, # LSA ID
@@ -376,7 +380,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
         elif type_lsr == 'network' or type_lsr == 2:
             lsulist = OSPF_Network_LSA(
-                        age = 1, # Age of the LSA
+                        3000, # Age of the LSA
                         options=option_default, # Options field
                         type=2,  # Network LSA
                         id=id_lsr, # LSA ID
@@ -421,12 +425,18 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         lsack_adrouter = i.adrouter
         lsack_type = i.type
         lsack_seq = i.seq
+        
+
+        if lsack_type == 'network' or lsack_type == 2:
+            lsdbp4 = i.routelist
+            netp4 = i.netmask
+            db_lsap4[interface] = {"routelist": lsdbp4, "netmask": netp4, "interface": interface}
 
         if lsack_id == source_ip:
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
-                    age = 1,
+                    3000,
                     options=0x02,
                     type=lsack_type,
                     id=lsack_id,
