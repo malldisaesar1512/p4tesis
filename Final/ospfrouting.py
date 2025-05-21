@@ -199,11 +199,12 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
-            if info["interface"] == "ens4":
-                d = OSPF_Link(id=info['network'], data=info['network'], type=3, metric=1)
-            else:
-                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1)
-            e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+            # if info["interface"] == "ens4":
+            d = OSPF_Link(id=info['network'], data=info['netmask'], type=3, metric=1)
+            # else:
+            #     d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1)
+            if info['interface'] == "ens4":
+                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
 
             if d in ospf_link_list and e in lsadb_hdr_default:
                 continue
@@ -225,20 +226,6 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         print(f"neighbors_state: {tracking_state}")
         print(f"lisdbp4: {db_lsap4}")
         
-        # print(f"link list: {ospf_link_list}")
-        # print(f"LSA list: {lsadb_hdr_default}")
-
-        # elif neighbor_state == "Full":
-        #     ospf_hello_10s = ospf_hello_first
-        #     ospf_hello_10s.neighbors = [neighbor_default]
-        #     ospf_hello_10s.backup = bdr
-        #     ospf_hello_10s.router = dr
-
-        #     ospf_fullhdr = ospf_hello_10s
-        #     # print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-        #     ospf_packet_hello2 = eth / ip_broadcast / ospf_header / ospf_fullhdr
-        #     sendp(ospf_packet_hello2, iface=interface, verbose=0)
-
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
