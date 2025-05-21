@@ -555,6 +555,14 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                        
+                        for i in range(jumlah_lsa): #add LSA to list
+                            lsa = dbd_layer.lsaheaders[i]
+                            lsadb_list.append(lsa)
+                    #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                    # print(f"LSA List: {lsadb_list}")
+                        send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
+
                     else:
                         return
                         router_status = "Slave"
@@ -566,13 +574,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         send_ospf_dbd(src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     
-                    for i in range(jumlah_lsa): #add LSA to list
-                        lsa = dbd_layer.lsaheaders[i]
-                        lsadb_list.append(lsa)
-                    #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-                    # print(f"LSA List: {lsadb_list}")
-                    send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
-
+                    
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
             print(f"{lsadb_list}")
