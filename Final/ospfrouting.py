@@ -436,7 +436,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             db_lsap4[interface] = {"routelist": lsdbp4, "netmask": netp4, "interface": interface}
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
         
-    # print(f"lsack.list: {lsack_list}")
+    print(f"lsack.list: {lsack_list}")
 
     ospf_lsack_pkt = (
         eth /
@@ -633,7 +633,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
-                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}, sequence: {lsalsu.seq}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
                     ip_lsu2 = IP(src=src_broadcast, dst=src_ip)
@@ -657,8 +657,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                                 linkcount=totallink, # Number of links
                                                 linklist=[
                                                     OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1),
-                                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1),
-                                                    OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
+                                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1)
+                                                    # OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
                                                 ] # List of links
                                             ), OSPF_Network_LSA(
                                                 age = 3000, # Age of the LSA
