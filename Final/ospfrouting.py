@@ -322,7 +322,7 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
             )
             lsreq_list.append(a)
         
-    # print(f"LSR List: {lsreq_list}")
+    print(f"LSR List: {lsreq_list}")
     # Buat LSR packet dengan parameter yang diberikan
     ospf_lsr_pkt = (
         eth /
