@@ -565,7 +565,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             lsa = dbd_layer.lsaheaders[i]
                             lsadb_list.append(lsa)
                     #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-                    # print(f"LSA List: {lsadb_list}")
+                        print(f"LSA List: {lsadb_list}")
                         send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
 
                     else:
