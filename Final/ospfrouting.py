@@ -22,6 +22,7 @@ from datetime import datetime
 
 #global variable
 neighbor_state = "Down"
+penghitung = 0
 option_default = 0x02
 default_age = 3000
 hello_interval = 10
@@ -455,7 +456,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
 
 def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received packet on interface {interface}")
     # Cek apakah paket adalah paket OSPF
@@ -638,26 +639,48 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
+                    ip_lsu2 = IP(src=src_broadcast, dst=src_ip)
+    
+                    # Header OSPF tipe 4: Link State Update Packet
+                    ospf_hdr_lsu2 = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
 
-                    ospf_lsu_pkt = (eth /
-                                    ip_lsu /
-                                    ospf_hdr_lsu /
-                                    OSPF_LSUpd(
-                                        lsacount=2,
-                                        lsalist= [OSPF_Router_LSA(
-                                            age = 3000, # Age of the LSA
-                                            options=0x02, # Options field
-                                            type=1,  # Router LSA
-                                            id="192.168.1.2", # LSA ID
-                                            adrouter="192.168.1.2 ", # Advertising router
-                                            seq=seq_lsr,  # Sequence number
-                                            linkcount=totallink, # Number of links
-                                            linklist=ospf_link_list # List of links
-                                        ),
-                                            
-                                        ]
-                                    )     
-                                )
+                    if penghitung == 0:
+                        ospf_lsu_pkt2 = (eth /
+                                        ip_lsu2 /
+                                        ospf_hdr_lsu2 /
+                                        OSPF_LSUpd(
+                                            lsacount=2,
+                                            lsalist= [OSPF_Router_LSA(
+                                                age = 3000, # Age of the LSA
+                                                options=0x02, # Options field
+                                                type=1,  # Router LSA
+                                                id="192.168.1.2", # LSA ID
+                                                adrouter="192.168.1.2 ", # Advertising router
+                                                seq=seq_global,  # Sequence number
+                                                linkcount=totallink, # Number of links
+                                                linklist=[
+                                                    OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1),
+                                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1),
+                                                    OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
+                                                ] # List of links
+                                            ), OSPF_Network_LSA(
+                                                age = 3000, # Age of the LSA
+                                                options=option_default, # Options field
+                                                type=2,  # Network LSA
+                                                id="192.168.1.2", # LSA ID
+                                                adrouter="192.168.1.2", # Advertising router
+                                                seq=0x80000123,  # Sequence number
+                                                mask="255.255.255.0", # Subnet mask
+                                                routerlist=["10.10.1.1", "192.168.2.2"] # List of routers
+                                            )
+                                                
+                                            ]
+                                        )     
+                                    )
+                        sendp(ospf_lsu_pkt2, iface=interface, verbose=0)
+                        penghitung = penghitung + 1
+                    else:
+                        return
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
