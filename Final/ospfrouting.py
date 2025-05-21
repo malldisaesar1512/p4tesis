@@ -195,7 +195,7 @@ def get_interfaces_info_with_interface_name():
 
 def send_hello_periodically(interval, interface, ip_address, source_ip):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink, seq_global
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
@@ -205,6 +205,9 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
             #     d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1)
             if info['interface'] == "ens4":
                 e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+                seq_global = info['sequence']
+            else:
+                continue
 
             if d in ospf_link_list and e in lsadb_hdr_default:
                 continue
@@ -225,6 +228,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         # print(f"thread: {threads}")
         print(f"neighbors_state: {tracking_state}")
         print(f"lisdbp4: {db_lsap4}")
+        print(f"ospf_link_list: {ospf_link_list}")
+        print(f"lsadb_hdr_default: {lsadb_hdr_default}")
         
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
@@ -633,6 +638,26 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
+
+                    ospf_lsu_pkt = (eth /
+                                    ip_lsu /
+                                    ospf_hdr_lsu /
+                                    OSPF_LSUpd(
+                                        lsacount=2,
+                                        lsalist= [OSPF_Router_LSA(
+                                            age = 3000, # Age of the LSA
+                                            options=0x02, # Options field
+                                            type=1,  # Router LSA
+                                            id="192.168.1.2", # LSA ID
+                                            adrouter="192.168.1.2 ", # Advertising router
+                                            seq=seq_lsr,  # Sequence number
+                                            linkcount=totallink, # Number of links
+                                            linklist=ospf_link_list # List of links
+                                        ),
+                                            
+                                        ]
+                                    )     
+                                )
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         elif ospfhdr_layer.type == 5:  # LSAck packet
             print("Received LSAck packet")
