@@ -12,6 +12,6 @@ if __name__ == "__main__":
     ip="10.10.1.1"
     username="admin"
     password="123"
-    dst="192.168.1.2"
+    dst="192.168.1.0/24"
     gateway = "10.10.1.2"
     add_route_to_mikrotik(ip, username, password, dst, gateway)
