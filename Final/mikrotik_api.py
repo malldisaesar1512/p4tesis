@@ -1,7 +1,7 @@
 from routeros_api import RouterOsApiPool
 
 # Koneksi ke RouterOS
-api_pool = RouterOsApiPool('10.10.1.1', username='admin', password='123')
+api_pool = RouterOsApiPool('10.10.1.1', username='admin', password='123', plaintext_login=True)
 api = api_pool.get_api()
 
 # Mengambil resource routing
