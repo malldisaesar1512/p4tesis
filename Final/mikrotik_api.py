@@ -1,9 +1,18 @@
-import collections
-import routeros_api
-from routeros_api.api_structure import StringField
+from routeros_api import RouterOsApiPool
 
-connection = routeros_api.RouterOsApiPool('10.10.1.1', username='admin', password='123', plaintext_login=True)
-api = connection.get_api()
-# This part here is important:
-default_structure = collections.defaultdict(lambda: StringField(encoding='windows-1250'))
-api.get_resource('/system/identity', structure=default_structure).get()
+# Koneksi ke RouterOS
+api_pool = RouterOsApiPool('10.10.1.1', username='admin', password='123')
+api = api_pool.get_api()
+
+# Mengambil resource routing
+route_resource = api.get_resource('/ip/route')
+
+# Mendapatkan semua routing yang ada
+routes = route_resource.get()
+
+# Print semua routing
+for route in routes:
+    print(f"Destination: {route.get('dst-address')}, Gateway: {route.get('gateway')}, Distance: {route.get('distance')}")
+
+# Tutup koneksi
+api_pool.disconnect()
