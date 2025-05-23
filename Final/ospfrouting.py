@@ -51,6 +51,7 @@ lsackdb_list = []
 lsulist = None
 a = []
 b = []
+e = None
 lsacknih = []
 LSA_listdb = []
 # interface = []
