@@ -200,12 +200,12 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
-            if info["interface"] == "ens4":
+            if info["interface"] == "ens3":
                 d = OSPF_Link(id=info['network'], data=info['netmask'], type=3, metric=1)
             else:
                 d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1) 
 
-            # if info["interface"] == "ens4":
+            # if info["interface"] == "ens3":
             e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
                 # seq_global = info['sequence']       
 
@@ -721,7 +721,7 @@ if __name__ == "__main__":
             source_ip = str(target_ip)
 
 
-        if info['interface'] != 'ens4':
+        if info['interface'] != 'ens3':
 
             tracking_state[info['interface']] = {
                 "state": "Down",
