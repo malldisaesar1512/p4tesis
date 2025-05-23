@@ -201,11 +201,13 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         interfaces_info = get_interfaces_info_with_interface_name()
         for info in interfaces_info:
             if info["interface"] == "ens4":
-                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
-                seq_global = info['sequence']
                 d = OSPF_Link(id=info['network'], data=info['netmask'], type=3, metric=1)
             else:
-                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1)        
+                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1) 
+
+            if info["interface"] == "ens4":
+                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+                seq_global = info['sequence']       
 
             if d in ospf_link_list and e in lsadb_hdr_default:
                 continue
