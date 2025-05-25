@@ -419,19 +419,18 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         lsack_seq = i.seq
         
 
-        if lsack_id == source_ip:
-            continue
-        else:
-            lsacknih = OSPF_LSA_Hdr(
-                    age = 3300,
-                    options=0x02,
-                    type=lsack_type,
-                    id=lsack_id,
-                    adrouter=lsack_adrouter,
-                    seq=lsack_seq
-                )
-            lsack_list.append(lsacknih)
         
+        lsacknih = OSPF_LSA_Hdr(
+                age = 3300,
+                options=0x02,
+                type=lsack_type,
+                id=lsack_id,
+                adrouter=lsack_adrouter,
+                seq=lsack_seq
+            )
+            
+        lsack_list.append(lsacknih)
+    
         if lsack_type == 'network' or lsack_type == 2:
             lsdbp4 = i.routerlist
             netp4 = i.mask
