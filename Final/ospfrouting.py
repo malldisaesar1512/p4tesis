@@ -176,7 +176,7 @@ def get_interfaces_info_with_interface_name():
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31" and ip != "10.0.137.55":
+                if ip and netmask and ip != "127.0.0.1" and (ip != "10.0.137.31" or ip != "10.0.137.55"):
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
                     network_address = str(network.network_address)
                     ips.append(ip)
@@ -750,6 +750,7 @@ if __name__ == "__main__":
             threads.append(recv_thread)
         else:
             continue
+
     ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
     print(f"thread: {threads}")
     print(f"neighbors_state: {tracking_state}")
