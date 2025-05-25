@@ -24,7 +24,7 @@ from datetime import datetime
 neighbor_state = "Down"
 penghitung = 0
 option_default = 0x02
-default_age = 3000
+default_age = 3300
 hello_interval = 10
 dead_interval = 40
 priority_default = 128
@@ -88,7 +88,7 @@ ospf_hello_first = OSPF_Hello(
 
 #TYPE OF LSA_PACKET
 lsa_type1 = OSPF_Router_LSA(
-            age = 3000, # Age of the LSA
+            age = 3300, # Age of the LSA
             options=0x02, # Options field
             type=1,  # Router LSA
             id="10.10.1.2", # LSA ID
@@ -98,7 +98,7 @@ lsa_type1 = OSPF_Router_LSA(
             linklist=[] # List of links
         )
 lsa_type2 = OSPF_Network_LSA(
-            age = 3000, # Age of the LSA
+            age = 3300, # Age of the LSA
             options=option_default, # Options field
             type=2,  # Network LSA
             id="10.10.1.2", # LSA ID
@@ -108,7 +108,7 @@ lsa_type2 = OSPF_Network_LSA(
             routerlist=[] # List of routers
         )
 lsarouter_default = OSPF_LSA_Hdr(
-                age = 3000,
+                age = 3300,
                 options=0x02,
                 type=1,
                 id=router_id2,
@@ -358,7 +358,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
         if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
             lsulist = OSPF_Router_LSA(
-                        age = 3000, # Age of the LSA
+                        age = 3300, # Age of the LSA
                         options=0x02, # Options field
                         type=type_lsr,  # Router LSA
                         id=id_lsr, # LSA ID
@@ -372,7 +372,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
 
         elif type_lsr == 'network' or type_lsr == 2:
             lsulist = OSPF_Network_LSA(
-                        age = 3000, # Age of the LSA
+                        age = 3300, # Age of the LSA
                         options=option_default, # Options field
                         type=2,  # Network LSA
                         id=id_lsr, # LSA ID
@@ -423,7 +423,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             continue
         else:
             lsacknih = OSPF_LSA_Hdr(
-                    age = 3000,
+                    age = 3300,
                     options=0x02,
                     type=lsack_type,
                     id=lsack_id,
@@ -631,7 +631,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     ospf_hdr_lsu2 = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
                     
                     lsalist2= [OSPF_Router_LSA(
-                                age = 3000, # Age of the LSA
+                                age = 3300, # Age of the LSA
                                 options=0x02, # Options field
                                 type=1,  # Router LSA
                                 id="192.168.1.2", # LSA ID
@@ -644,7 +644,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                     # OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
                                 ] # List of links
                             ), OSPF_Network_LSA(
-                                age = 3000, # Age of the LSA
+                                age = 3300, # Age of the LSA
                                 options=option_default, # Options field
                                 type=2,  # Network LSA
                                 id="10.10.1.2", # LSA ID
