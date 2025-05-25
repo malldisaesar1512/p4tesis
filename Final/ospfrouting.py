@@ -624,6 +624,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         lsackdb_list.append(lsalsu)
                         # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     # print(f"LSA List: {len(lsackdb_list)}")
+                    print(f"LSA List: {lsackdb_list}")
                     ip_lsu2 = IP(src=src_broadcast, dst=broadcast_ip)
     
                     # Header OSPF tipe 4: Link State Update Packet
