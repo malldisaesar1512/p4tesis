@@ -639,8 +639,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                 seq=seq_global,  # Sequence number
                                 linkcount=totallink, # Number of links
                                 linklist=[
-                                    OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1),
-                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1)
+                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1),
+                                    OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1)
                                     # OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
                                 ] # List of links
                             ), OSPF_Network_LSA(
