@@ -428,7 +428,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 adrouter=lsack_adrouter,
                 seq=lsack_seq
             )
-            
+
         lsack_list.append(lsacknih)
     
         if lsack_type == 'network' or lsack_type == 2:
@@ -690,21 +690,21 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)                    
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-        elif ospfhdr_layer.type == 5:  # LSAck packet
-            print("Received LSAck packet")
-            src_ip = packet[IP].src
-            ip2 = ipaddress.IPv4Address(src_ip)
-            ip1 = tracking_state.get(interface, {}).get("ip_address")
-            netmask1 = tracking_state.get(interface, {}).get("netmask")
-            network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+        # elif ospfhdr_layer.type == 5:  # LSAck packet
+        #     print("Received LSAck packet")
+        #     src_ip = packet[IP].src
+        #     ip2 = ipaddress.IPv4Address(src_ip)
+        #     ip1 = tracking_state.get(interface, {}).get("ip_address")
+        #     netmask1 = tracking_state.get(interface, {}).get("netmask")
+        #     network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
             
-            if tracking_state.get(interface, {}).get("state") == "Full":
-                if ip2 in network1 and src_ip not in ips:
-                    # lsack_layer = packet.getlayer(OSPF_LSAck)
-                    # jumlah_lsack = len(lsack_layer.lsaheaders)
-                    print(f"Received LSAck from {src_ip}, moving to Full state")
-                    tracking_state[interface]["state"] = "Full"
-                    send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
+        #     if tracking_state.get(interface, {}).get("state") == "Full":
+        #         if ip2 in network1 and src_ip not in ips:
+        #             # lsack_layer = packet.getlayer(OSPF_LSAck)
+        #             # jumlah_lsack = len(lsack_layer.lsaheaders)
+        #             print(f"Received LSAck from {src_ip}, moving to Full state")
+        #             tracking_state[interface]["state"] = "Full"
+        #             send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
 
 def sniff_packets(interface, src_broadcast, source_ip):
    print("Sniffing packets...")
