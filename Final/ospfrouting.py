@@ -656,6 +656,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
 
                     lsanew = lsackdb_list
                     lsanew.extend(lsalist2)
+                    print(f"LSA New List: {lsanew}")
                     # lsackdb_list.extend(lsalist2)
                     
 
