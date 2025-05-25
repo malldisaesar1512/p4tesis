@@ -653,7 +653,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                 mask="255.255.255.0", # Subnet mask
                                 routerlist=["10.10.1.1", "192.168.1.2"] # List of routers
                             )]
-                    lsackdb_list.extend(lsalist2)
+
+                    lsanew = lsackdb_list
+                    lsanew.extend(lsalist2)
+                    # lsackdb_list.extend(lsalist2)
                     
 
                     if penghitung == 0:
@@ -662,7 +665,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                         ospf_hdr_lsu2 /
                                         OSPF_LSUpd(
                                             lsacount=2,
-                                            lsalistnew= lsackdb_list
+                                            lsalist= lsanew
                                         )     
                                     )
                         sendp(ospf_lsu_pkt2, iface=interface, verbose=0)
