@@ -630,7 +630,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # Header OSPF tipe 4: Link State Update Packet
                     ospf_hdr_lsu2 = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
                     
-                    lsalist2= [OSPF_Router_LSA(
+                    lsalist45= [OSPF_Router_LSA(
                                 age = 3300, # Age of the LSA
                                 options=0x02, # Options field
                                 type=1,  # Router LSA
@@ -655,8 +655,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             )]
 
                     lsanew = lsackdb_list
-                    lsanew.extend(lsalist2)
                     print(f"LSA New List: {lsanew}")
+                    lsanew.extend(lsalist45)
+                    print(f"LSA New List: {lsanew}")
+                    z = len(lsanew)
                     # lsackdb_list.extend(lsalist2)
                     
 
@@ -665,7 +667,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                         ip_lsu2 /
                                         ospf_hdr_lsu2 /
                                         OSPF_LSUpd(
-                                            lsacount=2,
+                                            lsacount=z,
                                             lsalist= lsanew
                                         )     
                                     )
