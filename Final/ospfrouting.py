@@ -660,10 +660,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     print(f"LSA New List: {lsanew}")
                     z = len(lsanew)
                     # lsackdb_list.extend(lsalist2)
-                    
-
-                    if penghitung == 0:
-                        ospf_lsu_pkt2 = (eth /
+                    ospf_lsu_pkt45 = (eth /
                                         ip_lsu2 /
                                         ospf_hdr_lsu2 /
                                         OSPF_LSUpd(
@@ -671,10 +668,14 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                                             lsalist= lsanew
                                         )     
                                     )
-                        sendp(ospf_lsu_pkt2, iface=interface, verbose=0)
-                        penghitung = penghitung + 1
-                    else:
-                        return
+                    sendp(ospf_lsu_pkt45, iface=interface, verbose=0)
+                    
+
+                    # if penghitung == 0:
+                        
+                    #     penghitung = penghitung + 1
+                    # else:
+                    #     return
                     send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             if tracking_state.get(interface, {}).get("state") == "Full":
