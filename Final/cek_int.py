@@ -22,16 +22,18 @@
 # if __name__ == "__main__":
 #     get_active_interfaces_info()
 
-from scapy.all import sniff, IP
+from scapy.all import sniff, IP, ICMP
 from datetime import datetime
 
 def packet_callback(packet):
-    if IP in packet:
+    if IP in packet and ICMP in packet:
         src_ip = packet[IP].src
         now = datetime.now()
         timestamp = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-        iface = packet.sniffed_on  # deteksi dari interface mana
-        print(f"[{timestamp}] Packet from {src_ip} via {iface}")
+        iface = packet.sniffed_on
+        icmp_type = packet[ICMP].type
+        icmp_desc = "Echo Request" if icmp_type == 8 else "Echo Reply" if icmp_type == 0 else f"Type {icmp_type}"
+        print(f"[{timestamp}] ICMP {icmp_desc} from {src_ip} via {iface}")
 
-# Tangkap dari interface ens5 dan ens6 sekaligus
-sniff(iface=["ens5", "ens6"], prn=packet_callback, filter="ip", store=0)
+# Tangkap ICMP packet dari ens5 dan ens6
+sniff(iface=["ens5", "ens6"], prn=packet_callback, filter="icmp", store=0)
