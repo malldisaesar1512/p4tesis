@@ -405,7 +405,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     lsreqdb_list.clear()
 
 def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew, mac_src
     ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -443,7 +443,8 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     newrute.append(rute)
                 else:
                     continue
-            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface}
+            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
+
             
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
     
@@ -460,13 +461,25 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
+    p4data = db_lsap4[interface]
+    rutep4 = p4data["routelist"]
+    macp4 = p4data["ether_src"]
+    intp4 = p4data["interface"]
+    if intp4 == "ens4":
+        port_out = 0
+    elif intp4 == "ens5":
+        port_out = 1
+
+    for ip in rutep4:
+        table_add("MyIngress.ipv4_lpm","MyIngress.ipv4_lpm MyIngress.ipv4_forward"+ip+" => "+macp4+" "+port_out+"",9559)
+
     lsackdb_list.clear()
     lsack_list.clear()
     lsanew.clear()
 
 def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew, mac_src
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received packet on interface {interface}")
     # Cek apakah paket adalah paket OSPF
@@ -627,9 +640,11 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             if tracking_state.get(interface, {}).get("state") == "Loading" or "Exchange":
                 if  ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
+                    ether_layer = packet.getlayer(Ether)
                     jumlah_lsulsa = lsu_layer.lsacount
                     print(f"Received LSU from {src_ip}, moving to Full state")
                     tracking_state[interface]["state"] = "Full"
+                    mac_src = ether_layer.src
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
