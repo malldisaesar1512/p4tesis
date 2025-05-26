@@ -53,6 +53,7 @@ a = []
 b = []
 lsacknih = []
 LSA_listdb = []
+newrute = []
 # interface = []
 list_interface = []
 list_ip = []
@@ -404,7 +405,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     lsreqdb_list.clear()
 
 def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute
     ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -434,9 +435,15 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         if lsack_type == 'network' or lsack_type == 2:
             lsdbp4 = i.routerlist
             netp4 = i.mask
-            db_lsap4[interface] = {"routelist": lsdbp4, "netmask": netp4, "interface": interface}
+            for i in lsdbp4:
+                network5 = ipaddress.IPv4Network(f"{i}/{netp4}", strict=False)
+                rute = f"{network5.network_address}/{network5.prefixlen}"
+                newrute.append(rute)
+
+            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface}
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
-        
+    
+
     print(f"lsack.list: {lsack_list}")
 
     ospf_lsack_pkt = (
