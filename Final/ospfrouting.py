@@ -159,20 +159,6 @@ def table_add(table, parametro, thrift_port):
 # import subprocess
 
 def table_add(parametro, thrift_port):
-    """
-    Menjalankan perintah table_add pada simple_switch_CLI dengan parameter dan port thrift yang diberikan.
-    
-    Args:
-        parametro (str): Parameter lengkap untuk perintah table_add, misal:
-                         "MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.0.1 => 00:11:22:33:44:55 1"
-        thrift_port (int): Nomor port thrift untuk koneksi ke simple_switch_CLI.
-    
-    Returns:
-        int: Handle dari entry yang berhasil ditambahkan.
-    
-    Raises:
-        RuntimeError: Jika perintah gagal atau handle tidak ditemukan.
-    """
     p = subprocess.Popen(
         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
         stdin=subprocess.PIPE,
