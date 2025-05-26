@@ -177,7 +177,7 @@ def get_interfaces_info_with_interface_name():
             if addr.family == socket.AF_INET:
                 ip = addr.address
                 netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.55":
+                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
                     network_address = str(network.network_address)
                     ips.append(ip)
