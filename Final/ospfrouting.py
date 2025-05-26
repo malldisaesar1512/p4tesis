@@ -54,6 +54,7 @@ b = []
 lsacknih = []
 LSA_listdb = []
 newrute = []
+rutep4 = []
 # interface = []
 list_interface = []
 list_ip = []
@@ -462,17 +463,36 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
 
-    p4data = db_lsap4[interface]
-    rutep4 = p4data["routelist"]
-    macp4 = p4data["ether_src"]
-    intp4 = p4data["interface"]
-    if intp4 == "ens4":
-        port_out = "0"
-    elif intp4 == "ens5":
-        port_out = "1"
+    for interface, data in db_lsap4.items():
+        rutep4 = data["routelist"]
+        macp4 = data["ether_src"]
+        intp4 = data["interface"]
+        if intp4 == "ens4":
+            port_out = "0"
+            table_name = "MyIngress.ipv4_lpm"
+        elif intp4 == "ens5":
+            port_out = "1"
+            table_name = "MyIngress.ipv4_lpm2"
 
-    for ip in rutep4:
-        table_add("MyIngress.ipv4_lpm",f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}",9559)
+        for ip in rutep4:
+            parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+            try:
+                handle = table_add(table_name, parametro, 9559)
+                print(f"Added entry for {parametro} with handle {handle}")
+            except Exception as e:
+                print(f"Error adding entry for {parametro}: {e}")
+
+    # p4data = db_lsap4[interface]
+    # rutep4 = p4data["routelist"]
+    # macp4 = p4data["ether_src"]
+    # intp4 = p4data["interface"]
+    # if intp4 == "ens4":
+    #     port_out = "0"
+    # elif intp4 == "ens5":
+    #     port_out = "1"
+
+    # for ip in rutep4:
+    #     table_add("MyIngress.ipv4_lpm",f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}",9559)
 
     lsackdb_list.clear()
     lsack_list.clear()
