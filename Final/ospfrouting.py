@@ -439,7 +439,10 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 network5 = ipaddress.IPv4Network(f"{i}/{netp4}", strict=False)
                 rute = f"{network5.network_address}/{network5.prefixlen}"
                 print(f"Rute: {rute} - Netmask: {netp4} - Interface: {interface}")
-                newrute.append(rute)
+                if rute not in newrute:  # Cek apakah rute sudah ada
+                    newrute.append(rute)
+                else:
+                    continue
 
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface}
             
