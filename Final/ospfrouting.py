@@ -151,11 +151,11 @@ def table_delete(table, idx, thrift_port):
     stdout, stderr = p.communicate(input="table_delete %s %d" % (table, idx))
     return 
 
-def table_add(table, parametro, thrift_port):
-    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    stdout, stderr = p.communicate(input="table_add %s" % (parametro))
-    var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
-    return int(var_handle)
+# def table_add(table, parametro, thrift_port):
+#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+#     stdout, stderr = p.communicate(input="table_add %s" % (parametro))
+#     var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
+#     return int(var_handle)
 # import subprocess
 
 def table_add(parametro, thrift_port):
@@ -508,22 +508,10 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             else:
                 parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
                 try:
-                    handle = table_add(table_name, parametro, 9090)
+                    handle = table_add(parametro, 9090)
                     print(f"Added entry for {parametro} with handle {handle}")
                 except Exception as e:
                     print(f"Error adding entry for {parametro}: {e}")
-
-    # p4data = db_lsap4[interface]
-    # rutep4 = p4data["routelist"]
-    # macp4 = p4data["ether_src"]
-    # intp4 = p4data["interface"]
-    # if intp4 == "ens4":
-    #     port_out = "0"
-    # elif intp4 == "ens5":
-    #     port_out = "1"
-
-    # for ip in rutep4:
-    #     table_add("MyIngress.ipv4_lpm",f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}",9559)
 
     lsackdb_list.clear()
     lsack_list.clear()
