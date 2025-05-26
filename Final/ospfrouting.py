@@ -405,7 +405,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     lsreqdb_list.clear()
 
 def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew
     ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -438,9 +438,11 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             for i in lsdbp4:
                 network5 = ipaddress.IPv4Network(f"{i}/{netp4}", strict=False)
                 rute = f"{network5.network_address}/{network5.prefixlen}"
+                print(f"Rute: {rute} - Netmask: {netp4} - Interface: {interface}")
                 newrute.append(rute)
 
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface}
+            
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
     
 
@@ -458,10 +460,11 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
     lsackdb_list.clear()
     lsack_list.clear()
+    lsanew.clear()
 
 def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received packet on interface {interface}")
     # Cek apakah paket adalah paket OSPF
@@ -661,9 +664,9 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             )]
 
                     lsanew = lsackdb_list
-                    print(f"LSA New List: {lsanew}")
+                    # print(f"LSA New List: {lsanew}")
                     lsanew.extend(lsalist45)
-                    print(f"LSA New List: {lsanew}")
+                    # print(f"LSA New List: {lsanew}")
                     z = len(lsanew)
                     # lsackdb_list.extend(lsalist2)
                     ospf_lsu_pkt45 = (eth /
