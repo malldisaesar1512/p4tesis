@@ -672,15 +672,19 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     # print(f"LSA New List: {lsanew}")
                     z = len(lsanew)
                     # lsackdb_list.extend(lsalist2)
-                    ospf_lsu_pkt45 = (eth /
-                                        ip_lsu2 /
-                                        ospf_hdr_lsu2 /
-                                        OSPF_LSUpd(
-                                            lsacount=z,
-                                            lsalist= lsanew
-                                        )     
-                                    )
-                    sendp(ospf_lsu_pkt45, iface=interface, verbose=0)
+                    if penghitung == 0:
+                        ospf_lsu_pkt45 = (eth /
+                                            ip_lsu2 /
+                                            ospf_hdr_lsu2 /
+                                            OSPF_LSUpd(
+                                                lsacount=z,
+                                                lsalist= lsanew
+                                            )     
+                                        )
+                        sendp(ospf_lsu_pkt45, iface=interface, verbose=0)
+                        penghitung = penghitung + 1
+                    else:
+                        return
                     
 
                     # if penghitung == 0:
