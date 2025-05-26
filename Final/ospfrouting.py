@@ -187,12 +187,13 @@ def table_entry(table, network, thrift_port):
 #################### P4 CONTROLLER #####################
 
 def get_interfaces_info_with_interface_name():
-    global ips, netmasks, networks, statuses, interfaces_info
+    global ips, netmasks, networks, statuses, interfaces_info, networklist
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
     interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
     ips = []         # List untuk menyimpan IP address
+    networklist = []  # List untuk menyimpan network address
     h = 0
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
@@ -202,8 +203,13 @@ def get_interfaces_info_with_interface_name():
                 netmask = addr.netmask
                 if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    network_pre = f"{network.network_address}/{network.prefixlen}"
                     network_address = str(network.network_address)
-                    ips.append(ip)
+                    if network_pre in networklist and ip in ips:
+                        continue
+                    else:
+                        networklist.append(network_pre)
+                        ips.append(ip)
                     interface_info = {
                         "interface": iface,
                         "ip_address": ip,
@@ -428,7 +434,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     lsreqdb_list.clear()
 
 def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
-    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew, mac_src
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew, mac_src, networklist
     ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
     
     # Header OSPF tipe 5: Link State ACK Packet
@@ -497,12 +503,15 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             table_name = "MyIngress.ipv4_lpm2"
 
         for ip in rutep4:
-            parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-            try:
-                handle = table_add(table_name, parametro, 9090)
-                print(f"Added entry for {parametro} with handle {handle}")
-            except Exception as e:
-                print(f"Error adding entry for {parametro}: {e}")
+            if ip in networklist:
+                continue
+            else:
+                parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                try:
+                    handle = table_add(table_name, parametro, 9090)
+                    print(f"Added entry for {parametro} with handle {handle}")
+                except Exception as e:
+                    print(f"Error adding entry for {parametro}: {e}")
 
     # p4data = db_lsap4[interface]
     # rutep4 = p4data["routelist"]
