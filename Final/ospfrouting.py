@@ -158,37 +158,40 @@ def table_add(table, parametro, thrift_port):
     return int(var_handle)
 # import subprocess
 
-# def table_add(parametro, thrift_port):
-#     p = subprocess.Popen(
-#         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
-#         stdin=subprocess.PIPE,
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE,
-#         text=True
-#     )
+def table_add(parametro, thrift_port):
+    """
+    Menjalankan perintah table_add pada simple_switch_CLI dengan parameter dan port thrift yang diberikan.
     
-#     command = f"table_add {parametro}\n"
-#     stdout, stderr = p.communicate(input=command)
+    Args:
+        parametro (str): Parameter lengkap untuk perintah table_add, misal:
+                         "MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.0.1 => 00:11:22:33:44:55 1"
+        thrift_port (int): Nomor port thrift untuk koneksi ke simple_switch_CLI.
     
-#     print("=== STDOUT ===")
-#     print(stdout)
-#     print("=== STDERR ===")
-#     print(stderr)
+    Returns:
+        int: Handle dari entry yang berhasil ditambahkan.
     
-#     var_handle = [line for line in stdout.split('\n') if ' added' in line]
+    Raises:
+        RuntimeError: Jika perintah gagal atau handle tidak ditemukan.
+    """
+    p = subprocess.Popen(
+        ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True  # Penting agar input/output berupa string
+    )
     
-#     if var_handle:
-#         parts = var_handle[0].split('handle ')
-#         if len(parts) > 1:
-#             handle_str = parts[1].strip()
-#             try:
-#                 return int(handle_str)
-#             except ValueError:
-#                 raise RuntimeError(f"Handle bukan angka: {handle_str}")
-#         else:
-#             raise RuntimeError(f"Format output tidak sesuai: {var_handle[0]}")
-#     else:
-#         raise RuntimeError(f"Failed to add table entry: {stderr.strip() or stdout.strip()}")
+    command = f"table_add {parametro}\n"
+    stdout, stderr = p.communicate(input=command)
+    
+    # Cari baris yang mengandung kata 'added' untuk mengambil handle
+    var_handle = [line for line in stdout.split('\n') if ' added' in line]
+    
+    if var_handle:
+        handle_str = var_handle[0].split('handle ', 1)[1]
+        return int(handle_str)
+    else:
+        raise RuntimeError(f"Failed to add table entry: {stderr}")
 
 def table_entry(table, network, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
