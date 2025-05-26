@@ -151,44 +151,44 @@ def table_delete(table, idx, thrift_port):
     stdout, stderr = p.communicate(input="table_delete %s %d" % (table, idx))
     return 
 
-# def table_add(table, parametro, thrift_port):
-#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-#     stdout, stderr = p.communicate(input="table_add %s" % (parametro))
-#     var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
-#     return int(var_handle)
-import subprocess
+def table_add(table, parametro, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    stdout, stderr = p.communicate(input="table_add %s" % (parametro))
+    var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
+    return int(var_handle)
+# import subprocess
 
-def table_add(parametro, thrift_port):
-    p = subprocess.Popen(
-        ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+# def table_add(parametro, thrift_port):
+#     p = subprocess.Popen(
+#         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
+#         stdin=subprocess.PIPE,
+#         stdout=subprocess.PIPE,
+#         stderr=subprocess.PIPE,
+#         text=True
+#     )
     
-    command = f"table_add {parametro}\n"
-    stdout, stderr = p.communicate(input=command)
+#     command = f"table_add {parametro}\n"
+#     stdout, stderr = p.communicate(input=command)
     
-    print("=== STDOUT ===")
-    print(stdout)
-    print("=== STDERR ===")
-    print(stderr)
+#     print("=== STDOUT ===")
+#     print(stdout)
+#     print("=== STDERR ===")
+#     print(stderr)
     
-    var_handle = [line for line in stdout.split('\n') if ' added' in line]
+#     var_handle = [line for line in stdout.split('\n') if ' added' in line]
     
-    if var_handle:
-        parts = var_handle[0].split('handle ')
-        if len(parts) > 1:
-            handle_str = parts[1].strip()
-            try:
-                return int(handle_str)
-            except ValueError:
-                raise RuntimeError(f"Handle bukan angka: {handle_str}")
-        else:
-            raise RuntimeError(f"Format output tidak sesuai: {var_handle[0]}")
-    else:
-        raise RuntimeError(f"Failed to add table entry: {stderr.strip() or stdout.strip()}")
+#     if var_handle:
+#         parts = var_handle[0].split('handle ')
+#         if len(parts) > 1:
+#             handle_str = parts[1].strip()
+#             try:
+#                 return int(handle_str)
+#             except ValueError:
+#                 raise RuntimeError(f"Handle bukan angka: {handle_str}")
+#         else:
+#             raise RuntimeError(f"Format output tidak sesuai: {var_handle[0]}")
+#     else:
+#         raise RuntimeError(f"Failed to add table entry: {stderr.strip() or stdout.strip()}")
 
 def table_entry(table, network, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -502,15 +502,15 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         intp4 = data["interface"]
         if intp4 == "ens4":
             port_out = "0"
-            # table_name = "MyIngress.ipv4_lpm"
+            table_name = "MyIngress.ipv4_lpm"
         elif intp4 == "ens5":
             port_out = "1"
-            # table_name = "MyIngress.ipv4_lpm2"
+            table_name = "MyIngress.ipv4_lpm2"
 
         for ip in rutep4:
             parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
             try:
-                handle = table_add(parametro, 9559)
+                handle = table_add(table_name, parametro, 9090)
                 print(f"Added entry for {parametro} with handle {handle}")
             except Exception as e:
                 print(f"Error adding entry for {parametro}: {e}")
