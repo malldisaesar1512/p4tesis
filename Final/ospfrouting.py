@@ -443,7 +443,6 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     newrute.append(rute)
                 else:
                     continue
-
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface}
             
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
