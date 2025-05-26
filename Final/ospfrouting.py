@@ -461,14 +461,15 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
+
     p4data = db_lsap4[interface]
     rutep4 = p4data["routelist"]
     macp4 = p4data["ether_src"]
     intp4 = p4data["interface"]
     if intp4 == "ens4":
-        port_out = 0
+        port_out = "0"
     elif intp4 == "ens5":
-        port_out = 1
+        port_out = "1"
 
     for ip in rutep4:
         table_add("MyIngress.ipv4_lpm","MyIngress.ipv4_lpm MyIngress.ipv4_forward"+ip+" => "+macp4+" "+port_out+"",9559)
