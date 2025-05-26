@@ -472,7 +472,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         port_out = "1"
 
     for ip in rutep4:
-        table_add("MyIngress.ipv4_lpm","MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}",9559)
+        table_add("MyIngress.ipv4_lpm",f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}",9559)
 
     lsackdb_list.clear()
     lsack_list.clear()
