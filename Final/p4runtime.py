@@ -3,7 +3,7 @@ import logging
 import time
 
 import p4runtime_sh.shell as sh
-import p4runtime_shell_utils as shu
+# import p4runtime_shell_utils as shu
 
 logger = logging.getLogger(None)
 logger.setLevel(logging.INFO)
@@ -28,6 +28,8 @@ te.match['hdr.ipv4.dstAddr'] = '10.10.2.0/24'
 te.action['dstAddr'] = '50:00:00:00:30:00'
 te.action['port'] = 1
 te.insert()
+
+logger.info('Table entry inserted: %s', te)
 
 # ...
 
