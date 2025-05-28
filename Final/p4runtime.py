@@ -9,8 +9,8 @@ logger = logging.getLogger(None)
 logger.setLevel(logging.INFO)
 
 grpc_addrp4 = 'localhost:9559'
-p4info_path = './forwarding.p4info.txtpb'
-json_path = './finalospf.json'
+p4info_path = 'forwarding.p4info.txtpb'
+json_path = 'finalospf.json'
 # you can omit the config argument if the switch is already configured with the
 # correct P4 dataplane.
 sh.setup(
