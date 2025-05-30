@@ -156,10 +156,6 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    action send_to_cpu() {
-        clone(CloneType.I2E, CPU_PORT);
-    }
-
     table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -175,10 +171,6 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            // Clone ICMP and OSPF packets to CPU
-            if (hdr.ipv4.protocol == PROTO_ICMP || hdr.ipv4.protocol == PROTO_OSPF) {
-                send_to_cpu();
-            }
             ipv4_lpm.apply();
         }
     }
