@@ -1,9 +1,6 @@
-from distutils.command.config import config
 import struct
 import time
 import p4runtime_sh.shell as sh
-
-CPU_PORT = 510
 
 def int_to_ip(addr):
     return '.'.join(str((addr >> (8 * i)) & 0xFF) for i in reversed(range(4)))
@@ -25,23 +22,20 @@ def parse_ipv4(pkt):
     }
 
 def main():
-    print("🔌 Menghubungkan ke switch...")
-    sh.connect(
-        grpc_addr="0.0.0.0:9559",
+    sh.setup(
         device_id=0,
+        grpc_addr='0.0.0.0:9559',
         election_id=(0, 1),
-        config=sh.FwdPipeConfig(
-            p4info_path="./forwarding.p4info.txtpb",
-            json_path="./finalospf.json"
-        )
+        config=sh.FwdPipeConfig('./p4runtime.p4info.txtpb', './finalospf.json')
     )
 
-    print("📥 Menunggu packet-in dari switch...\n")
+    pktin_receiver = sh.PacketIn()
+
+    print("📥 Terhubung ke switch. Menunggu packet-in...\n")
 
     while True:
-        pktin = sh.packet_in()
+        pktin = pktin_receiver.recv(timeout=1.0)
         if pktin is None:
-            time.sleep(0.05)
             continue
 
         pkt = pktin.payload
