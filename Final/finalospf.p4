@@ -2,6 +2,8 @@
 #include <core.p4>
 #include <v1model.p4>
 
+#define CPU_PORT 510
+
 // Headers and constants
 const bit<16> TYPE_IPV4 = 0x0800;
 const bit<8>  PROTO_TCP  = 6;
@@ -142,7 +144,7 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -152,6 +154,10 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    action send_to_cpu() {
+        clone(CloneType.I2E, CPU_PORT);
     }
 
     table ipv4_lpm {
@@ -169,10 +175,15 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
+            // Clone ICMP and OSPF packets to CPU
+            if (hdr.ipv4.protocol == PROTO_ICMP || hdr.ipv4.protocol == PROTO_OSPF) {
+                send_to_cpu();
+            }
             ipv4_lpm.apply();
         }
     }
 }
+
 
 // Egress processing
 control MyEgress(inout headers hdr,

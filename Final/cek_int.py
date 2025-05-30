@@ -1,39 +1,66 @@
-# import psutil
-# import socket
-# import ipaddress
+from distutils.command.config import config
+import struct
+import time
+import p4runtime_sh.shell as sh
 
-# def get_active_interfaces_info():
-#     addrs = psutil.net_if_addrs()
-#     stats = psutil.net_if_stats()
+CPU_PORT = 510
 
-#     for iface, addr_list in addrs.items():
-#         if iface in stats and stats[iface].isup:
-#             for addr in addr_list:
-#                 if addr.family == socket.AF_INET:
-#                     ip = addr.address
-#                     netmask = addr.netmask
-#                     if ip and netmask and ip != "127.0.0.1":
-#                         network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-#                         print(f"Interface: {iface}")
-#                         print(f"  IP Address: {ip}")
-#                         print(f"  Netmask: {netmask}")
-#                         print(f"  Network: {network.network_address}/{network.prefixlen}")
+def int_to_ip(addr):
+    return '.'.join(str((addr >> (8 * i)) & 0xFF) for i in reversed(range(4)))
 
-# if __name__ == "__main__":
-#     get_active_interfaces_info()
+def parse_ipv4(pkt):
+    if len(pkt) < 34:
+        return None
+    eth_type = struct.unpack('!H', pkt[12:14])[0]
+    if eth_type != 0x0800:
+        return None
 
-from scapy.all import sniff, IP, ICMP
-from datetime import datetime
+    proto = pkt[23]
+    src_ip = struct.unpack('!I', pkt[26:30])[0]
+    dst_ip = struct.unpack('!I', pkt[30:34])[0]
+    return {
+        "proto": proto,
+        "src_ip": int_to_ip(src_ip),
+        "dst_ip": int_to_ip(dst_ip)
+    }
 
-def packet_callback(packet):
-    if IP in packet and ICMP in packet:
-        src_ip = packet[IP].src
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-        iface = packet.sniffed_on
-        icmp_type = packet[ICMP].type
-        icmp_desc = "Echo Request" if icmp_type == 8 else "Echo Reply" if icmp_type == 0 else f"Type {icmp_type}"
-        print(f"[{timestamp}] ICMP {icmp_desc} from {src_ip} via {iface}")
+def main():
+    print("🔌 Menghubungkan ke switch...")
+    sh.connect(
+        grpc_addr="0.0.0.0:9559",
+        device_id=0,
+        election_id=(0, 1),
+        config=sh.FwdPipeConfig(
+            p4info_path="./forwarding.p4info.txtpb",
+            json_path="./finalospf.json"
+        )
+    )
 
-# Tangkap ICMP packet dari ens5 dan ens6
-sniff(iface=["ens5", "ens6"], prn=packet_callback, filter="icmp", store=0)
+    print("📥 Menunggu packet-in dari switch...\n")
+
+    while True:
+        pktin = sh.packet_in()
+        if pktin is None:
+            time.sleep(0.05)
+            continue
+
+        pkt = pktin.payload
+        info = parse_ipv4(pkt)
+
+        if info is None:
+            print("⚠️  Non-IPv4 atau paket tidak valid\n")
+            continue
+
+        proto = info["proto"]
+        proto_str = {
+            1: "ICMP",
+            89: "OSPF"
+        }.get(proto, "Other")
+
+        print("📦 Packet-In:")
+        print(f"  ➤ Src IP : {info['src_ip']}")
+        print(f"  ➤ Dst IP : {info['dst_ip']}")
+        print(f"  ➤ Proto  : {proto} ({proto_str})\n")
+
+if __name__ == "__main__":
+    main()
