@@ -72,6 +72,15 @@ header ospf_t {
     bit<16> authType;
 }
 
+@controller_header("packet_out")
+header packet_out_header_t {
+    bit<16> egress_port;
+}
+@controller_header("packet_in")
+header packet_out_header_t {
+    bit<16> ingress_port;
+}
+
 struct metadata {
     /* empty */
 }
