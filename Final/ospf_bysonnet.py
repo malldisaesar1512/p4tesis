@@ -1,14 +1,56 @@
-from asyncio import threads
-from cmath import inf
-from os import link
+#!/usr/bin/env python3
+
 import os
-from socket import timeout
-from turtle import st
-from scapy.all import *
-from scapy.contrib.ospf import *
-from scapy.layers.ospf import OSPF_Hdr, OSPF_Link, OSPF_Hello, OSPF_Router_LSA, OSPF_Network_LSA, OSPF_LSA_Hdr, OSPF_DBDesc, OSPF_LSReq_Item, OSPF_LSReq, OSPF_LSAck, OSPF_LSUpd
-from scapy.layers.inet import IP
-from scapy.layers.l2 import Ether
+import sys
+import time
+import socket
+import struct
+import random
+import psutil
+import threading
+import ipaddress
+import subprocess
+from datetime import datetime
+
+# Check if running as root
+if os.geteuid() != 0:
+    print("This script must be run as root. Please use sudo.")
+    sys.exit(1)
+
+try:
+    from scapy.all import *
+    from scapy.contrib.ospf import *
+    from scapy.layers.inet import IP
+    from scapy.layers.l2 import Ether
+except ImportError as e:
+    print(f"Error importing Scapy: {e}")
+    print("Please install required packages by running:")
+    print("sudo bash install_dependencies.sh")
+    sys.exit(1)
+
+# Disable Scapy warnings
+conf.verb = 0
+
+# Check if running as root
+if os.geteuid() != 0:
+    print("This script must be run as root. Please use sudo.")
+    sys.exit(1)
+
+# Scapy imports
+try:
+    from scapy.all import *
+    from scapy.contrib.ospf import *
+    from scapy.layers.inet import IP
+    from scapy.layers.l2 import Ether
+except ImportError as e:
+    print(f"Error importing Scapy: {e}")
+    print("Please install required packages:")
+    print("sudo apt-get update")
+    print("sudo apt-get install python3-scapy python3-psutil")
+    sys.exit(1)
+
+# Disable Scapy warnings
+conf.verb = 0
 import time
 import threading
 import random
