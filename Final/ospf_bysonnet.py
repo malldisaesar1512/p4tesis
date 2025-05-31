@@ -97,7 +97,7 @@ OSPF_DEAD_INTERVAL = 40   # MikroTik default dead interval
 OSPF_PRIORITY = 1         # Normal router priority
 OSPF_MTU = 1500          # Standard MTU size
 OSPF_AUTH_TYPE = 0       # No authentication
-OSPF_AUTH_DATA = b"\x00" * 8  # Empty auth data
+OSPF_authdata = b"\x00" * 8  # Empty auth data
 
 # OSPF multicast addresses and areas
 OSPF_ALL_SPF_ROUTERS = "224.0.0.5"     # All OSPF routers multicast
@@ -409,8 +409,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 type=1,  # Hello packet
                 src=source_ip,
                 area=area_id,
-                auth_type=0,  # No authentication
-                auth_data=b"\x00" * 8  # Empty auth data
+                authtype=0,  # No authentication
+                authdata=b"\x00" * 8  # Empty auth data
             )
             
             ospf_hello_first.neighbors = []
@@ -439,8 +439,8 @@ def send_ospf_dbd_first(interface, src_broadcast, source_ip, neighbor_ip, seq_nu
         type=2,           # DBD packet
         src=source_ip, 
         area=area_id,
-        auth_type=OSPF_AUTH_TYPE,
-        auth_data=OSPF_AUTH_DATA
+        authdata=OSPF_AUTH_TYPE,
+        authdata=OSPF_authdata
     )
     
     # Initial DBD flags:
@@ -548,8 +548,8 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         type=OSPF_TYPE_LSU,
         src=source_ip, 
         area=area_id,
-        auth_type=OSPF_AUTH_TYPE,
-        auth_data=OSPF_AUTH_DATA
+        authdata=OSPF_AUTH_TYPE,
+        authdata=OSPF_authdata
     )
 
     for i in lsreqdb_list:
@@ -620,8 +620,8 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip, broadcastip):
         type=OSPF_TYPE_LSACK,
         src=source_ip,
         area=area_id,
-        auth_type=OSPF_AUTH_TYPE,
-        auth_data=OSPF_AUTH_DATA
+        authdata=OSPF_AUTH_TYPE,
+        authdata=OSPF_authdata
     )
     
     # Buat LSU packet dengan LSAs yang diberikan
