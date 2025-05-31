@@ -6,6 +6,9 @@ from socket import timeout
 from turtle import st
 from scapy.all import *
 from scapy.contrib.ospf import *
+from scapy.layers.ospf import OSPF_Hdr, OSPF_Link, OSPF_Hello, OSPF_Router_LSA, OSPF_Network_LSA, OSPF_LSA_Hdr, OSPF_DBDesc, OSPF_LSReq_Item, OSPF_LSReq, OSPF_LSAck, OSPF_LSUpd
+from scapy.layers.inet import IP
+from scapy.layers.l2 import Ether
 import time
 import threading
 import random
@@ -20,29 +23,44 @@ import struct
 import subprocess
 from datetime import datetime
 
+# Constants for OSPF packet types
+OSPF_TYPE_HELLO = 1
+OSPF_TYPE_DBD = 2
+OSPF_TYPE_LSR = 3
+OSPF_TYPE_LSU = 4
+OSPF_TYPE_LSACK = 5
+
+# OSPF Options bit flags
+OSPF_OPTIONS_E = 0x02  # External Routing (E-bit)
+OSPF_OPTIONS_O = 0x10  # Opaque LSA (O-bit)
+OSPF_OPTIONS_DN = 0x20  # DN-bit
+OSPF_OPTIONS_DC = 0x04  # Demand Circuits (DC-bit)
+OSPF_OPTIONS_NP = 0x08  # NSSA (N-bit)
+OSPF_OPTIONS_MC = 0x01  # Multicast
+
 #global variable
 neighbor_state = "Down"
 penghitung = 0
-option_default = 0x02
-default_age = 0  # Fresh LSA age
+# Update options to include External routing capability (E-bit) and demand circuits (DC-bit)
+option_default = 0x22  # Changed from 0x02 to 0x22
+default_age = 0  # Changed from 3300 to 0 for fresh LSAs
 hello_interval = 10
 dead_interval = 40
-priority_default = 128
+priority_default = 1  # Changed from 128 to 1 to allow proper DR election
 broadcast_ip = "224.0.0.5"
 area_id = "0.0.0.0"
-seq_base = 0x80000001  # Standard OSPF initial sequence number
-seq_counter = 0
+seq_random = random.randint(0x80000001, 0x8000000F)  # Proper sequence number range
+seq_exchange = 0
 router_status = "Master"
 id_dbd = ''
-
-# Use consistent Router ID
-router_id = "10.10.1.2"  # Main Router ID - keep consistent
+router_id = "10.10.1.2"  # Router ID
+router_id2 = "192.168.1.2"  # Router ID 2 (Neighbor)
+# area_id = "0.0.0.0"        # Area ID
+# interface = "ens5"         # Network interface
 backup_default = "0.0.0.0"
 neighbor_default = "10.10.2.1"
 dr = "10.10.1.2"
 bdr = "10.10.1.1"
-
-# Database lists
 lsadb_list = []
 lsreq_list = []
 lsreqdb_list = []
@@ -56,6 +74,7 @@ lsacknih = []
 LSA_listdb = []
 newrute = []
 rutep4 = []
+# interface = []
 list_interface = []
 list_ip = []
 list_netmask = []
@@ -64,20 +83,17 @@ neighbors_state = {}
 tracking_state = {}
 db_lsap4 = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
-source_ip = ""
 
 ospf_link_list = []
 lsadb_hdr_default = []
-seq_exchange = 0
 
-# Fixed default links - ensure proper format
-lsadb_link_default = [
-    OSPF_Link(id="10.10.1.0", data="255.255.255.0", type=3, metric=1), 
-    OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1)
-]
+lsadb_link_default = [OSPF_Link(id = "10.10.1.0", data = "10.10.1.0", type = 3, metric = 1), 
+                OSPF_Link(id = "192.168.1.0", data = "192.168.1.0", type = 3, metric = 1)]
 
 #Membuat paket Ethernet
 eth = Ether()
+
+ip_broadcast = IP(src=router_id, dst="224.0.0.5")
 
 ospf_hello_first = OSPF_Hello(
     mask="255.255.255.0",
@@ -86,41 +102,47 @@ ospf_hello_first = OSPF_Hello(
     prio=priority_default,
     deadinterval=dead_interval,
     router=router_id,
-    backup=backup_default,
-    neighbors=[]
+    backup= backup_default,  # Backup router ID
+    neighbors=[]  # Daftar neighbor IP
 )
 
-# Fixed LSA types with proper sequence numbers
-def get_next_sequence():
-    global seq_counter
-    seq_counter += 1
-    return seq_base + seq_counter
 
-def create_router_lsa():
-    """Create properly formatted Router LSA"""
-    return OSPF_Router_LSA(
-        age=default_age,
-        options=option_default,
-        type=1,
-        id=router_id,
-        adrouter=router_id,  # Must match ID
-        seq=get_next_sequence(),
-        linkcount=len(ospf_link_list),
-        linklist=ospf_link_list
-    )
+#TYPE OF LSA_PACKET
+lsa_type1 = OSPF_Router_LSA(
+            age = 3300, # Age of the LSA
+            options=0x02, # Options field
+            type=1,  # Router LSA
+            id="10.10.1.2", # LSA ID
+            adrouter="10.10.1.2", # Advertising router
+            seq=0x80000123,  # Sequence number
+            linkcount=2, # Number of links
+            linklist=[] # List of links
+        )
+lsa_type2 = OSPF_Network_LSA(
+            age = 3300, # Age of the LSA
+            options=option_default, # Options field
+            type=2,  # Network LSA
+            id="10.10.1.2", # LSA ID
+            adrouter="10.10.1.2", # Advertising router
+            seq=0x80000124,  # Sequence number
+            mask="255.255.255.0", # Subnet mask
+            routerlist=[] # List of routers
+        )
+lsarouter_default = OSPF_LSA_Hdr(
+                age = 3300,
+                options=0x02,
+                type=1,
+                id=router_id2,
+                adrouter=router_id2,
+                seq=0x80000124
+            )
 
-def create_network_lsa(network_ip, mask, router_list):
-    """Create properly formatted Network LSA"""
-    return OSPF_Network_LSA(
-        age=default_age,
-        options=option_default,
-        type=2,
-        id=network_ip,
-        adrouter=router_id,
-        seq=get_next_sequence(),
-        mask=mask,
-        routerlist=router_list
-    )
+lsa_link = OSPF_Link( #LinkLSA
+                type=1,
+                id=router_id2,
+                data=router_id2,
+                metric=10
+            )
 
 #################### P4 CONTROLLER #####################
 def read_registerAll(register, thrift_port):
@@ -148,18 +170,26 @@ def table_delete(table, idx, thrift_port):
     stdout, stderr = p.communicate(input="table_delete %s %d" % (table, idx))
     return 
 
+# def table_add(table, parametro, thrift_port):
+#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+#     stdout, stderr = p.communicate(input="table_add %s" % (parametro))
+#     var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
+#     return int(var_handle)
+# import subprocess
+
 def table_add(parametro, thrift_port):
     p = subprocess.Popen(
         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True  # Penting agar input/output berupa string
     )
     
     command = f"table_add {parametro}\n"
     stdout, stderr = p.communicate(input=command)
     
+    # Cari baris yang mengandung kata 'added' untuk mengambil handle
     var_handle = [line for line in stdout.split('\n') if ' added' in line]
     
     if var_handle:
@@ -176,15 +206,14 @@ def table_entry(table, network, thrift_port):
 #################### P4 CONTROLLER #####################
 
 def get_interfaces_info_with_interface_name():
-    global list_ip, networklist
+    global ips, netmasks, networks, statuses, interfaces_info, networklist
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
-    interfaces = []
-    list_ip = []
-    networklist = []
+    interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
+    ips = []         # List untuk menyimpan IP address
+    networklist = []  # List untuk menyimpan network address
     h = 0
-    
     for iface, addr_list in addrs.items():
         is_up = stats[iface].isup if iface in stats else False
         for addr in addr_list:
@@ -195,517 +224,629 @@ def get_interfaces_info_with_interface_name():
                     network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
                     network_pre = f"{network.network_address}/{network.prefixlen}"
                     network_address = str(network.network_address)
-                    
-                    if network_pre in networklist and ip in list_ip:
+                    if network_pre in networklist and ip in ips:
                         continue
                     else:
                         networklist.append(network_pre)
-                        list_ip.append(ip)
-                    
+                        ips.append(ip)
                     interface_info = {
                         "interface": iface,
                         "ip_address": ip,
                         "netmask": netmask,
                         "network": network_address,
                         "status": "up" if is_up else "down",
-                        "sequence": get_next_sequence()
+                        "sequence": seq_random+h
                     }
                     interfaces.append(interface_info)
-                    h += 1
+                    h=h+1
 
     return interfaces
 
-def build_ospf_links():
-    """Build OSPF link list from interfaces"""
-    global ospf_link_list, lsadb_hdr_default
-    
-    interfaces_info = get_interfaces_info_with_interface_name()
-    ospf_link_list.clear()
-    lsadb_hdr_default.clear()
-    
-    for info in interfaces_info:
-        # Add stub network links (Type 3)
-        if info["interface"] != "lo":  # Skip loopback
-            link = OSPF_Link(
-                id=info['network'], 
-                data=info['netmask'], 
-                type=3,  # Stub network
-                metric=1
-            )
-            ospf_link_list.append(link)
-            
-            # Create LSA header for this router
-            lsa_hdr = OSPF_LSA_Hdr(
-                age=default_age,
-                options=option_default,
-                type=1,
-                id=router_id,
-                adrouter=router_id,
-                seq=info['sequence']
-            )
-            if lsa_hdr not in lsadb_hdr_default:
-                lsadb_hdr_default.append(lsa_hdr)
 
 def send_hello_periodically(interval, interface, ip_address, source_ip):
     """Kirim paket Hello OSPF secara berkala"""
-    global neighbor_state, tracking_state, ospf_link_list, lsadb_hdr_default
-    
+    global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink, seq_global,e
     while True:
-        # Rebuild links periodically
-        build_ospf_links()
+        interfaces_info = get_interfaces_info_with_interface_name()
+        for info in interfaces_info:
+            if info["interface"] == "ens4":
+                d = OSPF_Link(id=info['network'], data=info['netmask'], type=3, metric=1)
+            else:
+                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1) 
+
+            if info["interface"] == "ens4":
+                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
+                seq_global = info['sequence']       
+
+            if d in ospf_link_list and e in lsadb_hdr_default:
+                continue
+            else:
+                ospf_link_list.append(d)
+                lsadb_hdr_default.append(e)
         
-        if tracking_state.get(interface, {}).get("state", "Down") == "Down":
+        if neighbor_state == "Down":
+            # print(f"Neighbor: {neighbor_default}")
             ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
             ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
-            
-            hello_packet = OSPF_Hello(
-                mask="255.255.255.0",
-                hellointerval=hello_interval,
-                options=option_default,  
-                prio=priority_default,
-                deadinterval=dead_interval,
-                router=source_ip,  # Use consistent source IP
-                backup=backup_default,
-                neighbors=[]
-            )
-            
-            ospf_packet_hello = eth / ip_broadcast_hello / ospf_header / hello_packet
-            sendp(ospf_packet_hello, iface=interface, verbose=0)
+            ospf_hello_first.neighbors = []
+            ospf_hello_first.router = ip_address
+            ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
+            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
+
+        totallink = len(ospf_link_list)
+        # print(f"thread: {threads}")
+        print(f"neighbors_state: {tracking_state}")
+        print(f"lisdbp4: {db_lsap4}")
+        print(f"ospf_link_list: {ospf_link_list}")
+        print(f"lsadb_hdr_default: {lsadb_hdr_default}")
         
-        print(f"[{time.strftime('%H:%M:%S')}] Interface {interface} - State: {tracking_state.get(interface, {}).get('state', 'Down')}")
-        print(f"OSPF Links: {len(ospf_link_list)} links")
-        print(f"Tracking State: {tracking_state}")
-        
+        print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
 
 def send_ospf_dbd_first(interface, src_broadcast, source_ip, neighbor_ip, seq_num):
-    """Send initial Database Description packet"""
+    """Kirim paket Database Description (DBD) pertama ke neighbor dengan flags dan seq_num yang benar"""
     ip_dbd = IP(src=src_broadcast, dst=str(neighbor_ip))
     ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=source_ip, area=area_id)
     
-    ospf_dbd_pkt = (
+    # Konversi list flags string ke bitmask integer
+    # flag_value = 0
+    # if "I" in flags:
+    #     flag_value |= 0x04  # Init bit
+    # if "M" in flags:
+    #     flag_value |= 0x02  # More bit
+    # if "MS" in flags:
+    #     flag_value |= 0x01  # Master/Slave bit
+    
+    ospf_dbd_pkt1 = (
         eth /
         ip_dbd /
         ospf_hdr_dbd /
         OSPF_DBDesc(
-            options=option_default,
+            options=0x02,
             mtu=1500,
-            dbdescr=0x07,  # I+M+MS bits
+            dbdescr=0x07,
             ddseq=seq_num,
             lsaheaders=[]
         )
     )
     
-    print(f"[{time.strftime('%H:%M:%S')}] Sending initial DBD to {neighbor_ip} - Seq: {seq_num}")
-    sendp(ospf_dbd_pkt, iface=interface, verbose=0)
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD FIRST packet to {neighbor_ip} -  Seq: {seq_num}")
+    sendp(ospf_dbd_pkt1, iface=interface, verbose=0)
 
 def send_ospf_dbd(interface, src_broadcast, source_ip, neighbor_router_ip):
-    """Send Database Description packet with LSA headers"""
-    global seq_exchange
-    
+    """Kirim paket Database Description (DBD) lanjutan ke neighbor dengan flags dan seq_num yang benar"""
     ip_dbd = IP(src=src_broadcast, dst=str(neighbor_router_ip))
     ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=source_ip, area=area_id)
     
-    seq_num = seq_exchange + 1 if seq_exchange else get_next_sequence()
+    # Flags More + Master/Slave (tanpa Init)
+    flag_value = 0x01  #MS
     
-    # Create fresh LSA headers
-    build_ospf_links()
-    current_lsa_headers = []
+    # Pastikan dbd_seq_num_neighbor sudah terisi dan bertambah 1
+    seq_num = seq_exchange + 1 if seq_exchange is not None else seq_random + 1
     
-    # Add Router LSA header
-    router_lsa_hdr = OSPF_LSA_Hdr(
-        age=default_age,
-        options=option_default,
-        type=1,
-        id=router_id,
-        adrouter=router_id,
-        seq=get_next_sequence()
-    )
-    current_lsa_headers.append(router_lsa_hdr)
-    
-    ospf_dbd_pkt = (
+    ospf_dbd_pkt2 = (
         eth /
         ip_dbd /
         ospf_hdr_dbd /
         OSPF_DBDesc(
-            options=option_default,
+            options=0x02,
             mtu=1500,
-            dbdescr=0x01,  # MS bit only
+            dbdescr=flag_value,
             ddseq=seq_num,
-            lsaheaders=current_lsa_headers
-        )
+            lsaheaders=lsadb_hdr_default
+        ) 
+         
     )
     
-    print(f"[{time.strftime('%H:%M:%S')}] Sending DBD to {neighbor_router_ip} - Seq: {seq_num}, LSAs: {len(current_lsa_headers)}")
-    sendp(ospf_dbd_pkt, iface=interface, verbose=0)
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending DBD packet to {neighbor_router_ip} - Flags: MS ({flag_value}), Seq: {seq_num}")
+    sendp(ospf_dbd_pkt2, iface=interface, verbose=True)
 
-def send_ospf_lsr(interface, src_broadcast, source_ip, neighbor_ip):
-    """Send Link State Request"""
-    global lsreq_list, lsadb_list
-    
+def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
+    global lsreq_list, lsadb_list, a
+    """Kirim paket Link State Request (LSR) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
     ip_lsr = IP(src=src_broadcast, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 3: Link State Request Packet
     ospf_hdr_lsr = OSPF_Hdr(version=2, type=3, src=source_ip, area=area_id)
-    
-    lsreq_list.clear()
-    current_interfaces = [info['ip_address'] for info in get_interfaces_info_with_interface_name()]
-    
-    for lsa in lsadb_list:
-        lsa_id = lsa.id
-        lsa_adrouter = lsa.adrouter
-        lsa_type = lsa.type
+
+    for i in lsadb_list:
+        # print(f"LSA {i}: {i.show()}") # Menampilkan informasi LSA
+        id_lsa = i.id
+        adrouter_lsa = i.adrouter
+        type_lsa = i.type
         
-        # Convert type if needed
-        if lsa_type == 'router':
-            lsa_type = 1
-        elif lsa_type == 'network':
-            lsa_type = 2
-        
-        # Only request LSAs from other routers
-        if lsa_adrouter not in current_interfaces:
-            lsr_item = OSPF_LSReq_Item(
-                type=lsa_type,
-                id=lsa_id,
-                adrouter=lsa_adrouter
+        if type_lsa == 'router':
+            type_lsa = 1
+        elif type_lsa == 'network':
+            type_lsa = 2
+
+        if id_lsa in interfaces_info:
+            continue
+        else:
+            a = OSPF_LSReq_Item(
+            type=type_lsa,
+            id=id_lsa,
+            adrouter=adrouter_lsa
             )
-            lsreq_list.append(lsr_item)
-    
-    if lsreq_list:
-        ospf_lsr_pkt = (
-            eth /
-            ip_lsr /
-            ospf_hdr_lsr /
-            OSPF_LSReq(requests=lsreq_list)
-        )
+            lsreq_list.append(a)
         
-        print(f"[{time.strftime('%H:%M:%S')}] Sending LSR to {neighbor_ip} - Requests: {len(lsreq_list)}")
-        sendp(ospf_lsr_pkt, iface=interface, verbose=0)
-    
+    print(f"LSR List: {lsreq_list}")
+    # Buat LSR packet dengan parameter yang diberikan
+    ospf_lsr_pkt = (
+        eth /
+        ip_lsr /
+        ospf_hdr_lsr /
+        OSPF_LSReq(
+         requests = lsreq_list
+        ) 
+    )
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
+    # print(f"LSR List: {lsreq_list}")
+    sendp(ospf_lsr_pkt, iface=interface, verbose=0)
+    lsreq_list.clear()
     lsadb_list.clear()
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
-    """Send Link State Update"""
-    global lsudb_list, lsreqdb_list
-    
+    global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
+    """Kirim paket Link State Update (LSU) ke neighbor"""
+    # Header IP unicast ke neighbor router IP
     ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip))
+    
+    # Header OSPF tipe 4: Link State Update Packet
     ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
-    
-    lsudb_list.clear()
-    
-    for lsr in lsreqdb_list:
-        lsr_type = lsr.type
-        lsr_id = lsr.id
-        lsr_adrouter = lsr.adrouter
-        
-        if lsr_type in [1, 'router']:
-            # Create Router LSA
-            build_ospf_links()  # Ensure links are current
-            router_lsa = OSPF_Router_LSA(
-                age=default_age,
-                options=option_default,
-                type=1,
-                id=router_id,
-                adrouter=router_id,
-                seq=get_next_sequence(),
-                linkcount=len(ospf_link_list),
-                linklist=ospf_link_list
-            )
-            lsudb_list.append(router_lsa)
-            
-        elif lsr_type in [2, 'network']:
-            # Create Network LSA
-            network_lsa = OSPF_Network_LSA(
-                age=default_age,
-                options=option_default,
-                type=2,
-                id=lsr_id,
-                adrouter=router_id,
-                seq=get_next_sequence(),
-                mask="255.255.255.0",
-                routerlist=[router_id, lsr_adrouter]
-            )
-            lsudb_list.append(network_lsa)
-    
-    if lsudb_list:
-        ospf_lsu_pkt = (
-            eth /
-            ip_lsu /
-            ospf_hdr_lsu /
-            OSPF_LSUpd(
-                lsacount=len(lsudb_list),
-                lsalist=lsudb_list
-            )
-        )
-        
-        print(f"[{time.strftime('%H:%M:%S')}] Sending LSU to {neighbor_ip} - LSAs: {len(lsudb_list)}")
-        sendp(ospf_lsu_pkt, iface=interface, verbose=0)
-    
-    lsreqdb_list.clear()
 
-def send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip_dst):
-    """Send LSA Acknowledgment"""
-    global lsackdb_list, lsack_list, db_lsap4, newrute
-    
-    ip_lsack = IP(src=src_broadcast, dst=str(broadcast_ip_dst))
-    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=source_ip, area=area_id)
-    
-    lsack_list.clear()
-    newrute.clear()
-    
-    for lsa in lsackdb_list:
-        # Create ACK header
-        lsa_ack_hdr = OSPF_LSA_Hdr(
-            age=default_age,
-            options=option_default,
-            type=lsa.type,
-            id=lsa.id,
-            adrouter=lsa.adrouter,
-            seq=lsa.seq
-        )
-        lsack_list.append(lsa_ack_hdr)
-        
-        # Process Network LSA for routing
-        if hasattr(lsa, 'routerlist') and hasattr(lsa, 'mask'):
-            for router_ip in lsa.routerlist:
-                if router_ip != router_id:  # Don't add routes to self
-                    try:
-                        network = ipaddress.IPv4Network(f"{router_ip}/{lsa.mask}", strict=False)
-                        route_entry = f"{network.network_address}/{network.prefixlen}"
-                        if route_entry not in newrute:
-                            newrute.append(route_entry)
-                            print(f"[ROUTE] Learned: {route_entry} via {interface}")
-                    except Exception as e:
-                        print(f"[ERROR] Failed to process route {router_ip}/{lsa.mask}: {e}")
-    
-    if lsack_list:
-        ospf_lsack_pkt = (
-            eth /
-            ip_lsack /
-            ospf_hdr_lsack /
-            OSPF_LSAck(lsaheaders=lsack_list)
-        )
-        
-        print(f"[{time.strftime('%H:%M:%S')}] Sending LSAck to {broadcast_ip_dst} - ACKs: {len(lsack_list)}")
-        sendp(ospf_lsack_pkt, iface=interface, verbose=0)
-    
-    lsackdb_list.clear()
+    for i in lsreqdb_list:
+        type_lsr = i.type
+        id_lsr = i.id
+        adrouter_lsr = i.adrouter
 
-def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
-    """Handle incoming OSPF packets"""
-    global tracking_state, seq_exchange, lsadb_list, lsreqdb_list, lsackdb_list, penghitung
-    
-    if not packet.haslayer(OSPF_Hdr):
-        return
-    
-    ospf_hdr = packet[OSPF_Hdr]
-    src_ip = packet[IP].src
-    
-    print(f"[{time.strftime('%H:%M:%S')}] RX: {ospf_hdr.summary()} from {src_ip}")
-    
-    # Validate source IP is in same network
-    try:
-        ip_src = ipaddress.IPv4Address(src_ip)  
-        local_ip = tracking_state.get(interface, {}).get("ip_address")
-        local_netmask = tracking_state.get(interface, {}).get("netmask")
-        
-        if not local_ip or not local_netmask:
-            return
-            
-        local_network = ipaddress.IPv4Network(f"{local_ip}/{local_netmask}", strict=False)
-        
-        if ip_src not in local_network or src_ip in list_ip:
-            return
-            
-    except Exception as e:
-        print(f"[ERROR] Network validation failed: {e}")
-        return
-    
-    current_state = tracking_state.get(interface, {}).get("state", "Down")
-    neighbor_router_id = ospf_hdr.src
-    
-    if ospf_hdr.type == 1:  # Hello packet
-        if current_state == "Down":
-            print(f"[STATE] {interface}: Down -> Init (Hello from {src_ip})")
-            tracking_state[interface]["state"] = "Init"
-            
-            # Send Hello response
-            hello_response = create_hello_response(src_broadcast, neighbor_router_id)
-            send_hello_response(interface, hello_response)
-            
-        elif current_state == "Init":
-            print(f"[STATE] {interface}: Init -> 2-Way (Hello with neighbor list)")
-            tracking_state[interface]["state"] = "2-Way"
-            
-            # Send Hello and initiate DBD
-            hello_response = create_hello_response(src_broadcast, neighbor_router_id)
-            send_hello_response(interface, hello_response)
-            send_ospf_dbd_first(interface, src_broadcast, source_ip, src_ip, get_next_sequence())
-            
-        elif current_state in ["2-Way", "Full"]:
-            # Maintain adjacency
-            hello_response = create_hello_response(src_broadcast, neighbor_router_id)
-            send_hello_response(interface, hello_response)
-    
-    elif ospf_hdr.type == 2:  # DBD packet
-        if current_state == "2-Way":
-            dbd_layer = packet.getlayer(OSPF_DBDesc)
-            if dbd_layer and dbd_layer.dbdescr == 0x00:  # Slave packet
-                print(f"[STATE] {interface}: 2-Way -> Exchange (Master)")
-                tracking_state[interface]["state"] = "Exchange" 
-                seq_exchange = dbd_layer.ddseq
-                
-                # Process LSA headers
-                lsadb_list.extend(dbd_layer.lsaheaders)
-                print(f"[DBD] Received {len(dbd_layer.lsaheaders)} LSA headers")
-                
-                send_ospf_dbd(interface, src_broadcast, source_ip, src_ip)
-                send_ospf_lsr(interface, src_broadcast, source_ip, src_ip)
-    
-    elif ospf_hdr.type == 3:  # LSR packet
-        if current_state == "Exchange":
-            print(f"[STATE] {interface}: Exchange -> Loading")
-            tracking_state[interface]["state"] = "Loading"
-            
-            lsr_layer = packet.getlayer(OSPF_LSReq)
-            if lsr_layer:
-                lsreqdb_list.extend(lsr_layer.requests)
-                print(f"[LSR] Received {len(lsr_layer.requests)} LSA requests")
-                send_ospf_lsu(interface, src_broadcast, source_ip, src_ip)
-    
-    elif ospf_hdr.type == 4:  # LSU packet
-        if current_state in ["Loading", "Exchange", "Full"]:
-            if current_state == "Loading":
-                print(f"[STATE] {interface}: Loading -> Full")
-                tracking_state[interface]["state"] = "Full"
-            
-            lsu_layer = packet.getlayer(OSPF_LSUpd)
-            if lsu_layer:
-                lsackdb_list.extend(lsu_layer.lsalist)
-                print(f"[LSU] Received {len(lsu_layer.lsalist)} LSAs")
-                
-                # Send our own LSAs if first time reaching Full
-                if penghitung == 0 and current_state != "Full":
-                    send_own_lsa_update(interface, src_broadcast, source_ip)
-                    penghitung += 1
-                
-                send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip)
+        for info in interfaces_info:
+                if info['ip_address'] == id_lsr:
+                    seq_lsr = info['sequence']
 
-def create_hello_response(src_ip, neighbor_id):
-    """Create Hello response packet"""
-    return OSPF_Hello(
-        mask="255.255.255.0",
-        hellointerval=hello_interval,
-        options=option_default,
-        prio=priority_default,
-        deadinterval=dead_interval,
-        router=router_id,
-        backup=backup_default,
-        neighbors=[neighbor_id] if neighbor_id else []
-    )
+        if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
+            lsulist = OSPF_Router_LSA(
+                        age = 3300, # Age of the LSA
+                        options=0x02, # Options field
+                        type=type_lsr,  # Router LSA
+                        id=id_lsr, # LSA ID
+                        adrouter=adrouter_lsr, # Advertising router
+                        seq=seq_lsr,  # Sequence number
+                        linkcount=totallink, # Number of links
+                        linklist=ospf_link_list # List of links
+                    )
+            
+            lsudb_list.append(lsulist)
 
-def send_hello_response(interface, hello_packet):
-    """Send Hello response"""
-    ip_hello = IP(src=tracking_state[interface]["ip_address"], dst=broadcast_ip)
-    ospf_hdr = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
-    
-    full_packet = eth / ip_hello / ospf_hdr / hello_packet
-    sendp(full_packet, iface=interface, verbose=0)
+        elif type_lsr == 'network' or type_lsr == 2:
+            lsulist = OSPF_Network_LSA(
+                        age = 3300, # Age of the LSA
+                        options=option_default, # Options field
+                        type=2,  # Network LSA
+                        id=id_lsr, # LSA ID
+                        adrouter=adrouter_lsr, # Advertising router
+                        seq=seq_lsr,  # Sequence number
+                        mask="255.255.255.0", # Subnet mask
+                        routerlist=ips # List of routers
+                    )
 
-def send_own_lsa_update(interface, src_broadcast, source_ip):
-    """Send our own LSA update"""
-    build_ospf_links()
+            lsudb_list.append(lsulist)
+
+    # print(f"LSU List: {lsudb_list}")
     
-    # Create Router LSA
-    router_lsa = create_router_lsa()
-    
-    # Create Network LSA if we're DR
-    network_lsa = create_network_lsa(
-        network_ip=dr,
-        mask="255.255.255.0", 
-        router_list=[router_id]
-    )
-    
-    lsa_list = [router_lsa, network_lsa]
-    
-    ip_lsu = IP(src=src_broadcast, dst=broadcast_ip)
-    ospf_hdr = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
-    
-    lsu_packet = (
+    # Buat LSU packet dengan LSAs yang diberikan
+    ospf_lsu_pkt = (
         eth /
         ip_lsu /
-        ospf_hdr /
+        ospf_hdr_lsu /
         OSPF_LSUpd(
-            lsacount=len(lsa_list),
-            lsalist=lsa_list
+            lsacount=jumlah_lsreq,
+            lsalist= lsudb_list
+        )  
+        
+    )
+
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
+    sendp(ospf_lsu_pkt, iface=interface, verbose=0)
+    lsudb_list.clear()
+    lsreqdb_list.clear()
+
+def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
+    global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew, mac_src, networklist
+    ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
+    
+    # Header OSPF tipe 5: Link State ACK Packet
+    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=source_ip, area=area_id)
+    
+    # Buat LSU packet dengan LSAs yang diberikan
+
+    for i in lsackdb_list:
+        lsack_id = i.id
+        lsack_adrouter = i.adrouter
+        lsack_type = i.type
+        lsack_seq = i.seq
+        
+
+        
+        lsacknih = OSPF_LSA_Hdr(
+                age = 3300,
+                options=0x02,
+                type=lsack_type,
+                id=lsack_id,
+                adrouter=lsack_adrouter,
+                seq=lsack_seq
+            )
+
+        lsack_list.append(lsacknih)
+    
+        if lsack_type == 'network' or lsack_type == 2:
+            lsdbp4 = i.routerlist
+            netp4 = i.mask
+            for i in lsdbp4:
+                network5 = ipaddress.IPv4Network(f"{i}/{netp4}", strict=False)
+                rute = f"{network5.network_address}/{network5.prefixlen}"
+                print(f"Rute: {rute} - Netmask: {netp4} - Interface: {interface}")
+                if rute not in newrute:  # Cek apakah rute sudah ada
+                    newrute.append(rute)
+                else:
+                    continue
+            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
+
+            
+            # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
+    
+
+    print(f"lsack.list: {lsack_list}")
+
+    ospf_lsack_pkt = (
+        eth /
+        ip_lsack /
+        ospf_hdr_lsack /
+                OSPF_LSAck(
+                    lsaheaders = lsack_list
         )
     )
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
+    sendp(ospf_lsack_pkt, iface=interface, verbose=0)
+
+    # for interface, data in db_lsap4.items():
+    #     rutep4 = data["routelist"]
+    #     macp4 = data["ether_src"]
+    #     intp4 = data["interface"]
+    #     if intp4 == "ens4":
+    #         port_out = "0"
+    #         table_name = "MyIngress.ipv4_lpm"
+    #     elif intp4 == "ens5":
+    #         port_out = "1"
+    #         table_name = "MyIngress.ipv4_lpm2"
+
+    #     for ip in rutep4:
+    #         if ip in networklist:
+    #             continue
+    #         else:
+    #             parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+    #             try:
+    #                 handle = table_add(parametro, 9090)
+    #                 print(f"Added entry for {parametro} with handle {handle}")
+    #             except Exception as e:
+    #                 print(f"Error adding entry for {parametro}: {e}")
+
+    lsackdb_list.clear()
+    lsack_list.clear()
+    lsanew.clear()
+
+def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
+    """Fungsi untuk menangani paket yang diterima"""
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew, mac_src
     
-    print(f"[{time.strftime('%H:%M:%S')}] Sending own LSA update - {len(lsa_list)} LSAs")
-    sendp(lsu_packet, iface=interface, verbose=0)
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received packet on interface {interface}")
+    # Cek apakah paket adalah paket OSPF
+    if packet.haslayer(OSPF_Hdr):
+        ospf_hdr = packet[OSPF_Hdr]
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received OSPF packet: {ospf_hdr.summary()}")
+
+        if not packet.haslayer(OSPF_Hdr):
+            print("Not an OSPF packet")
+            return
+
+        ospfhdr_layer = packet.getlayer(OSPF_Hdr)
+        # Cek tipe paket OSPF
+        if ospfhdr_layer.type == 1:  # Hello packet
+            src_ip = packet[IP].src
+            ip2 = ipaddress.IPv4Address(src_ip)
+            ip1 = tracking_state.get(interface, {}).get("ip_address")
+            netmask1 = tracking_state.get(interface, {}).get("netmask")
+            network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+            src_neighbor = packet[OSPF_Hdr].src
+
+            if tracking_state.get(interface, {}).get("state") == "Down":
+                print(f"Received Hello from {src_ip}, moving to Init state")
+                if ip2 in network1 and src_ip not in ips:
+                    # print("Received Hello packet")
+                    neighbor_state = "Full"
+                    tracking_state[interface]["state"] = "Init"
+                    print(tracking_state.get(interface, {}).get("state"))
+                    neighbor_ip = src_neighbor
+                    print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
+                    ospf_hello_first.neighbors = [neighbor_ip]
+                    ospf_hello_first.router = src_ip
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
+                    
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
+                    sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    # print(f"{ospf_packet_hello2.show()}")
+                    print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            elif tracking_state.get(interface, {}).get("state") == "Init":
+                if ip2 in network1 and src_ip not in ips:
+                    # print("Received Hello packet")
+                    tracking_state[interface]["state"] = "2-Way"
+                    neighbor_ip = src_neighbor
+                    print(f"Received Hello from {src_ip}, moving to 2-Way state")
+                    # ospf_hello_first.backup = src_ip
+                    ospf_hello_first.neighbors = [neighbor_ip]
+                    ospf_hello_first.router = src_ip
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
+
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
+                    sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    send_ospf_dbd_first(interface, src_broadcast, source_ip, src_ip, seq_random)
+                    # print(f"{ospf_packet_hello2.show()}")
+                    print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            elif tracking_state.get(interface, {}).get("state") == "Full":
+                if ip2 in network1 and src_ip not in ips:
+                    print("Received Hello packet on Full state")
+                    tracking_state[interface]["state"] = "Full"
+                    neighbor_ip = src_neighbor
+                    ospf_hello_full = ospf_hello_first
+                    ospf_hello_full.neighbors = [neighbor_ip]
+                    ospf_hello_full.backup = [ospfhdr_layer.backup]
+                    ospf_hello_full.router = [ospfhdr_layer.router]
+                    ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
+                    
+                    # ospf_hello_first.backup = src_ip
+                    # ospf_hello_first.neighbors = [neighbor_ip]
+                    ospf_packet_hellofull = ospf_hello_full
+                    ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_packet_hellofull
+                    sendp(ospf_packet_hello2, iface=interface, verbose=0)
+                    # print(f"{ospf_packet_hello2.show()}")
+                    print(f"Sent OSPF Hello packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+        elif ospfhdr_layer.type == 2:  # DBD packet
+            src_ip = packet[IP].src
+            ip2 = ipaddress.IPv4Address(src_ip)
+            ip1 = tracking_state.get(interface, {}).get("ip_address")
+            netmask1 = tracking_state.get(interface, {}).get("netmask")
+            network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+
+            # if neighbor_state == "2-Way":
+            #     if ip2 in network1 and src_ip not in ips:
+            #         print("Received DBD packet")
+            #         neighbor_state = "Exstart"
+            #         print(f"Received DBD from {src_ip}, moving to Exstart state")
+            #         send_ospf_dbd_first(src_ip, seq_random)
+            #         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                # neighbor_state = "Exstart"
+                # print(f"Received DBD from {src_ip}, moving to Exstart state")
+                # send_ospf_dbd_first(src_ip, seq_random)
+            if tracking_state.get(interface, {}).get("state") == "2-Way":
+                if ip2 in network1 and src_ip not in ips:
+                    dbd_layer = packet.getlayer(OSPF_DBDesc)
+                    if dbd_layer.dbdescr == 0x00:
+                        jumlah_lsa = len(dbd_layer.lsaheaders)
+                        # print(f"{dbd_layer.show()}")
+                        # print(f"Jumlah LSA: {jumlah_lsa}")
+                        router_status = "Master"
+                        # print(f"{router_status} DBD")
+                        seq_exchange = dbd_layer.ddseq
+                        print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
+                        tracking_state[interface]["state"] = "Exchange"
+                        # send_ospf_dbd_first(src_ip, seq_random)
+                        send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                        
+                        for i in range(jumlah_lsa): #add LSA to list
+                            lsa = dbd_layer.lsaheaders[i]
+                            lsadb_list.append(lsa)
+                    #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                        print(f"LSA List: {lsadb_list}")
+                        send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
+
+                    else:
+                        return
+                        router_status = "Slave"
+                        print(f"{router_status} DBD")
+                        seq_exchange = dbd_layer.ddseq
+                        print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
+                        neighbor_state = "Exchange"
+                        # send_ospf_dbd_first(src_ip, seq_random)
+                        send_ospf_dbd(src_ip)
+                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                    
+                    
+        elif ospfhdr_layer.type == 3:  # LSR packet
+            print("Received LSR packet")
+            print(f"{lsadb_list}")
+            src_ip = packet[IP].src
+            ip2 = ipaddress.IPv4Address(src_ip)
+            ip1 = tracking_state.get(interface, {}).get("ip_address")
+            netmask1 = tracking_state.get(interface, {}).get("netmask")
+            network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+
+            if tracking_state.get(interface, {}).get("state") == "Exchange":
+                if ip2 in network1 and src_ip not in ips:
+                    lsr_layer = packet.getlayer(OSPF_LSReq)
+                    jumlah_lsreq = len(lsr_layer.requests)
+                    print(f"Received LSR from {src_ip}, ready to Full state")
+                    tracking_state[interface]["state"] = "Loading"
+
+                    for i in range(jumlah_lsreq):
+                        lsr = lsr_layer.requests[i]
+                        lsreqdb_list.append(lsr)
+                        # print(f"LSR {i+1}: ID: {lsr.id}, Type: {lsr.adrouter}")
+
+                    send_ospf_lsu(interface, src_broadcast, source_ip,src_ip)
+                    print(f"Sent LSU packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+
+
+        elif ospfhdr_layer.type == 4:  # LSU packet
+            print("Received LSU packet")
+            src_ip = packet[IP].src
+            ip2 = ipaddress.IPv4Address(src_ip)
+            ip1 = tracking_state.get(interface, {}).get("ip_address")
+            netmask1 = tracking_state.get(interface, {}).get("netmask")
+            network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+
+            if tracking_state.get(interface, {}).get("state") == "Loading" or "Exchange":
+                if  ip2 in network1 and src_ip not in ips:
+                    lsu_layer = packet.getlayer(OSPF_LSUpd)
+                    ether_layer = packet.getlayer(Ether)
+                    jumlah_lsulsa = lsu_layer.lsacount
+                    print(f"Received LSU from {src_ip}, moving to Full state")
+                    tracking_state[interface]["state"] = "Full"
+                    mac_src = ether_layer.src
+                    for i in range(jumlah_lsulsa):
+                        lsalsu = lsu_layer.lsalist[i]
+                        lsackdb_list.append(lsalsu)
+                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                    # print(f"LSA List: {len(lsackdb_list)}")
+                    print(f"LSA List: {lsackdb_list}")
+                    ip_lsu2 = IP(src=src_broadcast, dst=broadcast_ip)
+    
+                    # Header OSPF tipe 4: Link State Update Packet
+                    ospf_hdr_lsu2 = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
+                    
+                    lsalist45= [OSPF_Router_LSA(
+                                age = 3300, # Age of the LSA
+                                options=0x02, # Options field
+                                type=1,  # Router LSA
+                                id="192.168.1.2", # LSA ID
+                                adrouter="192.168.1.2 ", # Advertising router
+                                seq=seq_global,  # Sequence number
+                                linkcount=totallink, # Number of links
+                                linklist=[
+                                    OSPF_Link(id="10.10.1.2", data="10.10.1.2", type=2, metric=1),
+                                    OSPF_Link(id="192.168.1.0", data="255.255.255.0", type=3, metric=1)
+                                    # OSPF_Link(id="11.11.1.2", data="11.11.1.2", type=2, metric=1)
+                                ] # List of links
+                            ), OSPF_Network_LSA(
+                                age = 3300, # Age of the LSA
+                                options=option_default, # Options field
+                                type=2,  # Network LSA
+                                id="10.10.1.2", # LSA ID
+                                adrouter="192.168.1.2", # Advertising router
+                                seq=0x80000123,  # Sequence number
+                                mask="255.255.255.0", # Subnet mask
+                                routerlist=["10.10.1.1", "192.168.1.2"] # List of routers
+                            )]
+
+                    lsanew = lsackdb_list
+                    # print(f"LSA New List: {lsanew}")
+                    lsanew.extend(lsalist45)
+                    # print(f"LSA New List: {lsanew}")
+                    z = len(lsanew)
+                    # lsackdb_list.extend(lsalist2)
+                    if penghitung == 0:
+                        ospf_lsu_pkt45 = (eth /
+                                            ip_lsu2 /
+                                            ospf_hdr_lsu2 /
+                                            OSPF_LSUpd(
+                                                lsacount=z,
+                                                lsalist= lsanew
+                                            )     
+                                        )
+                        sendp(ospf_lsu_pkt45, iface=interface, verbose=0)
+                        penghitung = penghitung + 1
+                    else:
+                        return
+                    
+
+                    # if penghitung == 0:
+                        
+                    #     penghitung = penghitung + 1
+                    # else:
+                    #     return
+                    send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip)
+                    print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+            if tracking_state.get(interface, {}).get("state") == "Full":
+                if  ip2 in network1 and src_ip not in ips:
+                    lsu_layer = packet.getlayer(OSPF_LSUpd)
+                    jumlah_lsulsa = lsu_layer.lsacount
+                    print(f"Received LSU from {src_ip}, moving to Full state")
+                    tracking_state[interface]["state"] = "Full"
+                    for i in range(jumlah_lsulsa):
+                        lsalsu = lsu_layer.lsalist[i]
+                        lsackdb_list.append(lsalsu)
+                        print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}, sequence: {lsalsu.seq}")
+                    # print(f"LSA List: {len(lsackdb_list)}")
+                    send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)                    
+                    print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+        # elif ospfhdr_layer.type == 5:  # LSAck packet
+        #     print("Received LSAck packet")
+        #     src_ip = packet[IP].src
+        #     ip2 = ipaddress.IPv4Address(src_ip)
+        #     ip1 = tracking_state.get(interface, {}).get("ip_address")
+        #     netmask1 = tracking_state.get(interface, {}).get("netmask")
+        #     network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
+            
+        #     if tracking_state.get(interface, {}).get("state") == "Full":
+        #         if ip2 in network1 and src_ip not in ips:
+        #             # lsack_layer = packet.getlayer(OSPF_LSAck)
+        #             # jumlah_lsack = len(lsack_layer.lsaheaders)
+        #             print(f"Received LSAck from {src_ip}, moving to Full state")
+        #             tracking_state[interface]["state"] = "Full"
+        #             send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip)
 
 def sniff_packets(interface, src_broadcast, source_ip):
-    """Sniff and process OSPF packets"""
-    print(f"[INFO] Starting packet capture on {interface}")
-    sniff(
-        iface=interface,
-        filter="ip proto ospf",
-        prn=lambda pkt: handle_incoming_packet(pkt, interface, src_broadcast, source_ip),
-        store=False,
-        timeout=None
-    )
+   print("Sniffing packets...")
+   sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt, interface,src_broadcast,source_ip), store=False, timeout=100000000)
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("OSPF Router Implementation - Fixed Version")
-    print("=" * 60)
     
     threads = []
+
     interfaces_info = get_interfaces_info_with_interface_name()
-    
-    # Determine source IP (highest IP)
+
     for info in interfaces_info:
-        current_ip = ipaddress.IPv4Address(info['ip_address'])
-        if target_ip < current_ip:
-            target_ip = current_ip
+        # tracking_state.append(neighbors_state)
+        iplist = ipaddress.IPv4Address(info['ip_address'])
+
+        if target_ip < iplist:
+            target_ip = iplist
             source_ip = str(target_ip)
-    
-    print(f"[CONFIG] Router ID: {router_id}")
-    print(f"[CONFIG] Source IP: {source_ip}")
-    print(f"[CONFIG] Area: {area_id}")
-    
-    # Initialize interfaces (skip loopback and management)
-    for info in interfaces_info:
-        if info['interface'] in ['lo', 'ens4']:  # Skip loopback and management
+        elif target_ip == iplist:
+            # print(f"Interface: {info['interface']}")
             continue
+        elif target_ip > iplist:
+            source_ip = str(target_ip)
+
+
+        if info['interface'] != 'ens4':
+
+            tracking_state[info['interface']] = {
+                "state": "Down",
+                "ip_address": info['ip_address'],
+                "netmask": info['netmask'],
+                }
             
-        interface_name = info['interface']
-        interface_ip = info['ip_address']
-        
-        # Initialize tracking state
-        tracking_state[interface_name] = {
-            "state": "Down",
-            "ip_address": interface_ip,
-            "netmask": info['netmask']
-        }
-        
-        print(f"[INIT] Interface {interface_name}: {interface_ip}")
-        
-        # Start Hello sender thread
-        hello_thread = threading.Thread(
-            target=send_hello_periodically,
-            args=(hello_interval, interface_name, interface_ip, source_ip),
-            daemon=True
-        )
-        hello_thread.start()
-        threads.append(hello_thread)
-        
-        # Start packet receiver thread  
-        recv_thread = threading.Thread(
-            target=sniff_packets,
-            args=(interface_name, interface_ip, source_ip),
-            daemon=True
-        )
-        recv_thread.start()
-        threads.append(recv_thread)
+            hello_thread = threading.Thread(target=lambda : send_hello_periodically(10, info['interface'], info['ip_address'], source_ip))
+            hello_thread.daemon=True
+            hello_thread.start()
+            threads.append(hello_thread)
     
-    print(f"[INFO] Started {len(threads)} threads for {len(tracking_state)} interfaces")
-    print("[INFO] OSPF Router is running. Press Ctrl+C to stop.")
+            recv_thread = threading.Thread(target=lambda : sniff_packets(info['interface'], info['ip_address'], source_ip))
+            recv_thread.daemon=True
+            recv_thread.start()
+            threads.append(recv_thread)
+        else:
+            continue
+
+    ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
+    print(f"thread: {threads}")
+    print(f"neighbors_state: {tracking_state}")
+
+    try:
+        while True:
+            time.sleep(1)
+          
+    except KeyboardInterrupt:
+        print("Program terminated by user.")
