@@ -352,7 +352,6 @@ def handle_incoming_packet(packet):
                             send_ospf_dbd_first(src_ip_of_neighbor, ["MS"], dbd_seq_num_neighbor)
         
         elif neighbor_state == "ExStart":
-            if "MS" in dbd_layer.dbdescr:
                 if master:
                     if src_ip_of_neighbor == '10.10.1.1':
                         neighbor_state = "Exchange"
