@@ -122,13 +122,60 @@ class OSPFRouter:
     def setup_socket(self):
         """Setup raw socket untuk OSPF"""
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)  # Protocol 89 = OSPF
+            # Create raw socket for OSPF protocol (89)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.bind(('', 0))
+            
+            # Enable IP header inclusion
+            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+            
+            # Join multicast group for OSPF
+            mreq = struct.pack('4s4s', socket.inet_aton('224.0.0.5'), socket.inet_aton('0.0.0.0'))
+            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            
+            # Set multicast TTL
+            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+            
+            print("Raw socket setup completed")
+            
         except PermissionError:
             print("Error: Butuh sudo privileges untuk raw socket")
             exit(1)
+        except Exception as e:
+            print(f"Socket setup error: {e}")
+            exit(1)
             
+    def create_ip_header(self, source_ip: str, dest_ip: str, ospf_length: int) -> bytes:
+        """Create IP header for OSPF packet"""
+        ip_ihl = 5  # Internet Header Length
+        ip_ver = 4  # IP Version
+        ip_tos = 0xc0  # Type of Service (DSCP for routing protocols)
+        ip_tot_len = 20 + ospf_length  # IP header + OSPF packet
+        ip_id = 54321  # Identification
+        ip_frag_off = 0  # Fragment offset
+        ip_ttl = 1  # TTL for multicast
+        ip_proto = 89  # OSPF protocol
+        ip_check = 0  # Checksum (will be calculated by kernel)
+        ip_saddr = struct.unpack('!I', socket.inet_aton(source_ip))[0]
+        ip_daddr = struct.unpack('!I', socket.inet_aton(dest_ip))[0]
+        
+        ip_ihl_ver = (ip_ver << 4) + ip_ihl
+        
+        # Pack IP header
+        ip_header = struct.pack('!BBHHHBBH4s4s',
+                               ip_ihl_ver,    # Version and IHL
+                               ip_tos,        # Type of Service
+                               ip_tot_len,    # Total Length
+                               ip_id,         # Identification
+                               ip_frag_off,   # Flags and Fragment Offset
+                               ip_ttl,        # TTL
+                               ip_proto,      # Protocol
+                               ip_check,      # Header Checksum
+                               struct.pack('!I', ip_saddr),  # Source Address
+                               struct.pack('!I', ip_daddr)   # Destination Address
+                               )
+        return ip_header
+        
     def create_ospf_header(self, packet_type: int, length: int, source_ip: str) -> bytes:
         """Create OSPF header"""
         header = struct.pack('!BBHIHHI',
@@ -199,14 +246,20 @@ class OSPFRouter:
                 try:
                     hello_packet = self.create_hello_packet(interface)
                     
+                    # Create complete packet with IP header
+                    ip_header = self.create_ip_header(config['ip'], '224.0.0.5', len(hello_packet))
+                    complete_packet = ip_header + hello_packet
+                    
                     # Send to multicast address 224.0.0.5
                     dest_addr = ('224.0.0.5', 0)
-                    self.socket.sendto(hello_packet, dest_addr)
+                    bytes_sent = self.socket.sendto(complete_packet, dest_addr)
                     
-                    print(f"Sent Hello packet on {interface} ({config['ip']})")
+                    print(f"Sent Hello packet on {interface} ({config['ip']}) - {bytes_sent} bytes")
                     
                 except Exception as e:
                     print(f"Error sending Hello on {interface}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     
             time.sleep(10)  # Send every 10 seconds
             
@@ -215,9 +268,16 @@ class OSPFRouter:
         while self.running:
             try:
                 data, addr = self.socket.recvfrom(65535)
-                self.process_packet(data, addr[0])
+                
+                # Skip IP header (first 20 bytes) to get OSPF packet
+                if len(data) > 20:
+                    ospf_data = data[20:]
+                    self.process_packet(ospf_data, addr[0])
+                    
             except Exception as e:
                 print(f"Error receiving packet: {e}")
+                import traceback
+                traceback.print_exc()
                 
     def process_packet(self, data: bytes, source_ip: str):
         """Process incoming OSPF packet"""
@@ -356,17 +416,34 @@ class OSPFRouter:
             
         packet_length = 24 + len(dd_data)
         header = self.create_ospf_header(OSPF_DB_DESC, packet_length, neighbor.ip_address)
-        packet = header + dd_data
-        
-        # Calculate checksum
-        checksum = self.calculate_checksum(packet)
-        packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
+    def send_packet_to_neighbor(self, packet_data: bytes, neighbor_id: str, packet_type: str):
+        """Send packet to specific neighbor"""
+        if neighbor_id not in self.neighbors:
+            return
+            
+        neighbor = self.neighbors[neighbor_id]
         
         try:
-            self.socket.sendto(packet, (neighbor.ip_address, 0))
-            print(f"Sent DD packet to {neighbor_id}, seq={neighbor.dd_sequence}")
+            # Determine source IP based on neighbor's network
+            source_ip = None
+            if neighbor.ip_address.startswith('192.168.1.'):
+                source_ip = self.interface_configs['ens3']['ip']
+            elif neighbor.ip_address.startswith('10.10.1.'):
+                source_ip = self.interface_configs['ens4']['ip']
+            else:
+                source_ip = self.interface_configs['ens4']['ip']  # Default
+                
+            # Create complete packet with IP header
+            ip_header = self.create_ip_header(source_ip, neighbor.ip_address, len(packet_data))
+            complete_packet = ip_header + packet_data
+            
+            bytes_sent = self.socket.sendto(complete_packet, (neighbor.ip_address, 0))
+            print(f"Sent {packet_type} to {neighbor_id} ({neighbor.ip_address}) - {bytes_sent} bytes")
+            
         except Exception as e:
-            print(f"Error sending DD packet: {e}")
+            print(f"Error sending {packet_type} to {neighbor_id}: {e}")
+            import traceback
+            traceback.print_exc()
             
     def process_dd_packet(self, data: bytes, router_id: str, source_ip: str):
         """Process Database Description packet"""
@@ -465,6 +542,9 @@ class OSPFRouter:
         checksum = self.calculate_checksum(packet)
         packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
         
+        # Send using helper method
+        self.send_packet_to_neighbor(packet, neighbor_id, "DD packet")
+        
         try:
             self.socket.sendto(packet, (neighbor.ip_address, 0))
             print(f"Sent LSR packet to {neighbor_id} requesting {len(neighbor.lsa_requests)} LSAs")
@@ -522,11 +602,8 @@ class OSPFRouter:
         checksum = self.calculate_checksum(packet)
         packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
         
-        try:
-            self.socket.sendto(packet, (neighbor.ip_address, 0))
-            print(f"Sent LSU packet to {neighbor_id} with {len(lsas)} LSAs")
-        except Exception as e:
-            print(f"Error sending LSU packet: {e}")
+        # Send using helper method
+        self.send_packet_to_neighbor(packet, neighbor_id, f"LSU packet ({len(lsas)} LSAs)")
             
     def process_lsu_packet(self, data: bytes, router_id: str, source_ip: str):
         """Process Link State Update packet"""
@@ -608,11 +685,8 @@ class OSPFRouter:
         checksum = self.calculate_checksum(packet)
         packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
         
-        try:
-            self.socket.sendto(packet, (neighbor.ip_address, 0))
-            print(f"Sent LSA ACK to {neighbor_id} for {len(lsa_headers)} LSAs")
-        except Exception as e:
-            print(f"Error sending LSA ACK: {e}")
+        # Send using helper method
+        self.send_packet_to_neighbor(packet, neighbor_id, f"LSA ACK ({len(lsa_headers)} LSAs)")
             
     def process_lsa_ack_packet(self, data: bytes, router_id: str, source_ip: str):
         """Process LSA Acknowledgment packet"""
@@ -786,6 +860,25 @@ def main():
             elif cmd == 'generate':
                 print("Regenerating Router LSA...")
                 ospf_router.generate_router_lsa()
+            elif cmd == 'debug':
+                print("Debug information:")
+                print(f"  Socket: {ospf_router.socket}")
+                print(f"  Running: {ospf_router.running}")
+                print(f"  Interfaces: {list(ospf_router.interface_configs.keys())}")
+                for iface, config in ospf_router.interface_configs.items():
+                    print(f"    {iface}: {config['ip']}")
+            elif cmd == 'test':
+                print("Sending test Hello packet...")
+                try:
+                    hello_packet = ospf_router.create_hello_packet('ens4')
+                    ip_header = ospf_router.create_ip_header('10.10.1.2', '224.0.0.5', len(hello_packet))
+                    complete_packet = ip_header + hello_packet
+                    bytes_sent = ospf_router.socket.sendto(complete_packet, ('224.0.0.5', 0))
+                    print(f"Test packet sent: {bytes_sent} bytes")
+                except Exception as e:
+                    print(f"Test failed: {e}")
+                    import traceback
+                    traceback.print_exc()
                     
     except KeyboardInterrupt:
         pass
