@@ -50,10 +50,10 @@ class OSPFHeader:
         self.auth_data = b'\x00' * 8
 
     def pack(self):
-        return struct.pack('!BBHHIIHHQ',
+        return struct.pack('!BBHHIIHH8s',
                           self.version, self.type, self.length,
                           self.checksum, self.router_id, self.area_id,
-                          self.auth_type, 0)
+                          self.auth_type, 0, self.auth_data)
 
 class OSPFHello:
     def __init__(self, router_id, network_mask, hello_interval=10, dead_interval=40):
@@ -67,11 +67,11 @@ class OSPFHello:
         self.neighbors = []
 
     def pack(self):
-        data = struct.pack('!IHBBIIIII',
-                          self.network_mask, self.hello_interval,
+        data = struct.pack('!IHBBI',
+                          self.interface_mtu, self.hello_interval,
                           self.options, self.priority,
-                          self.dead_interval, self.designated_router,
-                          self.backup_designated_router)
+                          self.dead_interval)
+        data += struct.pack('!II', self.designated_router, self.backup_designated_router)
         for neighbor in self.neighbors:
             data += struct.pack('!I', neighbor)
         return data
@@ -85,7 +85,7 @@ class OSPFDatabaseDescription:
         self.lsa_headers = []
 
     def pack(self):
-        data = struct.pack('!HBBII',
+        data = struct.pack('!HBBI',
                           self.interface_mtu, self.options,
                           self.flags, self.dd_sequence)
         for lsa_header in self.lsa_headers:
@@ -223,8 +223,15 @@ class OSPFRouter:
         # Add known neighbors
         hello.neighbors = list(self.neighbors.keys())
         
-        # Pack data
-        hello_data = hello.pack()
+        # Pack data - fix Hello format
+        hello_data = struct.pack('!I', self.network_mask)  # Network mask first
+        hello_data += struct.pack('!HBBI', self.hello_interval, 0x02, 1, self.dead_interval)  # Hello interval, options, priority, dead interval
+        hello_data += struct.pack('!II', 0, 0)  # DR and BDR (0 for now)
+        
+        # Add neighbors
+        for neighbor_id in hello.neighbors:
+            hello_data += struct.pack('!I', neighbor_id)
+        
         header.length = 24 + len(hello_data)
         header_data = header.pack()
         
@@ -263,7 +270,8 @@ class OSPFRouter:
             return
 
         # Parse OSPF header
-        version, msg_type, length, checksum, router_id, area_id, auth_type = struct.unpack('!BBHHIIHH', data[:20])
+        version, msg_type, length, checksum, router_id, area_id, auth_type, auth_reserved = struct.unpack('!BBHHIIHH', data[:20])
+        auth_data = data[20:24]
         
         if version != OSPF_VERSION or area_id != self.area_id:
             return
@@ -283,10 +291,12 @@ class OSPFRouter:
 
     def _process_hello(self, data, router_id, src_ip):
         """Process Hello packet"""
-        if len(data) < 20:
+        if len(data) < 24:
             return
 
-        network_mask, hello_interval, options, priority, dead_interval, dr, bdr = struct.unpack('!IHBBIII', data[:20])
+        # First 4 bytes is network mask, then hello interval
+        network_mask, hello_interval, options, priority = struct.unpack('!IHBB', data[:8])
+        dead_interval, dr, bdr = struct.unpack('!III', data[8:20])
         
         # Parse neighbors
         neighbors = []
