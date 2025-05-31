@@ -383,7 +383,7 @@ def handle_incoming_packet(packet):
         # lsr_layer = packet.getlayer(OSPF_LSReq)
         src_ip_of_neighbor = packet[IP].src
         
-        if neighbor_state == "Loading":
+        if neighbor_state == "Loading" or neighbor_state == "Exchange":
             if src_ip_of_neighbor == '10.10.1.1':
                 send_ospf_lsu(src_ip_of_neighbor)
                 neighbor_state = "Full"
