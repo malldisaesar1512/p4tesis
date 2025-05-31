@@ -409,8 +409,8 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 type=1,  # Hello packet
                 src=source_ip,
                 area=area_id,
-                authtype=0,  # No authentication
-                authdata=b"\x00" * 8  # Empty auth data
+                authtype=0  # No authentication
+                # authdata=b"\x00" * 8  # Empty auth data
             )
             
             ospf_hello_first.neighbors = []
