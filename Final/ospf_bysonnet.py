@@ -251,9 +251,8 @@ ospf_hello_first = OSPF_Hello(
     deadinterval=OSPF_DEAD_INTERVAL,    # MikroTik default
     router=router_id,
     backup="0.0.0.0",
-    neighbors=[],      # Will be populated during neighbor discovery
-    authtype=OSPF_AUTH_TYPE,           # No authentication
-    auth_data=OSPF_AUTH_DATA           # Empty auth data
+    neighbors=[]      # Will be populated during neighbor discovery
+          # Empty auth data
 )
 
 
