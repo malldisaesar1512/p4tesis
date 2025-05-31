@@ -439,7 +439,7 @@ def send_ospf_dbd_first(interface, src_broadcast, source_ip, neighbor_ip, seq_nu
         type=2,           # DBD packet
         src=source_ip, 
         area=area_id,
-        authdata=OSPF_AUTH_TYPE,
+        authtype=OSPF_AUTH_TYPE,
         authdata=OSPF_AUTH_DATA
     )
     
@@ -548,7 +548,7 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
         type=OSPF_TYPE_LSU,
         src=source_ip, 
         area=area_id,
-        authdata=OSPF_AUTH_TYPE,
+        authtype=OSPF_AUTH_TYPE,
         authdata=OSPF_AUTH_DATA
     )
 
@@ -620,7 +620,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip, broadcastip):
         type=OSPF_TYPE_LSACK,
         src=source_ip,
         area=area_id,
-        authdata=OSPF_AUTH_TYPE,
+        authtype=OSPF_AUTH_TYPE,
         authdata=OSPF_AUTH_DATA
     )
     
