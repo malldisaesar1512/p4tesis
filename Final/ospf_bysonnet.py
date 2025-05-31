@@ -537,17 +537,28 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
-    """Send Link State Update (LSU) to neighbor with MikroTik compatible options"""
-    # IP header with TTL=1 for local delivery
-    ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip), ttl=1)
+    """Send Link State Update (LSU) to neighbor with proper packet structure"""
     
-    # OSPF header with proper authentication fields
+    # Build LSU packet layer by layer
+    eth_layer = Ether()
+    
+    # IP header with TTL=1 for local multicast
+    ip_lsu = IP(
+        src=src_broadcast,
+        dst=str(neighbor_ip),
+        ttl=1,
+        proto=89  # OSPF protocol number
+    )
+    
+    # OSPF header with proper length and authentication
     ospf_hdr_lsu = OSPF_Hdr(
-        version=2, 
-        type=OSPF_TYPE_LSU,
-        src=source_ip, 
+        version=2,
+        type=4,      # LSU type
+        src=source_ip,
         area=area_id,
-        authtype=OSPF_AUTH_TYPE
+        chksum=None, # Will be calculated automatically
+        len=None,    # Will be calculated automatically
+        authtype=0   # No authentication
     )
 
     for i in lsreqdb_list:
@@ -559,47 +570,49 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
                 if info['ip_address'] == id_lsr:
                     seq_lsr = info['sequence']
 
-        if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:
+        if type_lsr == 'router' or type_lsr == '1' or type_lsr == 1:            # Create properly formatted Router LSA
             lsulist = OSPF_Router_LSA(
-                        age = 3300, # Age of the LSA
-                        options=0x02, # Options field
-                        type=type_lsr,  # Router LSA
-                        id=id_lsr, # LSA ID
-                        adrouter=adrouter_lsr, # Advertising router
-                        seq=seq_lsr,  # Sequence number
-                        linkcount=totallink, # Number of links
-                        linklist=ospf_link_list # List of links
-                    )
+                age=1,                      # Fresh LSA
+                options=OSPF_OPTIONS_E,     # External routing capability
+                type=type_lsr,             # Router LSA
+                id=id_lsr,                 # LSA ID (router ID)
+                adrouter=adrouter_lsr,     # Advertising router
+                seq=seq_lsr,               # Sequence number
+                flags=0x00,                # No special flags
+                metric=0,                  # No metric (unused)
+                linkcount=len(ospf_link_list), # Actual number of links
+                linklist=ospf_link_list    # List of properly formatted links
+            )
             
             lsudb_list.append(lsulist)
 
-        elif type_lsr == 'network' or type_lsr == 2:
+        elif type_lsr == 'network' or type_lsr == 2:            # Create properly formatted Network LSA
             lsulist = OSPF_Network_LSA(
-                        age = 3300, # Age of the LSA
-                        options=option_default, # Options field
-                        type=2,  # Network LSA
-                        id=id_lsr, # LSA ID
-                        adrouter=adrouter_lsr, # Advertising router
-                        seq=seq_lsr,  # Sequence number
-                        mask="255.255.255.0", # Subnet mask
-                        routerlist=ips # List of routers
-                    )
+                age=1,                      # Fresh LSA
+                options=OSPF_OPTIONS_E,     # External routing capability
+                type=2,                    # Network LSA
+                id=id_lsr,                 # LSA ID (DR's interface IP)
+                adrouter=adrouter_lsr,     # Advertising router (DR)
+                seq=seq_lsr,               # Sequence number
+                mask="255.255.255.0",      # Network mask
+                routerlist=ips             # List of all attached routers
+            )
 
             lsudb_list.append(lsulist)
 
     # print(f"LSU List: {lsudb_list}")
-    
-    # Buat LSU packet dengan LSAs yang diberikan
-    ospf_lsu_pkt = (
-        eth /
-        ip_lsu /
-        ospf_hdr_lsu /
-        OSPF_LSUpd(
-            lsacount=jumlah_lsreq,
-            lsalist= lsudb_list
-        )  
+      # Create LSU packet with proper LSA structure
+    if not lsudb_list:  # If no LSAs to send
+        return
         
+    # Create LSU packet
+    ospf_lsu_pkt = eth_layer/ip_lsu/ospf_hdr_lsu/OSPF_LSUpd(
+        lsacount=len(lsudb_list),  # Actual count of LSAs
+        lsalist=lsudb_list         # List of properly formatted LSAs
     )
+    
+    # Ensure proper packet formation
+    ospf_lsu_pkt = ospf_lsu_pkt.__class__(bytes(ospf_lsu_pkt))
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSU packet to {neighbor_ip}")
     sendp(ospf_lsu_pkt, iface=interface, verbose=0)
@@ -655,9 +668,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip, broadcastip):
                     continue
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
-            
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
-    
 
     print(f"lsack.list: {lsack_list}")
 
