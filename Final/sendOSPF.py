@@ -401,7 +401,7 @@ def handle_incoming_packet(packet):
 
         # neighbor_state = "Loading"
         
-        if neighbor_state == "Loading":
+        if neighbor_state == "Loading" or neighbor_state == "Exchange":
             if src_ip_of_neighbor == '10.10.1.1':
                 neighbor_state = "Full"
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received LSU from {src_ip_of_neighbor}, moving to Full")
