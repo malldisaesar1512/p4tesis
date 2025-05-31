@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
-OSPF Implementation untuk Ubuntu
-Menangani seluruh proses OSPF dari Hello packet hingga Full state
+OSPF Router Implementation using Scapy
+Implements full OSPF neighbor adjacency process
 """
 
 import socket
 import struct
 import time
 import threading
+from scapy.all import *
+from scapy.layers.inet import IP, UDP
+from scapy.packet import Raw
 import hashlib
-import ipaddress
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
-import json
+import random
 
 # OSPF Constants
 OSPF_VERSION = 2
@@ -23,6 +22,15 @@ OSPF_LSR = 3
 OSPF_LSU = 4
 OSPF_LSA_ACK = 5
 
+# OSPF States
+STATE_DOWN = 0
+STATE_INIT = 1
+STATE_2WAY = 2
+STATE_EXSTART = 3
+STATE_EXCHANGE = 4
+STATE_LOADING = 5
+STATE_FULL = 6
+
 # LSA Types
 LSA_ROUTER = 1
 LSA_NETWORK = 2
@@ -30,861 +38,601 @@ LSA_SUMMARY = 3
 LSA_ASBR_SUMMARY = 4
 LSA_EXTERNAL = 5
 
-# OSPF States
-class OSPFState(Enum):
-    DOWN = 0
-    INIT = 1
-    TWO_WAY = 2
-    EXSTART = 3
-    EXCHANGE = 4
-    LOADING = 5
-    FULL = 6
-
-@dataclass
-class OSPFNeighbor:
-    router_id: str
-    ip_address: str
-    state: OSPFState
-    priority: int
-    designated_router: str
-    backup_designated_router: str
-    last_hello: float
-    dd_sequence: int
-    master: bool
-    more_bit: bool
-    init_bit: bool
-    lsa_list: List = None
-    
-    def __post_init__(self):
-        if self.lsa_list is None:
-            self.lsa_list = []
-
-@dataclass
-class LSAHeader:
-    age: int
-    options: int
-    type: int
-    link_state_id: str
-    advertising_router: str
-    sequence: int
-    checksum: int
-    length: int
-
-@dataclass
-class LSA:
-    header: LSAHeader
-    data: bytes
-
-class OSPFRouter:
-    def __init__(self, router_id: str, area_id: str = "0.0.0.0"):
+class OSPFHeader:
+    def __init__(self, msg_type, router_id, area_id=0):
+        self.version = OSPF_VERSION
+        self.type = msg_type
+        self.length = 24  # Base OSPF header length
         self.router_id = router_id
         self.area_id = area_id
-        self.interfaces = {}
+        self.checksum = 0
+        self.auth_type = 0
+        self.auth_data = b'\x00' * 8
+
+    def pack(self):
+        return struct.pack('!BBHHIIHHQ',
+                          self.version, self.type, self.length,
+                          self.checksum, self.router_id, self.area_id,
+                          self.auth_type, 0)
+
+class OSPFHello:
+    def __init__(self, router_id, network_mask, hello_interval=10, dead_interval=40):
+        self.network_mask = network_mask
+        self.hello_interval = hello_interval
+        self.options = 0x02  # E-bit set
+        self.priority = 1
+        self.dead_interval = dead_interval
+        self.designated_router = 0
+        self.backup_designated_router = 0
+        self.neighbors = []
+
+    def pack(self):
+        data = struct.pack('!IHBBIIIII',
+                          self.network_mask, self.hello_interval,
+                          self.options, self.priority,
+                          self.dead_interval, self.designated_router,
+                          self.backup_designated_router)
+        for neighbor in self.neighbors:
+            data += struct.pack('!I', neighbor)
+        return data
+
+class OSPFDatabaseDescription:
+    def __init__(self, interface_mtu=1500, options=0x02, flags=0x07, dd_sequence=0):
+        self.interface_mtu = interface_mtu
+        self.options = options
+        self.flags = flags  # I-bit, M-bit, MS-bit
+        self.dd_sequence = dd_sequence
+        self.lsa_headers = []
+
+    def pack(self):
+        data = struct.pack('!HBBII',
+                          self.interface_mtu, self.options,
+                          self.flags, self.dd_sequence)
+        for lsa_header in self.lsa_headers:
+            data += lsa_header.pack()
+        return data
+
+class LSAHeader:
+    def __init__(self, lsa_type, link_state_id, advertising_router, sequence=0x80000001):
+        self.age = 0
+        self.options = 0x02
+        self.type = lsa_type
+        self.link_state_id = link_state_id
+        self.advertising_router = advertising_router
+        self.sequence = sequence
+        self.checksum = 0
+        self.length = 20
+
+    def pack(self):
+        return struct.pack('!HBBIIIHH',
+                          self.age, self.options, self.type,
+                          self.link_state_id, self.advertising_router,
+                          self.sequence, self.checksum, self.length)
+
+class OSPFNeighbor:
+    def __init__(self, router_id, ip_address):
+        self.router_id = router_id
+        self.ip_address = ip_address
+        self.state = STATE_DOWN
+        self.priority = 1
+        self.designated_router = 0
+        self.backup_designated_router = 0
+        self.last_hello = time.time()
+        self.dd_sequence = random.randint(1, 0xFFFFFFFF)
+        self.master = False
+        self.lsa_list = {}
+        self.lsr_list = []
+
+    def is_alive(self, dead_interval=40):
+        return (time.time() - self.last_hello) < dead_interval
+
+class OSPFRouter:
+    def __init__(self, router_id, interface_name, interface_ip, network_mask, area_id=0):
+        self.router_id = self._ip_to_int(router_id)
+        self.interface_name = interface_name
+        self.interface_ip = interface_ip
+        self.interface_ip_int = self._ip_to_int(interface_ip)
+        self.network_mask = self._ip_to_int(network_mask)
+        self.area_id = area_id
+        
         self.neighbors = {}
         self.lsdb = {}  # Link State Database
-        self.sequence_number = 0x80000001
+        self.hello_interval = 10
+        self.dead_interval = 40
+        
         self.socket = None
         self.running = False
         
-        # Interface configurations
-        self.interface_configs = {
-            'ens3': {
-                'ip': '192.168.1.2',
-                'mask': '255.255.255.0',
-                'hello_interval': 10,
-                'dead_interval': 40,
-                'priority': 1
-            },
-            'ens4': {
-                'ip': '10.10.1.2', 
-                'mask': '255.255.255.0',
-                'hello_interval': 10,
-                'dead_interval': 40,
-                'priority': 1
-            }
-        }
+        # Sequence numbers
+        self.dd_sequence = random.randint(1, 0xFFFFFFFF)
         
-    def start(self):
-        """Start OSPF process"""
-        self.running = True
-        self.setup_socket()
-        
-        # Generate our own Router LSA
-        self.generate_router_lsa()
-        
-        # Start threads
-        threading.Thread(target=self.listen_packets, daemon=True).start()
-        threading.Thread(target=self.send_hello_packets, daemon=True).start()
-        threading.Thread(target=self.neighbor_timeout_check, daemon=True).start()
-        
-        print(f"OSPF Router {self.router_id} started")
-        
-    def setup_socket(self):
-        """Setup raw socket untuk OSPF"""
-        try:
-            # Create raw socket for OSPF protocol (89)
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            
-            # Enable IP header inclusion
-            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-            
-            # Join multicast group for OSPF
-            mreq = struct.pack('4s4s', socket.inet_aton('224.0.0.5'), socket.inet_aton('0.0.0.0'))
-            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-            
-            # Set multicast TTL
-            self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
-            
-            print("Raw socket setup completed")
-            
-        except PermissionError:
-            print("Error: Butuh sudo privileges untuk raw socket")
-            exit(1)
-        except Exception as e:
-            print(f"Socket setup error: {e}")
-            exit(1)
-            
-    def create_ip_header(self, source_ip: str, dest_ip: str, ospf_length: int) -> bytes:
-        """Create IP header for OSPF packet"""
-        ip_ihl = 5  # Internet Header Length
-        ip_ver = 4  # IP Version
-        ip_tos = 0xc0  # Type of Service (DSCP for routing protocols)
-        ip_tot_len = 20 + ospf_length  # IP header + OSPF packet
-        ip_id = 54321  # Identification
-        ip_frag_off = 0  # Fragment offset
-        ip_ttl = 1  # TTL for multicast
-        ip_proto = 89  # OSPF protocol
-        ip_check = 0  # Checksum (will be calculated by kernel)
-        ip_saddr = struct.unpack('!I', socket.inet_aton(source_ip))[0]
-        ip_daddr = struct.unpack('!I', socket.inet_aton(dest_ip))[0]
-        
-        ip_ihl_ver = (ip_ver << 4) + ip_ihl
-        
-        # Pack IP header
-        ip_header = struct.pack('!BBHHHBBH4s4s',
-                               ip_ihl_ver,    # Version and IHL
-                               ip_tos,        # Type of Service
-                               ip_tot_len,    # Total Length
-                               ip_id,         # Identification
-                               ip_frag_off,   # Flags and Fragment Offset
-                               ip_ttl,        # TTL
-                               ip_proto,      # Protocol
-                               ip_check,      # Header Checksum
-                               struct.pack('!I', ip_saddr),  # Source Address
-                               struct.pack('!I', ip_daddr)   # Destination Address
-                               )
-        return ip_header
-        
-    def create_ospf_header(self, packet_type: int, length: int, source_ip: str) -> bytes:
-        """Create OSPF header"""
-        header = struct.pack('!BBHIHHI',
-            OSPF_VERSION,           # Version
-            packet_type,            # Type
-            length,                 # Length
-            struct.unpack('!I', socket.inet_aton(self.router_id))[0],  # Router ID
-            struct.unpack('!I', socket.inet_aton(self.area_id))[0],    # Area ID
-            0,                      # Checksum (will be calculated)
-            0                       # Authentication Type
-        )
-        
-        # Authentication Data (8 bytes of zeros for no auth)
-        auth_data = b'\x00' * 8
-        
-        return header + auth_data
-        
-    def calculate_checksum(self, data: bytes) -> int:
+        print(f"OSPF Router initialized:")
+        print(f"  Router ID: {router_id} ({self.router_id})")
+        print(f"  Interface: {interface_name} ({interface_ip})")
+        print(f"  Network: {interface_ip}/{self._int_to_ip(network_mask)}")
+
+    def _ip_to_int(self, ip_str):
+        """Convert IP string to integer"""
+        return struct.unpack('!I', socket.inet_aton(ip_str))[0]
+
+    def _int_to_ip(self, ip_int):
+        """Convert integer to IP string"""
+        return socket.inet_ntoa(struct.pack('!I', ip_int))
+
+    def _calculate_checksum(self, data):
         """Calculate OSPF checksum"""
         if len(data) % 2:
             data += b'\x00'
-            
+        
         checksum = 0
         for i in range(0, len(data), 2):
-            checksum += struct.unpack('!H', data[i:i+2])[0]
-            
+            checksum += (data[i] << 8) + data[i + 1]
+        
         checksum = (checksum >> 16) + (checksum & 0xFFFF)
-        checksum += checksum >> 16
+        checksum += (checksum >> 16)
+        return (~checksum) & 0xFFFF
+
+    def start(self):
+        """Start OSPF router"""
+        self.running = True
         
-        return ~checksum & 0xFFFF
+        # Create raw socket for OSPF (protocol 89)
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.socket.bind((self.interface_ip, 0))
+        except PermissionError:
+            print("Error: Root privileges required for raw socket")
+            return
+        except Exception as e:
+            print(f"Error creating socket: {e}")
+            return
+
+        print("OSPF Router started")
         
-    def create_hello_packet(self, interface: str) -> bytes:
-        """Create OSPF Hello packet"""
-        config = self.interface_configs[interface]
-        
-        # Hello packet data
-        hello_data = struct.pack('!IBBBBI',
-            struct.unpack('!I', socket.inet_aton(config['mask']))[0],  # Network Mask
-            config['hello_interval'],                                   # Hello Interval
-            0,                                                         # Options
-            config['priority'],                                        # Router Priority
-            config['dead_interval'],                                   # Router Dead Interval
-            0                                                          # Designated Router
-        )
-        
-        # Backup Designated Router
-        hello_data += struct.pack('!I', 0)
-        
-        # Add neighbors
-        for neighbor_id in self.neighbors:
-            hello_data += struct.pack('!I', struct.unpack('!I', socket.inet_aton(neighbor_id))[0])
-            
-        packet_length = 24 + len(hello_data)  # OSPF header + Hello data
-        header = self.create_ospf_header(OSPF_HELLO, packet_length, config['ip'])
-        
-        packet = header + hello_data
-        
-        # Calculate and insert checksum
-        checksum = self.calculate_checksum(packet)
-        packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
-        
-        return packet
-        
-    def send_hello_packets(self):
-        """Periodically send Hello packets"""
+        # Start threads
+        threading.Thread(target=self._hello_sender, daemon=True).start()
+        threading.Thread(target=self._packet_receiver, daemon=True).start()
+        threading.Thread(target=self._neighbor_monitor, daemon=True).start()
+
+    def stop(self):
+        """Stop OSPF router"""
+        self.running = False
+        if self.socket:
+            self.socket.close()
+        print("OSPF Router stopped")
+
+    def _hello_sender(self):
+        """Send Hello packets periodically"""
         while self.running:
-            for interface, config in self.interface_configs.items():
-                try:
-                    hello_packet = self.create_hello_packet(interface)
-                    
-                    # Create complete packet with IP header
-                    ip_header = self.create_ip_header(config['ip'], '224.0.0.5', len(hello_packet))
-                    complete_packet = ip_header + hello_packet
-                    
-                    # Send to multicast address 224.0.0.5
-                    dest_addr = ('224.0.0.5', 0)
-                    bytes_sent = self.socket.sendto(complete_packet, dest_addr)
-                    
-                    print(f"Sent Hello packet on {interface} ({config['ip']}) - {bytes_sent} bytes")
-                    
-                except Exception as e:
-                    print(f"Error sending Hello on {interface}: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    
-            time.sleep(10)  # Send every 10 seconds
-            
-    def listen_packets(self):
-        """Listen for incoming OSPF packets"""
+            try:
+                self._send_hello()
+                time.sleep(self.hello_interval)
+            except Exception as e:
+                print(f"Error sending hello: {e}")
+
+    def _send_hello(self):
+        """Send OSPF Hello packet"""
+        # Create OSPF header
+        header = OSPFHeader(OSPF_HELLO, self.router_id, self.area_id)
+        
+        # Create Hello packet
+        hello = OSPFHello(self.router_id, self.network_mask,
+                         self.hello_interval, self.dead_interval)
+        
+        # Add known neighbors
+        hello.neighbors = list(self.neighbors.keys())
+        
+        # Pack data
+        hello_data = hello.pack()
+        header.length = 24 + len(hello_data)
+        header_data = header.pack()
+        
+        # Calculate checksum
+        packet_data = header_data + hello_data
+        checksum_data = packet_data[:12] + b'\x00\x00' + packet_data[14:]
+        checksum = self._calculate_checksum(checksum_data)
+        
+        # Update checksum in packet
+        packet_data = packet_data[:12] + struct.pack('!H', checksum) + packet_data[14:]
+        
+        # Send to multicast address
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.sendto(packet_data, ('224.0.0.5', 0))
+            sock.close()
+            print(f"Hello sent to 224.0.0.5 (neighbors: {len(hello.neighbors)})")
+        except Exception as e:
+            print(f"Error sending hello packet: {e}")
+
+    def _packet_receiver(self):
+        """Receive and process OSPF packets"""
         while self.running:
             try:
                 data, addr = self.socket.recvfrom(65535)
-                
-                # Skip IP header (first 20 bytes) to get OSPF packet
-                if len(data) > 20:
-                    ospf_data = data[20:]
-                    self.process_packet(ospf_data, addr[0])
-                    
+                if addr[0] != self.interface_ip:  # Don't process our own packets
+                    self._process_packet(data, addr[0])
             except Exception as e:
-                print(f"Error receiving packet: {e}")
-                import traceback
-                traceback.print_exc()
-                
-    def process_packet(self, data: bytes, source_ip: str):
-        """Process incoming OSPF packet"""
-        if len(data) < 24:  # Minimum OSPF header size
+                if self.running:
+                    print(f"Error receiving packet: {e}")
+
+    def _process_packet(self, data, src_ip):
+        """Process received OSPF packet"""
+        if len(data) < 24:
             return
-            
+
         # Parse OSPF header
-        header = struct.unpack('!BBHIHHI', data[:16])
-        version = header[0]
-        packet_type = header[1] 
-        length = header[2]
-        router_id = socket.inet_ntoa(struct.pack('!I', header[3]))
-        area_id = socket.inet_ntoa(struct.pack('!I', header[4]))
+        version, msg_type, length, checksum, router_id, area_id, auth_type = struct.unpack('!BBHHIIHH', data[:20])
         
         if version != OSPF_VERSION or area_id != self.area_id:
             return
-            
-        print(f"Received OSPF packet type {packet_type} from {router_id} ({source_ip})")
-        
-        if packet_type == OSPF_HELLO:
-            self.process_hello_packet(data[24:], router_id, source_ip)
-        elif packet_type == OSPF_DB_DESC:
-            self.process_dd_packet(data[24:], router_id, source_ip)
-        elif packet_type == OSPF_LSR:
-            self.process_lsr_packet(data[24:], router_id, source_ip)
-        elif packet_type == OSPF_LSU:
-            self.process_lsu_packet(data[24:], router_id, source_ip)
-        elif packet_type == OSPF_LSA_ACK:
-            self.process_lsa_ack_packet(data[24:], router_id, source_ip)
-            
-    def process_hello_packet(self, data: bytes, router_id: str, source_ip: str):
+
+        print(f"Received OSPF packet type {msg_type} from {self._int_to_ip(router_id)} ({src_ip})")
+
+        if msg_type == OSPF_HELLO:
+            self._process_hello(data[24:], router_id, src_ip)
+        elif msg_type == OSPF_DB_DESC:
+            self._process_db_desc(data[24:], router_id, src_ip)
+        elif msg_type == OSPF_LSR:
+            self._process_lsr(data[24:], router_id, src_ip)
+        elif msg_type == OSPF_LSU:
+            self._process_lsu(data[24:], router_id, src_ip)
+        elif msg_type == OSPF_LSA_ACK:
+            self._process_lsa_ack(data[24:], router_id, src_ip)
+
+    def _process_hello(self, data, router_id, src_ip):
         """Process Hello packet"""
         if len(data) < 20:
             return
-            
-        # Parse Hello packet
-        hello_info = struct.unpack('!IBBBBI', data[:16])
-        network_mask = socket.inet_ntoa(struct.pack('!I', hello_info[0]))
-        hello_interval = hello_info[1]
-        priority = hello_info[3]
-        dead_interval = hello_info[4]
-        designated_router = socket.inet_ntoa(struct.pack('!I', hello_info[5]))
+
+        network_mask, hello_interval, options, priority, dead_interval, dr, bdr = struct.unpack('!IHBBIII', data[:20])
         
-        backup_dr = socket.inet_ntoa(struct.pack('!I', struct.unpack('!I', data[16:20])[0]))
-        
-        # Parse neighbor list
-        neighbors_data = data[20:]
+        # Parse neighbors
         neighbors = []
-        for i in range(0, len(neighbors_data), 4):
-            if i + 4 <= len(neighbors_data):
-                neighbor_id = socket.inet_ntoa(struct.pack('!I', struct.unpack('!I', neighbors_data[i:i+4])[0]))
-                neighbors.append(neighbor_id)
-        
-        print(f"Hello from {router_id}: DR={designated_router}, BDR={backup_dr}, Neighbors={neighbors}")
-        
+        offset = 20
+        while offset + 4 <= len(data):
+            neighbor_id = struct.unpack('!I', data[offset:offset+4])[0]
+            neighbors.append(neighbor_id)
+            offset += 4
+
+        # Check if we're in the neighbor list (2-way communication)
+        bidirectional = self.router_id in neighbors
+
         # Update or create neighbor
         if router_id not in self.neighbors:
-            self.neighbors[router_id] = OSPFNeighbor(
-                router_id=router_id,
-                ip_address=source_ip,
-                state=OSPFState.INIT,
-                priority=priority,
-                designated_router=designated_router,
-                backup_designated_router=backup_dr,
-                last_hello=time.time(),
-                dd_sequence=0,
-                master=False,
-                more_bit=False,
-                init_bit=False
-            )
-            print(f"New neighbor {router_id} in INIT state")
-        else:
-            neighbor = self.neighbors[router_id]
-            neighbor.last_hello = time.time()
-            neighbor.designated_router = designated_router
-            neighbor.backup_designated_router = backup_dr
-            
-        # Check if we are in neighbor's neighbor list
-        if self.router_id in neighbors:
-            neighbor = self.neighbors[router_id]
-            if neighbor.state == OSPFState.INIT:
-                neighbor.state = OSPFState.TWO_WAY
-                print(f"Neighbor {router_id} moved to TWO-WAY state")
-                
-                # Start Database Description exchange
-                self.start_dd_exchange(router_id)
-                
-    def start_dd_exchange(self, neighbor_id: str):
-        """Start Database Description exchange"""
-        neighbor = self.neighbors[neighbor_id]
+            self.neighbors[router_id] = OSPFNeighbor(router_id, src_ip)
+            print(f"New neighbor discovered: {self._int_to_ip(router_id)} ({src_ip})")
+
+        neighbor = self.neighbors[router_id]
+        neighbor.last_hello = time.time()
+        neighbor.priority = priority
+        neighbor.designated_router = dr
+        neighbor.backup_designated_router = bdr
+
+        # State machine
+        old_state = neighbor.state
         
-        # Determine master/slave relationship
-        if self.router_id > neighbor_id:
-            neighbor.master = False
-            neighbor.dd_sequence = int(time.time()) & 0xFFFF
-            neighbor.state = OSPFState.EXSTART
-            print(f"Starting DD exchange with {neighbor_id} as MASTER")
-            self.send_dd_packet(neighbor_id, initial=True)
-        else:
-            neighbor.master = True
-            neighbor.state = OSPFState.EXSTART
-            print(f"Starting DD exchange with {neighbor_id} as SLAVE")
+        if neighbor.state == STATE_DOWN:
+            neighbor.state = STATE_INIT
+        
+        if neighbor.state == STATE_INIT and bidirectional:
+            neighbor.state = STATE_2WAY
+            print(f"Neighbor {self._int_to_ip(router_id)} reached 2-Way state")
             
-    def send_dd_packet(self, neighbor_id: str, initial: bool = False):
+            # Start database exchange
+            self._start_database_exchange(neighbor)
+
+        if old_state != neighbor.state:
+            print(f"Neighbor {self._int_to_ip(router_id)} state: {old_state} -> {neighbor.state}")
+
+    def _start_database_exchange(self, neighbor):
+        """Start database description exchange"""
+        neighbor.state = STATE_EXSTART
+        neighbor.master = neighbor.router_id > self.router_id
+        
+        if neighbor.master:
+            print(f"We are SLAVE to {self._int_to_ip(neighbor.router_id)}")
+        else:
+            print(f"We are MASTER to {self._int_to_ip(neighbor.router_id)}")
+            # Send initial DD packet
+            self._send_db_desc(neighbor, initial=True)
+
+    def _send_db_desc(self, neighbor, initial=False):
         """Send Database Description packet"""
-        neighbor = self.neighbors[neighbor_id]
+        header = OSPFHeader(OSPF_DB_DESC, self.router_id, self.area_id)
         
-        # DD packet flags
         flags = 0
-        if not neighbor.master:  # We are master
-            flags |= 0x01  # Master bit
-        if initial or len(self.lsdb) > 0:
-            flags |= 0x02  # More bit
         if initial:
-            flags |= 0x04  # Init bit
-            
-        # Create DD packet
-        dd_data = struct.pack('!HBxI',
-            1500,                    # Interface MTU
-            flags,                   # Options and flags
-            neighbor.dd_sequence     # DD sequence number
-        )
+            flags |= 0x04  # I-bit (Initial)
+        if not neighbor.master:
+            flags |= 0x01  # MS-bit (Master)
+        if len(self.lsdb) > 0:
+            flags |= 0x02  # M-bit (More)
+
+        dd = OSPFDatabaseDescription(flags=flags, dd_sequence=self.dd_sequence)
         
         # Add LSA headers from our database
-        for lsa_key, lsa in self.lsdb.items():
-            lsa_header = struct.pack('!HBBIIIH',
-                lsa.header.age,
-                lsa.header.options,
-                lsa.header.type,
-                struct.unpack('!I', socket.inet_aton(lsa.header.link_state_id))[0],
-                struct.unpack('!I', socket.inet_aton(lsa.header.advertising_router))[0],
-                lsa.header.sequence,
-                lsa.header.length
-            )
-            dd_data += lsa_header
-            
-        packet_length = 24 + len(dd_data)
-        header = self.create_ospf_header(OSPF_DB_DESC, packet_length, neighbor.ip_address)
-    def send_packet_to_neighbor(self, packet_data: bytes, neighbor_id: str, packet_type: str):
-        """Send packet to specific neighbor"""
-        if neighbor_id not in self.neighbors:
-            return
-            
-        neighbor = self.neighbors[neighbor_id]
+        for lsa_key, lsa_data in list(self.lsdb.items())[:5]:  # Limit for demo
+            lsa_header = LSAHeader(LSA_ROUTER, lsa_key, self.router_id)
+            dd.lsa_headers.append(lsa_header)
+
+        dd_data = dd.pack()
+        header.length = 24 + len(dd_data)
+        header_data = header.pack()
         
+        packet_data = header_data + dd_data
+        checksum_data = packet_data[:12] + b'\x00\x00' + packet_data[14:]
+        checksum = self._calculate_checksum(checksum_data)
+        packet_data = packet_data[:12] + struct.pack('!H', checksum) + packet_data[14:]
+
         try:
-            # Determine source IP based on neighbor's network
-            source_ip = None
-            if neighbor.ip_address.startswith('192.168.1.'):
-                source_ip = self.interface_configs['ens3']['ip']
-            elif neighbor.ip_address.startswith('10.10.1.'):
-                source_ip = self.interface_configs['ens4']['ip']
-            else:
-                source_ip = self.interface_configs['ens4']['ip']  # Default
-                
-            # Create complete packet with IP header
-            ip_header = self.create_ip_header(source_ip, neighbor.ip_address, len(packet_data))
-            complete_packet = ip_header + packet_data
-            
-            bytes_sent = self.socket.sendto(complete_packet, (neighbor.ip_address, 0))
-            print(f"Sent {packet_type} to {neighbor_id} ({neighbor.ip_address}) - {bytes_sent} bytes")
-            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            sock.sendto(packet_data, (neighbor.ip_address, 0))
+            sock.close()
+            print(f"Database Description sent to {neighbor.ip_address}")
         except Exception as e:
-            print(f"Error sending {packet_type} to {neighbor_id}: {e}")
-            import traceback
-            traceback.print_exc()
-            
-    def process_dd_packet(self, data: bytes, router_id: str, source_ip: str):
+            print(f"Error sending DD packet: {e}")
+
+    def _process_db_desc(self, data, router_id, src_ip):
         """Process Database Description packet"""
-        if router_id not in self.neighbors or len(data) < 8:
+        if router_id not in self.neighbors:
             return
-            
+
         neighbor = self.neighbors[router_id]
         
-        # Parse DD packet
-        dd_info = struct.unpack('!HBxI', data[:8])
-        interface_mtu = dd_info[0]
-        flags = dd_info[1]
-        dd_sequence = dd_info[2]
-        
-        master_bit = flags & 0x01
-        more_bit = flags & 0x02
-        init_bit = flags & 0x04
-        
-        print(f"Received DD from {router_id}: seq={dd_sequence}, M={more_bit}, I={init_bit}, MS={master_bit}")
-        
-        if neighbor.state == OSPFState.EXSTART:
-            if init_bit and master_bit and not neighbor.master:
-                # Neighbor claims to be master
-                neighbor.dd_sequence = dd_sequence
-                neighbor.state = OSPFState.EXCHANGE
-                print(f"Neighbor {router_id} is master, moving to EXCHANGE")
-                
-                # Send DD response
-                self.send_dd_packet(router_id)
-                
-        elif neighbor.state == OSPFState.EXCHANGE:
-            # Process LSA headers
-            lsa_headers_data = data[8:]
-            self.process_lsa_headers(lsa_headers_data, router_id)
-            
-            if not more_bit:
-                neighbor.state = OSPFState.LOADING
-                print(f"DD exchange complete with {router_id}, moving to LOADING")
-                
-                # Request missing LSAs
-                self.send_lsr_packet(router_id)
-                
-    def process_lsa_headers(self, data: bytes, neighbor_id: str):
-        """Process LSA headers from DD packet"""
-        offset = 0
-        while offset + 20 <= len(data):
-            header_data = data[offset:offset + 20]
-            lsa_header = struct.unpack('!HBBIIIH', header_data)
-            
-            age = lsa_header[0]
-            options = lsa_header[1] 
-            lsa_type = lsa_header[2]
-            link_state_id = socket.inet_ntoa(struct.pack('!I', lsa_header[3]))
-            advertising_router = socket.inet_ntoa(struct.pack('!I', lsa_header[4]))
-            sequence = lsa_header[5]
-            length = lsa_header[6]
-            
-            lsa_key = f"{lsa_type}:{link_state_id}:{advertising_router}"
-            
-            # Check if we need this LSA
-            if lsa_key not in self.lsdb:
-                print(f"Need LSA: {lsa_key}")
-                # Add to request list for this neighbor
-                neighbor = self.neighbors[neighbor_id]
-                if not hasattr(neighbor, 'lsa_requests'):
-                    neighbor.lsa_requests = []
-                neighbor.lsa_requests.append((lsa_type, link_state_id, advertising_router))
-                
-            offset += 20
-            
-    def send_lsr_packet(self, neighbor_id: str):
-        """Send Link State Request packet"""
-        neighbor = self.neighbors[neighbor_id]
-        
-        if not hasattr(neighbor, 'lsa_requests') or not neighbor.lsa_requests:
-            # No LSAs to request, move to FULL
-            neighbor.state = OSPFState.FULL
-            print(f"No LSAs to request from {neighbor_id}, moving to FULL state")
+        if len(data) < 8:
             return
+
+        interface_mtu, options, flags, dd_sequence = struct.unpack('!HBBI', data[:8])
+        
+        print(f"DB Desc from {self._int_to_ip(router_id)}: flags={flags:02x}, seq={dd_sequence}")
+
+        # Parse LSA headers
+        offset = 8
+        lsa_headers = []
+        while offset + 20 <= len(data):
+            lsa_data = data[offset:offset+20]
+            lsa_headers.append(lsa_data)
+            offset += 20
+
+        # State machine processing
+        if neighbor.state == STATE_EXSTART:
+            if flags & 0x04:  # I-bit set
+                neighbor.state = STATE_EXCHANGE
+                if neighbor.master:
+                    neighbor.dd_sequence = dd_sequence
+                    self._send_db_desc(neighbor)
+                print(f"Neighbor {self._int_to_ip(router_id)} entered Exchange state")
+
+        elif neighbor.state == STATE_EXCHANGE:
+            # Process LSA headers and build LSR list
+            for lsa_header in lsa_headers:
+                # Check if we need this LSA
+                neighbor.lsr_list.append(lsa_header)
             
-        # Create LSR packet
+            if not (flags & 0x02):  # M-bit not set - no more DD packets
+                if neighbor.lsr_list:
+                    neighbor.state = STATE_LOADING
+                    self._send_lsr(neighbor)
+                    print(f"Neighbor {self._int_to_ip(router_id)} entered Loading state")
+                else:
+                    neighbor.state = STATE_FULL
+                    print(f"Neighbor {self._int_to_ip(router_id)} reached FULL adjacency!")
+
+    def _send_lsr(self, neighbor):
+        """Send Link State Request"""
+        if not neighbor.lsr_list:
+            return
+
+        header = OSPFHeader(OSPF_LSR, self.router_id, self.area_id)
+        
+        # Take first few LSAs to request
         lsr_data = b''
-        for lsa_type, link_state_id, advertising_router in neighbor.lsa_requests:
-            lsr_entry = struct.pack('!III',
-                lsa_type,
-                struct.unpack('!I', socket.inet_aton(link_state_id))[0],
-                struct.unpack('!I', socket.inet_aton(advertising_router))[0]
-            )
-            lsr_data += lsr_entry
-            
-        packet_length = 24 + len(lsr_data)
-        header = self.create_ospf_header(OSPF_LSR, packet_length, neighbor.ip_address)
-        packet = header + lsr_data
+        for lsa_header in neighbor.lsr_list[:5]:  # Limit requests
+            lsr_data += lsa_header[:12]  # First 12 bytes identify the LSA
+
+        header.length = 24 + len(lsr_data)
+        header_data = header.pack()
         
-        # Calculate checksum
-        checksum = self.calculate_checksum(packet)
-        packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
-        
-        # Send using helper method
-        self.send_packet_to_neighbor(packet, neighbor_id, "DD packet")
-        
+        packet_data = header_data + lsr_data
+        checksum_data = packet_data[:12] + b'\x00\x00' + packet_data[14:]
+        checksum = self._calculate_checksum(checksum_data)
+        packet_data = packet_data[:12] + struct.pack('!H', checksum) + packet_data[14:]
+
         try:
-            self.socket.sendto(packet, (neighbor.ip_address, 0))
-            print(f"Sent LSR packet to {neighbor_id} requesting {len(neighbor.lsa_requests)} LSAs")
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            sock.sendto(packet_data, (neighbor.ip_address, 0))
+            sock.close()
+            print(f"Link State Request sent to {neighbor.ip_address}")
         except Exception as e:
-            print(f"Error sending LSR packet: {e}")
-            
-    def process_lsr_packet(self, data: bytes, router_id: str, source_ip: str):
-        """Process Link State Request packet"""
-        print(f"Received LSR from {router_id}")
+            print(f"Error sending LSR: {e}")
+
+    def _process_lsr(self, data, router_id, src_ip):
+        """Process Link State Request"""
+        print(f"Link State Request received from {self._int_to_ip(router_id)}")
         
-        # Parse LSR entries
-        requested_lsas = []
-        offset = 0
-        while offset + 12 <= len(data):
-            lsr_entry = struct.unpack('!III', data[offset:offset + 12])
-            lsa_type = lsr_entry[0]
-            link_state_id = socket.inet_ntoa(struct.pack('!I', lsr_entry[1]))
-            advertising_router = socket.inet_ntoa(struct.pack('!I', lsr_entry[2]))
-            
-            lsa_key = f"{lsa_type}:{link_state_id}:{advertising_router}"
-            if lsa_key in self.lsdb:
-                requested_lsas.append(self.lsdb[lsa_key])
-                
-            offset += 12
-            
-        # Send LSU with requested LSAs
-        if requested_lsas:
-            self.send_lsu_packet(router_id, requested_lsas)
-            
-    def send_lsu_packet(self, neighbor_id: str, lsas: List[LSA]):
-        """Send Link State Update packet"""
-        neighbor = self.neighbors[neighbor_id]
+        # Send LSU with requested LSAs (simplified)
+        if router_id in self.neighbors:
+            self._send_lsu(self.neighbors[router_id])
+
+    def _send_lsu(self, neighbor):
+        """Send Link State Update"""
+        header = OSPFHeader(OSPF_LSU, self.router_id, self.area_id)
         
-        # Create LSU packet
-        lsu_data = struct.pack('!I', len(lsas))  # Number of LSAs
+        # Create a simple router LSA
+        num_lsas = 1
+        lsu_data = struct.pack('!I', num_lsas)
         
-        for lsa in lsas:
-            # Add complete LSA
-            lsa_header = struct.pack('!HBBIIIH',
-                lsa.header.age,
-                lsa.header.options,
-                lsa.header.type,
-                struct.unpack('!I', socket.inet_aton(lsa.header.link_state_id))[0],
-                struct.unpack('!I', socket.inet_aton(lsa.header.advertising_router))[0],
-                lsa.header.sequence,
-                lsa.header.length
-            )
-            lsu_data += lsa_header + lsa.data
-            
-        packet_length = 24 + len(lsu_data)
-        header = self.create_ospf_header(OSPF_LSU, packet_length, neighbor.ip_address)
-        packet = header + lsu_data
+        # Router LSA
+        router_lsa = self._create_router_lsa()
+        lsu_data += router_lsa
+
+        header.length = 24 + len(lsu_data)
+        header_data = header.pack()
         
-        # Calculate checksum
-        checksum = self.calculate_checksum(packet)
-        packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
+        packet_data = header_data + lsu_data
+        checksum_data = packet_data[:12] + b'\x00\x00' + packet_data[14:]
+        checksum = self._calculate_checksum(checksum_data)
+        packet_data = packet_data[:12] + struct.pack('!H', checksum) + packet_data[14:]
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            sock.sendto(packet_data, (neighbor.ip_address, 0))
+            sock.close()
+            print(f"Link State Update sent to {neighbor.ip_address}")
+        except Exception as e:
+            print(f"Error sending LSU: {e}")
+
+    def _create_router_lsa(self):
+        """Create Router LSA"""
+        lsa_header = LSAHeader(LSA_ROUTER, self.router_id, self.router_id)
         
-        # Send using helper method
-        self.send_packet_to_neighbor(packet, neighbor_id, f"LSU packet ({len(lsas)} LSAs)")
-            
-    def process_lsu_packet(self, data: bytes, router_id: str, source_ip: str):
-        """Process Link State Update packet"""
+        # Router LSA body
+        flags = 0x00  # Not ASBR, not ABR
+        num_links = 1
+        
+        # Link to our network
+        link_id = self.interface_ip_int & self.network_mask
+        link_data = self.interface_ip_int
+        link_type = 3  # Stub network
+        num_tos = 0
+        metric = 1
+
+        lsa_body = struct.pack('!BBHIIBBHI',
+                              flags, 0, num_links,
+                              link_id, link_data,
+                              link_type, num_tos, metric)
+
+        lsa_header.length = 20 + len(lsa_body)
+        
+        return lsa_header.pack() + lsa_body
+
+    def _process_lsu(self, data, router_id, src_ip):
+        """Process Link State Update"""
         if len(data) < 4:
             return
-            
+
         num_lsas = struct.unpack('!I', data[:4])[0]
-        print(f"Received LSU from {router_id} with {num_lsas} LSAs")
+        print(f"Link State Update from {self._int_to_ip(router_id)}: {num_lsas} LSAs")
         
-        # Parse LSAs
-        offset = 4
-        lsa_headers_for_ack = []
-        
-        for i in range(num_lsas):
-            if offset + 20 > len(data):
-                break
-                
-            # Parse LSA header
-            header_data = data[offset:offset + 20]
-            lsa_header_raw = struct.unpack('!HBBIIIH', header_data)
-            
-            age = lsa_header_raw[0]
-            options = lsa_header_raw[1]
-            lsa_type = lsa_header_raw[2] 
-            link_state_id = socket.inet_ntoa(struct.pack('!I', lsa_header_raw[3]))
-            advertising_router = socket.inet_ntoa(struct.pack('!I', lsa_header_raw[4]))
-            sequence = lsa_header_raw[5]
-            length = lsa_header_raw[6]
-            
-            # Extract LSA data
-            lsa_data = data[offset + 20:offset + length]
-            
-            # Create LSA object
-            lsa_header = LSAHeader(age, options, lsa_type, link_state_id, 
-                                 advertising_router, sequence, 0, length)
-            lsa = LSA(lsa_header, lsa_data)
-            
-            # Store in LSDB
-            lsa_key = f"{lsa_type}:{link_state_id}:{advertising_router}"
-            self.lsdb[lsa_key] = lsa
-            lsa_headers_for_ack.append(lsa_header)
-            
-            print(f"Installed LSA: {lsa_key}")
-            offset += length
-            
         # Send LSA ACK
-        self.send_lsa_ack_packet(router_id, lsa_headers_for_ack)
-        
-        # Check if neighbor can move to FULL state
         if router_id in self.neighbors:
+            self._send_lsa_ack(self.neighbors[router_id], data[4:])
+            
+            # Update neighbor state to FULL if in LOADING
             neighbor = self.neighbors[router_id]
-            if neighbor.state == OSPFState.LOADING:
-                neighbor.state = OSPFState.FULL
-                print(f"Neighbor {router_id} moved to FULL state")
-                
-    def send_lsa_ack_packet(self, neighbor_id: str, lsa_headers: List[LSAHeader]):
-        """Send LSA Acknowledgment packet"""
-        neighbor = self.neighbors[neighbor_id]
+            if neighbor.state == STATE_LOADING:
+                neighbor.state = STATE_FULL
+                print(f"Neighbor {self._int_to_ip(router_id)} reached FULL adjacency!")
+
+    def _send_lsa_ack(self, neighbor, lsa_data):
+        """Send LSA Acknowledgment"""
+        header = OSPFHeader(OSPF_LSA_ACK, self.router_id, self.area_id)
         
-        # Create LSA ACK packet
+        # Extract LSA headers for acknowledgment
         ack_data = b''
-        for header in lsa_headers:
-            lsa_header_data = struct.pack('!HBBIIIH',
-                header.age,
-                header.options,
-                header.type,
-                struct.unpack('!I', socket.inet_aton(header.link_state_id))[0],
-                struct.unpack('!I', socket.inet_aton(header.advertising_router))[0],
-                header.sequence,
-                header.length
-            )
-            ack_data += lsa_header_data
-            
-        packet_length = 24 + len(ack_data)
-        header = self.create_ospf_header(OSPF_LSA_ACK, packet_length, neighbor.ip_address)
-        packet = header + ack_data
+        offset = 0
+        while offset + 20 <= len(lsa_data):
+            ack_data += lsa_data[offset:offset+20]  # LSA header only
+            # Skip to next LSA
+            lsa_length = struct.unpack('!H', lsa_data[offset+18:offset+20])[0]
+            offset += lsa_length
+
+        header.length = 24 + len(ack_data)
+        header_data = header.pack()
         
-        # Calculate checksum
-        checksum = self.calculate_checksum(packet)
-        packet = packet[:12] + struct.pack('!H', checksum) + packet[14:]
-        
-        # Send using helper method
-        self.send_packet_to_neighbor(packet, neighbor_id, f"LSA ACK ({len(lsa_headers)} LSAs)")
-            
-    def process_lsa_ack_packet(self, data: bytes, router_id: str, source_ip: str):
-        """Process LSA Acknowledgment packet"""
-        num_headers = len(data) // 20
-        print(f"Received LSA ACK from {router_id} for {num_headers} LSAs")
-        
-        # Process each acknowledged LSA header
-        for i in range(num_headers):
-            offset = i * 20
-            if offset + 20 <= len(data):
-                header_data = data[offset:offset + 20]
-                # Process acknowledgment (remove from retransmission list, etc.)
-                
-    def neighbor_timeout_check(self):
-        """Check for neighbor timeouts"""
+        packet_data = header_data + ack_data
+        checksum_data = packet_data[:12] + b'\x00\x00' + packet_data[14:]
+        checksum = self._calculate_checksum(checksum_data)
+        packet_data = packet_data[:12] + struct.pack('!H', checksum) + packet_data[14:]
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, 89)
+            sock.sendto(packet_data, (neighbor.ip_address, 0))
+            sock.close()
+            print(f"LSA Acknowledgment sent to {neighbor.ip_address}")
+        except Exception as e:
+            print(f"Error sending LSA ACK: {e}")
+
+    def _process_lsa_ack(self, data, router_id, src_ip):
+        """Process LSA Acknowledgment"""
+        print(f"LSA Acknowledgment received from {self._int_to_ip(router_id)}")
+
+    def _neighbor_monitor(self):
+        """Monitor neighbor states and handle dead neighbors"""
         while self.running:
             current_time = time.time()
             dead_neighbors = []
             
-            for neighbor_id, neighbor in self.neighbors.items():
-                if current_time - neighbor.last_hello > 40:  # Dead interval
-                    print(f"Neighbor {neighbor_id} timed out")
-                    dead_neighbors.append(neighbor_id)
-                    
-            for neighbor_id in dead_neighbors:
-                del self.neighbors[neighbor_id]
-                
-            time.sleep(5)  # Check every 5 seconds
+            for router_id, neighbor in self.neighbors.items():
+                if not neighbor.is_alive(self.dead_interval):
+                    dead_neighbors.append(router_id)
+                    print(f"Neighbor {self._int_to_ip(router_id)} declared dead")
+
+            for dead_id in dead_neighbors:
+                del self.neighbors[dead_id]
+
+            time.sleep(5)
+
+    def show_neighbors(self):
+        """Display current neighbors"""
+        print("\nOSPF Neighbors:")
+        print("-" * 80)
+        print(f"{'Router ID':<15} {'IP Address':<15} {'State':<10} {'Priority':<8} {'Dead Time':<10}")
+        print("-" * 80)
+        
+        current_time = time.time()
+        for router_id, neighbor in self.neighbors.items():
+            state_names = ["Down", "Init", "2-Way", "ExStart", "Exchange", "Loading", "Full"]
+            state_name = state_names[neighbor.state] if neighbor.state < len(state_names) else "Unknown"
+            dead_time = int(self.dead_interval - (current_time - neighbor.last_hello))
             
-    def print_status(self):
-        """Print current OSPF status"""
-        print(f"\n=== OSPF Router {self.router_id} Status ===")
-        print(f"Area: {self.area_id}")
-        print(f"Neighbors: {len(self.neighbors)}")
-        
-        for neighbor_id, neighbor in self.neighbors.items():
-            print(f"  {neighbor_id} ({neighbor.ip_address}) - State: {neighbor.state.name}")
-            
-        print(f"LSDB Entries: {len(self.lsdb)}")
-        for lsa_key in self.lsdb:
-            print(f"  {lsa_key}")
-        print()
-        
-    def generate_router_lsa(self):
-        """Generate Router LSA for this router"""
-        # Router LSA Type 1
-        lsa_data = struct.pack('!BBH',
-            0,  # Flags
-            0,  # Reserved
-            2   # Number of links (ens3 and ens4)
-        )
-        
-        # Link 1: ens3 interface
-        link1_data = struct.pack('!IIBBB',
-            struct.unpack('!I', socket.inet_aton('192.168.1.0'))[0],  # Link ID
-            struct.unpack('!I', socket.inet_aton('255.255.255.0'))[0], # Link Data
-            1,  # Type (stub network)
-            0,  # Number of TOS
-            10  # Metric
-        )
-        
-        # Link 2: ens4 interface  
-        link2_data = struct.pack('!IIBBB',
-            struct.unpack('!I', socket.inet_aton('10.10.1.0'))[0],   # Link ID
-            struct.unpack('!I', socket.inet_aton('255.255.255.0'))[0], # Link Data
-            1,  # Type (stub network)
-            0,  # Number of TOS
-            10  # Metric
-        )
-        
-        lsa_data += link1_data + link2_data
-        
-        # Create LSA header
-        header = LSAHeader(
-            age=0,
-            options=0,
-            type=LSA_ROUTER,
-            link_state_id=self.router_id,
-            advertising_router=self.router_id,
-            sequence=self.sequence_number,
-            checksum=0,
-            length=20 + len(lsa_data)
-        )
-        
-        lsa = LSA(header, lsa_data)
-        lsa_key = f"{LSA_ROUTER}:{self.router_id}:{self.router_id}"
-        self.lsdb[lsa_key] = lsa
-        self.sequence_number += 1
-        
-        print(f"Generated Router LSA: {lsa_key}")
-        return lsa
-        
-    def calculate_routes(self):
-        """Simple SPF calculation from LSDB"""
-        print("\n=== Route Calculation ===")
-        
-        # Simple route extraction from Router LSAs
-        routes = {}
-        
-        for lsa_key, lsa in self.lsdb.items():
-            if lsa.header.type == LSA_ROUTER:
-                advertising_router = lsa.header.advertising_router
-                print(f"Processing Router LSA from {advertising_router}")
-                
-                # Parse router LSA data
-                if len(lsa.data) >= 4:
-                    num_links = struct.unpack('!H', lsa.data[2:4])[0]
-                    print(f"  Router has {num_links} links")
-                    
-                    offset = 4
-                    for i in range(num_links):
-                        if offset + 12 <= len(lsa.data):
-                            link_info = struct.unpack('!IIBBB', lsa.data[offset:offset+12])
-                            link_id = socket.inet_ntoa(struct.pack('!I', link_info[0]))
-                            link_data = socket.inet_ntoa(struct.pack('!I', link_info[1]))
-                            link_type = link_info[2]
-                            metric = link_info[4]
-                            
-                            if link_type == 1:  # Stub network
-                                print(f"    Stub network: {link_id} via {advertising_router}, metric {metric}")
-                                routes[link_id] = {
-                                    'via': advertising_router,
-                                    'metric': metric,
-                                    'type': 'stub'
-                                }
-                            
-                            offset += 12
-        
-        print(f"\nTotal routes discovered: {len(routes)}")
-        for network, route_info in routes.items():
-            print(f"  {network} via {route_info['via']} (metric {route_info['metric']})")
-        
-        return routes
+            print(f"{self._int_to_ip(router_id):<15} {neighbor.ip_address:<15} {state_name:<10} {neighbor.priority:<8} {dead_time:<10}")
 
 def main():
-    """Main function"""
-    import sys
+    """Main function to run OSPF router"""
+    print("OSPF Router Implementation")
+    print("=" * 50)
     
-    if len(sys.argv) != 2:
-        print("Usage: sudo python3 ospf_router.py <router_id>")
-        print("Example: sudo python3 ospf_router.py 1.1.1.1")
-        sys.exit(1)
-        
-    router_id = sys.argv[1]
+    # Configuration for your setup
+    router_id = "10.10.1.2"  # Same as interface IP
+    interface_name = "ens4"
+    interface_ip = "10.10.1.2"
+    network_mask = "255.255.255.0"
+    area_id = 0
     
     # Create and start OSPF router
-    ospf_router = OSPFRouter(router_id)
-    ospf_router.start()
-    
-    print("OSPF Router started. Press Ctrl+C to stop.")
-    print("Use 'status' command to check neighbor states.")
+    ospf_router = OSPFRouter(router_id, interface_name, interface_ip, network_mask, area_id)
     
     try:
+        ospf_router.start()
+        
+        print("\nOSPF Router is running...")
+        print("Commands:")
+        print("  'neighbors' - Show neighbor table")
+        print("  'quit' - Stop router")
+        
         while True:
-            cmd = input("> ").strip().lower()
-            if cmd == 'status':
-                ospf_router.print_status()
-            elif cmd == 'quit' or cmd == 'exit':
-                break
-            elif cmd == 'neighbors':
-                print("Current neighbors:")
-                for nid, neighbor in ospf_router.neighbors.items():
-                    print(f"  {nid}: {neighbor.state.name}")
-            elif cmd == 'lsdb':
-                print("Link State Database:")
-                for lsa_key in ospf_router.lsdb:
-                    print(f"  {lsa_key}")
-            elif cmd == 'routes':
-                print("Calculating routes from LSDB...")
-                ospf_router.calculate_routes()
-            elif cmd == 'generate':
-                print("Regenerating Router LSA...")
-                ospf_router.generate_router_lsa()
-            elif cmd == 'debug':
-                print("Debug information:")
-                print(f"  Socket: {ospf_router.socket}")
-                print(f"  Running: {ospf_router.running}")
-                print(f"  Interfaces: {list(ospf_router.interface_configs.keys())}")
-                for iface, config in ospf_router.interface_configs.items():
-                    print(f"    {iface}: {config['ip']}")
-            elif cmd == 'test':
-                print("Sending test Hello packet...")
-                try:
-                    hello_packet = ospf_router.create_hello_packet('ens4')
-                    ip_header = ospf_router.create_ip_header('10.10.1.2', '224.0.0.5', len(hello_packet))
-                    complete_packet = ip_header + hello_packet
-                    bytes_sent = ospf_router.socket.sendto(complete_packet, ('224.0.0.5', 0))
-                    print(f"Test packet sent: {bytes_sent} bytes")
-                except Exception as e:
-                    print(f"Test failed: {e}")
-                    import traceback
-                    traceback.print_exc()
+            try:
+                cmd = input("\nOSPF> ").strip().lower()
+                
+                if cmd == 'quit':
+                    break
+                elif cmd == 'neighbors':
+                    ospf_router.show_neighbors()
+                elif cmd == '':
+                    continue
+                else:
+                    print("Unknown command")
                     
-    except KeyboardInterrupt:
-        pass
+            except KeyboardInterrupt:
+                break
+                
+    except Exception as e:
+        print(f"Error: {e}")
     finally:
-        ospf_router.running = False
-        print("\nOSPF Router stopped.")
+        ospf_router.stop()
 
 if __name__ == "__main__":
     main()
