@@ -18,9 +18,17 @@ if os.geteuid() != 0:
     sys.exit(1)
 
 try:
-    from scapy.all import *
-    from scapy.contrib.ospf import *
-    from scapy.layers.inet import IP
+    from scapy.all import (
+        Ether, IP, sendp, sniff,
+        load_contrib
+    )
+    load_contrib("ospf")
+    from scapy.contrib.ospf import (
+        OSPF_Hdr, OSPF_Hello, OSPF_DBDesc,
+        OSPF_LSReq, OSPF_LSUpd, OSPF_LSAck,
+        OSPF_Router_LSA, OSPF_Network_LSA,
+        OSPF_Link, OSPF_LSA_Hdr, OSPF_LSReq_Item
+    )
     from scapy.layers.l2 import Ether
 except ImportError as e:
     print(f"Error importing Scapy: {e}")
@@ -38,9 +46,17 @@ if os.geteuid() != 0:
 
 # Scapy imports
 try:
-    from scapy.all import *
-    from scapy.contrib.ospf import *
-    from scapy.layers.inet import IP
+    from scapy.all import (
+        Ether, IP, sendp, sniff,
+        load_contrib
+    )
+    load_contrib("ospf")
+    from scapy.contrib.ospf import (
+        OSPF_Hdr, OSPF_Hello, OSPF_DBDesc,
+        OSPF_LSReq, OSPF_LSUpd, OSPF_LSAck,
+        OSPF_Router_LSA, OSPF_Network_LSA,
+        OSPF_Link, OSPF_LSA_Hdr, OSPF_LSReq_Item
+    )
     from scapy.layers.l2 import Ether
 except ImportError as e:
     print(f"Error importing Scapy: {e}")
@@ -65,34 +81,124 @@ import struct
 import subprocess
 from datetime import datetime
 
-# Constants for OSPF packet types
+# Constants for OSPF packet types and multicast addresses
 OSPF_TYPE_HELLO = 1
 OSPF_TYPE_DBD = 2
 OSPF_TYPE_LSR = 3
 OSPF_TYPE_LSU = 4
 OSPF_TYPE_LSACK = 5
 
-# OSPF Options bit flags
-OSPF_OPTIONS_E = 0x02  # External Routing (E-bit)
-OSPF_OPTIONS_O = 0x10  # Opaque LSA (O-bit)
-OSPF_OPTIONS_DN = 0x20  # DN-bit
-OSPF_OPTIONS_DC = 0x04  # Demand Circuits (DC-bit)
-OSPF_OPTIONS_NP = 0x08  # NSSA (N-bit)
-OSPF_OPTIONS_MC = 0x01  # Multicast
+# OSPF packet field constants (MikroTik compatible)
+OSPF_OPTIONS_E = 0x02     # External Routing capability (E-bit)
+OSPF_OPTIONS_N = 0x08     # N-bit for NSSA
+OSPF_OPTIONS_DC = 0x04    # Demand Circuits
+OSPF_HELLO_INTERVAL = 10  # MikroTik default hello interval
+OSPF_DEAD_INTERVAL = 40   # MikroTik default dead interval
+OSPF_PRIORITY = 1         # Normal router priority
+OSPF_MTU = 1500          # Standard MTU size
+OSPF_AUTH_TYPE = 0       # No authentication
+OSPF_AUTH_DATA = b"\x00" * 8  # Empty auth data
 
-#global variable
+# OSPF multicast addresses and areas
+OSPF_ALL_SPF_ROUTERS = "224.0.0.5"     # All OSPF routers multicast
+OSPF_ALL_DR_ROUTERS = "224.0.0.6"       # All DR/BDR routers multicast
+OSPF_AREA_BACKBONE = "0.0.0.0"          # Backbone area
+
+# OSPF Constants for MikroTik Compatibility
+broadcast_ip = OSPF_ALL_SPF_ROUTERS     # Default multicast address
+area_id = OSPF_AREA_BACKBONE            # Default area
+router_id = "10.10.1.2"                 # Router ID
+router_id2 = "192.168.1.2"              # Router ID 2 (Neighbor)
+dr = "10.10.1.2"                        # Designated Router
+bdr = "10.10.1.1"                       # Backup Designated Router
+
+# State variables
+target_ip = ipaddress.IPv4Address("0.0.0.0")
 neighbor_state = "Down"
-penghitung = 0
-# Update options to include External routing capability (E-bit) and demand circuits (DC-bit)
-option_default = 0x22  # Changed from 0x02 to 0x22
-default_age = 0  # Changed from 3300 to 0 for fresh LSAs
-hello_interval = 10
-dead_interval = 40
-priority_default = 1  # Changed from 128 to 1 to allow proper DR election
-broadcast_ip = "224.0.0.5"
-area_id = "0.0.0.0"
-seq_random = random.randint(0x80000001, 0x8000000F)  # Proper sequence number range
-seq_exchange = 0
+penghitung = 0                          # Counter for LSU packets
+seq_global = 0x80000001                 # Global sequence number
+seq_random = random.randint(0x80000001, 0x8000000F)  # Initial sequence number
+seq_exchange = 0                        # Exchange sequence number
+
+# Lists and dictionaries for OSPF operation
+lsadb_list = []                         # LSA database
+lsreq_list = []                         # LS request list
+lsreqdb_list = []                       # LS request database
+lsudb_list = []                         # LSU database
+lsack_list = []                         # LSAck list
+lsackdb_list = []                       # LSAck database
+newrute = []                           # New routes
+rutep4 = []                            # P4 routes
+tracking_state = {}                     # Interface state tracking
+db_lsap4 = {}                          # P4 LSA database
+
+# Global state variables with MikroTik compatible defaults
+neighbor_state = "Down"
+option_default = OSPF_OPTIONS_E  # Use only E-bit for MikroTik compatibility
+default_age = 1           # Fresh LSA age
+hello_interval = OSPF_HELLO_INTERVAL
+dead_interval = OSPF_DEAD_INTERVAL
+priority_default = OSPF_PRIORITY
+penghitung = 0           # Counter for LSU packets
+seq_global = 0x80000001  # Initial sequence number (must start at 0x80000001)
+seq_random = random.randint(0x80000001, 0x8000000F)  # Random initial sequence
+seq_exchange = 0         # Exchange sequence number
+
+# Initialize default timers
+DefaultHelloTimer = hello_interval
+DefaultDeadTimer = dead_interval
+DefaultWaitTimer = dead_interval
+DefaultExStartTimer = 10  # Seconds to wait in ExStart state
+
+# OSPF protocol thresholds
+MaxAgeDiff = 900         # Maximum age difference for accepting LSAs
+MinLSArrival = 1000     # Minimum arrival time between LSAs (ms)
+MaxLSAGenDelay = 5      # Maximum delay for LSA generation (seconds)
+
+# OSPF multicast addresses and areas
+OSPF_ALL_SPF_ROUTERS = "224.0.0.5"     # All OSPF routers multicast
+OSPF_ALL_DR_ROUTERS = "224.0.0.6"       # All DR/BDR routers multicast
+OSPF_AREA_BACKBONE = "0.0.0.0"          # Backbone area
+
+# OSPF Constants for MikroTik Compatibility
+broadcast_ip = OSPF_ALL_SPF_ROUTERS     # Default multicast address
+area_id = OSPF_AREA_BACKBONE            # Default area
+router_id = "10.10.1.2"                 # Router ID
+router_id2 = "192.168.1.2"              # Router ID 2 (Neighbor)
+dr = "10.10.1.2"                        # Designated Router
+bdr = "10.10.1.1"                       # Backup Designated Router
+
+# State variables
+target_ip = ipaddress.IPv4Address("0.0.0.0")
+neighbor_state = "Down"
+penghitung = 0                          # Counter for LSU packets
+seq_global = 0x80000001                 # Global sequence number
+seq_random = random.randint(0x80000001, 0x8000000F)  # Initial sequence number
+seq_exchange = 0                        # Exchange sequence number
+
+# Lists and dictionaries for OSPF operation
+lsadb_list = []                         # LSA database
+lsreq_list = []                         # LS request list
+lsreqdb_list = []                       # LS request database
+lsudb_list = []                         # LSU database
+lsack_list = []                         # LSAck list
+lsackdb_list = []                       # LSAck database
+newrute = []                           # New routes
+rutep4 = []                            # P4 routes
+tracking_state = {}                     # Interface state tracking
+db_lsap4 = {}                          # P4 LSA database
+
+# Global state
+neighbor_state = "Down"
+option_default = OSPF_OPTIONS_E  # Use only E-bit for MikroTik compatibility
+default_age = 1           # Fresh LSA age
+hello_interval = OSPF_HELLO_INTERVAL
+dead_interval = OSPF_DEAD_INTERVAL
+priority_default = OSPF_PRIORITY
+penghitung = 0           # Counter for LSU packets
+seq_global = 0x80000001  # Initial sequence number (must start at 0x80000001)
+seq_random = random.randint(0x80000001, 0x8000000F)  # Random initial sequence
+seq_exchange = 0         # Exchange sequence number
 router_status = "Master"
 id_dbd = ''
 router_id = "10.10.1.2"  # Router ID
@@ -139,13 +245,15 @@ ip_broadcast = IP(src=router_id, dst="224.0.0.5")
 
 ospf_hello_first = OSPF_Hello(
     mask="255.255.255.0",
-    hellointerval=hello_interval,
-    options=option_default,
-    prio=priority_default,
-    deadinterval=dead_interval,
+    hellointerval=OSPF_HELLO_INTERVAL,  # MikroTik default
+    options=OSPF_OPTIONS_E,             # External routing capability only
+    prio=OSPF_PRIORITY,                # Normal priority
+    deadinterval=OSPF_DEAD_INTERVAL,    # MikroTik default
     router=router_id,
-    backup= backup_default,  # Backup router ID
-    neighbors=[]  # Daftar neighbor IP
+    backup="0.0.0.0",
+    neighbors=[],      # Will be populated during neighbor discovery
+    authtype=OSPF_AUTH_TYPE,           # No authentication
+    auth_data=OSPF_AUTH_DATA           # Empty auth data
 )
 
 
@@ -290,30 +398,29 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
     global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink, seq_global,e
     while True:
         interfaces_info = get_interfaces_info_with_interface_name()
-        for info in interfaces_info:
-            if info["interface"] == "ens4":
-                d = OSPF_Link(id=info['network'], data=info['netmask'], type=3, metric=1)
-            else:
-                d = OSPF_Link(id=info['ip_address'], data=info['ip_address'], type=2, metric=1) 
-
-            if info["interface"] == "ens4":
-                e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
-                seq_global = info['sequence']       
-
-            if d in ospf_link_list and e in lsadb_hdr_default:
-                continue
-            else:
-                ospf_link_list.append(d)
-                lsadb_hdr_default.append(e)
         
+        # Format MikroTik-compatible OSPF packets
         if neighbor_state == "Down":
-            # print(f"Neighbor: {neighbor_default}")
-            ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip)
-            ospf_header = OSPF_Hdr(version=2, type=1, src=source_ip, area=area_id)
+            # TTL=1 for local multicast as expected by MikroTik
+            ip_broadcast_hello = IP(src=ip_address, dst=broadcast_ip, ttl=1)
+            
+            # MikroTik expects specific auth type (0 for none)
+            ospf_header = OSPF_Hdr(
+                version=2,
+                type=1,  # Hello packet
+                src=source_ip,
+                area=area_id,
+                auth_type=0,  # No authentication
+                auth_data=b"\x00" * 8  # Empty auth data
+            )
+            
             ospf_hello_first.neighbors = []
             ospf_hello_first.router = ip_address
-            ospf_packet_hello_first = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
-            sendp(ospf_packet_hello_first, iface=interface, verbose=0)
+            # Create MikroTik compatible Hello packet
+            ospf_hello_packet = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
+            # Send with proper checksums
+            ospf_hello_packet = ospf_hello_packet.__class__(bytes(ospf_hello_packet))
+            sendp(ospf_hello_packet, iface=interface, verbose=0)
 
         totallink = len(ospf_link_list)
         # print(f"thread: {threads}")
@@ -326,29 +433,30 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         time.sleep(interval)
 
 def send_ospf_dbd_first(interface, src_broadcast, source_ip, neighbor_ip, seq_num):
-    """Kirim paket Database Description (DBD) pertama ke neighbor dengan flags dan seq_num yang benar"""
-    ip_dbd = IP(src=src_broadcast, dst=str(neighbor_ip))
-    ospf_hdr_dbd = OSPF_Hdr(version=2, type=2, src=source_ip, area=area_id)
+    """Send initial Database Description (DBD) packet with proper Master/Slave election flags"""
+    ip_dbd = IP(src=src_broadcast, dst=str(neighbor_ip), ttl=1)  # TTL=1 for MikroTik
+    ospf_hdr_dbd = OSPF_Hdr(
+        version=2, 
+        type=2,           # DBD packet
+        src=source_ip, 
+        area=area_id,
+        auth_type=OSPF_AUTH_TYPE,
+        auth_data=OSPF_AUTH_DATA
+    )
     
-    # Konversi list flags string ke bitmask integer
-    # flag_value = 0
-    # if "I" in flags:
-    #     flag_value |= 0x04  # Init bit
-    # if "M" in flags:
-    #     flag_value |= 0x02  # More bit
-    # if "MS" in flags:
-    #     flag_value |= 0x01  # Master/Slave bit
-    
+    # Initial DBD flags:
+    # I(Init) = 1, M(More) = 1, MS(Master/Slave) = 1
+    # 0x07 = 0b0111 (I=1, M=1, MS=1)
     ospf_dbd_pkt1 = (
         eth /
         ip_dbd /
         ospf_hdr_dbd /
         OSPF_DBDesc(
-            options=0x02,
-            mtu=1500,
-            dbdescr=0x07,
-            ddseq=seq_num,
-            lsaheaders=[]
+            options=OSPF_OPTIONS_E,     # External routing capability
+            mtu=OSPF_MTU,              # MTU size
+            dbdescr=0x07,              # Init, More, and Master bits set
+            ddseq=seq_num,            # Initial sequence number
+            lsaheaders=[]              # No LSA headers in initial DBD
         )
     )
     
@@ -431,12 +539,19 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
-    """Kirim paket Link State Update (LSU) ke neighbor"""
-    # Header IP unicast ke neighbor router IP
-    ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip))
+    """Send Link State Update (LSU) to neighbor with MikroTik compatible options"""
+    # IP header with TTL=1 for local delivery
+    ip_lsu = IP(src=src_broadcast, dst=str(neighbor_ip), ttl=1)
     
-    # Header OSPF tipe 4: Link State Update Packet
-    ospf_hdr_lsu = OSPF_Hdr(version=2, type=4, src=source_ip, area=area_id)
+    # OSPF header with proper authentication fields
+    ospf_hdr_lsu = OSPF_Hdr(
+        version=2, 
+        type=OSPF_TYPE_LSU,
+        src=source_ip, 
+        area=area_id,
+        auth_type=OSPF_AUTH_TYPE,
+        auth_data=OSPF_AUTH_DATA
+    )
 
     for i in lsreqdb_list:
         type_lsr = i.type
@@ -494,12 +609,21 @@ def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     lsudb_list.clear()
     lsreqdb_list.clear()
 
-def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
+def send_ospf_lsaack(interface, src_broadcast, source_ip, broadcastip):
     global lsudb_list, lsack_list, lsackdb_list, lsarouter_default, lsacknih, newrute, lsanew, mac_src, networklist
-    ip_lsack = IP(src=src_broadcast, dst=str(broadcastip))
+    """Send Link State Acknowledgment with MikroTik compatible settings"""
+    # IP header with TTL=1 for local delivery
+    ip_lsack = IP(src=src_broadcast, dst=str(broadcastip), ttl=1)
     
-    # Header OSPF tipe 5: Link State ACK Packet
-    ospf_hdr_lsack = OSPF_Hdr(version=2, type=5, src=source_ip, area=area_id)
+    # OSPF header with proper authentication fields
+    ospf_hdr_lsack = OSPF_Hdr(
+        version=2,
+        type=OSPF_TYPE_LSACK,
+        src=source_ip,
+        area=area_id,
+        auth_type=OSPF_AUTH_TYPE,
+        auth_data=OSPF_AUTH_DATA
+    )
     
     # Buat LSU packet dengan LSAs yang diberikan
 
@@ -707,7 +831,6 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     
         elif ospfhdr_layer.type == 3:  # LSR packet
             print("Received LSR packet")
-            print(f"{lsadb_list}")
             src_ip = packet[IP].src
             ip2 = ipaddress.IPv4Address(src_ip)
             ip1 = tracking_state.get(interface, {}).get("ip_address")
@@ -749,7 +872,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
-                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
+                        # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.adrouter}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     print(f"LSA List: {lsackdb_list}")
                     ip_lsu2 = IP(src=src_broadcast, dst=broadcast_ip)
