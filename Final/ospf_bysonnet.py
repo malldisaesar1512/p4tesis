@@ -689,7 +689,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             netmask1 = tracking_state.get(interface, {}).get("netmask")
             network1 = ipaddress.IPv4Network(f"{ip1}/{netmask1}", strict=False)
 
-            if tracking_state.get(interface, {}).get("state") == "Loading" or "Exchange":
+            if tracking_state.get(interface, {}).get("state") == "Loading" or tracking_state.get(interface, {}).get("state") == "Exchange":
+                print(f"Received LSU packet on Loading or Exchange state")
                 if  ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
                     ether_layer = packet.getlayer(Ether)
@@ -754,6 +755,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
             if tracking_state.get(interface, {}).get("state") == "Full":
+                p = tracking_state.get(interface, {}).get("state")
+                print(f"{p}")
                 print("Received LSU packet on Full state")
                 if  ip2 in network1 and src_ip not in ips:
                     lsu_layer = packet.getlayer(OSPF_LSUpd)
