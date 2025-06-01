@@ -562,7 +562,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     neighbor_ip = src_neighbor
                     print(f"Received Hello from {src_ip}, moving to Init state or 2-Way")
                     ospf_hello_first.neighbors = [neighbor_ip]
-                    ospf_hello_first.router = src_ip
+                    ospf_hello_first.router = ip1
                     ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
                     
                     ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
@@ -577,7 +577,8 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     print(f"Received Hello from {src_ip}, moving to 2-Way state")
                     # ospf_hello_first.backup = src_ip
                     ospf_hello_first.neighbors = [neighbor_ip]
-                    ospf_hello_first.router = src_ip
+                    ospf_hello_first.router = ip1
+                    ospf_hello_first.backup = src_ip
                     ip_broadcast_hello = IP(src=src_broadcast, dst=broadcast_ip)
 
                     ospf_packet_hello2 = eth / ip_broadcast_hello / ospf_header / ospf_hello_first
