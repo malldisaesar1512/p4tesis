@@ -163,6 +163,7 @@ register<bit<48>>(NUM_FLOW) flow_out;
 register<bit<48>>(NUM_FLOW) flow_in;
 register<bit<32>>(NUM_PORT) enc_status;
 register<bit<9>>(NUM_PORT) port_status1;
+register<bit<1>>(NUM_PORT) modify_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
@@ -420,6 +421,7 @@ control MyIngress(inout headers hdr,
                 portout.read(var_portout1, (bit<32>)var_flowid);
                 if((meta.var_rtt >= var_threshold) || (meta.var_ecnstatus == 3) || (meta.var_linkstatus == 0)){
                     port_status.read(meta.var_portstatus,0);
+                    modify_status.write(0, 1);
                     if((meta.var_portstatus == PORT_DOWN) && (meta.var_linkstatus == 1)){
                         port_status.write(0, PORT_UP);   
                     }
@@ -429,6 +431,7 @@ control MyIngress(inout headers hdr,
                 }
                 if(meta.var_rtt <= var_threshold || meta.var_ecnstatus == 0 || meta.var_linkstatus == 1){
                     port_status.read(meta.var_portstatus,0);
+                    modify_status.write(0, 0);
                     if(meta.var_portstatus == PORT_DOWN){
                         port_status.write(0, PORT_DOWN);   
                     }else{

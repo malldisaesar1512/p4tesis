@@ -158,7 +158,7 @@ def table_delete(table, idx, thrift_port):
 #     return int(var_handle)
 # import subprocess
 
-def table_add(parametro, thrift_port):
+def table_add(parameter, thrift_port):
     p = subprocess.Popen(
         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
         stdin=subprocess.PIPE,
@@ -167,7 +167,7 @@ def table_add(parametro, thrift_port):
         text=True  # Penting agar input/output berupa string
     )
     
-    command = f"table_add {parametro}\n"
+    command = f"table_add {parameter}\n"
     stdout, stderr = p.communicate(input=command)
     
     # Cari baris yang mengandung kata 'added' untuk mengambil handle
@@ -185,6 +185,17 @@ def table_entry(table, network, thrift_port):
     entry_val = [l for l in stdout.split('\n') if ' %s' % ('Dumping') in l][0].split('0x', 1)[1]
     return int(entry_val)
 #################### P4 CONTROLLER #####################
+
+def check_link_status(target_ip, iface):
+    # Kirim paket ICMP untuk mengecek status link
+    payload = "X" * 58  # Payload untuk ICMP echo request, bisa disesuaikan
+    response = srp(Ether()/IP(dst=target_ip)/ICMP()/Raw(load=payload), iface=iface, timeout=1, verbose=False)[0]
+    
+    # Jika ada balasan, link hidup
+    if response:
+        return 1  # Link hidup
+    else:
+        return 0  # Link mati
 
 def get_interfaces_info_with_interface_name():
     global ips, netmasks, networks, statuses, interfaces_info, networklist
@@ -506,12 +517,12 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     #         if ip in networklist:
     #             continue
     #         else:
-    #             parametro = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+    #             parameter = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
     #             try:
-    #                 handle = table_add(parametro, 9090)
-    #                 print(f"Added entry for {parametro} with handle {handle}")
+    #                 handle = table_add(parameter, 9090)
+    #                 print(f"Added entry for {parameter} with handle {handle}")
     #             except Exception as e:
-    #                 print(f"Error adding entry for {parametro}: {e}")
+    #                 print(f"Error adding entry for {parameter}: {e}")
 
     lsackdb_list.clear()
     lsack_list.clear()
