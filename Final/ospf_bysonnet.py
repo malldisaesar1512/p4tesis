@@ -526,7 +526,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
 
     lsackdb_list.clear()
     lsack_list.clear()
-    lsanew.clear()
+    # lsanew.clear()
 
 def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
