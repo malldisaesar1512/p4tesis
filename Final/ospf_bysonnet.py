@@ -184,6 +184,31 @@ def table_entry(table, network, thrift_port):
     stdout, stderr = p.communicate(input="table_dump_entry_from_key %s %s" % (table, network))
     entry_val = [l for l in stdout.split('\n') if ' %s' % ('Dumping') in l][0].split('0x', 1)[1]
     return int(entry_val)
+
+def add_to_p4(interface):
+    global db_lsap4, networklist, mac_src
+    for interface, data in db_lsap4.items():
+        rutep4 = data["routelist"]
+        macp4 = data["ether_src"]
+        intp4 = data["interface"]
+        if intp4 == "ens4":
+            port_out = "0"
+            table_name = "MyIngress.ipv4_lpm"
+        elif intp4 == "ens5":
+            port_out = "1"
+            table_name = "MyIngress.ipv4_reroute"
+
+        for ip in rutep4:
+            if ip in networklist:
+                continue
+            else:
+                parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                try:
+                    handle = table_add(parameter, 9090)
+                    print(f"Added entry for {parameter} with handle {handle}")
+                except Exception as e:
+                    print(f"Error adding entry for {parameter}: {e}")
+
 #################### P4 CONTROLLER #####################
 
 def check_link_status(target_ip, iface):
@@ -501,29 +526,6 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LS_ACK packet to {broadcastip}")
     sendp(ospf_lsack_pkt, iface=interface, verbose=0)
-
-    # for interface, data in db_lsap4.items():
-    #     rutep4 = data["routelist"]
-    #     macp4 = data["ether_src"]
-    #     intp4 = data["interface"]
-    #     if intp4 == "ens4":
-    #         port_out = "0"
-    #         table_name = "MyIngress.ipv4_lpm"
-    #     elif intp4 == "ens5":
-    #         port_out = "1"
-    #         table_name = "MyIngress.ipv4_lpm2"
-
-    #     for ip in rutep4:
-    #         if ip in networklist:
-    #             continue
-    #         else:
-    #             parameter = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-    #             try:
-    #                 handle = table_add(parameter, 9090)
-    #                 print(f"Added entry for {parameter} with handle {handle}")
-    #             except Exception as e:
-    #                 print(f"Error adding entry for {parameter}: {e}")
-
     lsackdb_list.clear()
     lsack_list.clear()
     # lsanew.clear()
