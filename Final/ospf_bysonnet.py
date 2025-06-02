@@ -198,7 +198,7 @@ def table_entry(table, network, thrift_port):
 
 def add_to_p4(interface):
     global db_lsap4, networklist, mac_src, list_route
-    for interface, data in db_lsap4.items():
+    for interface, data in db_lsap4.copy().items():
         rutep4 = data["routelist"]
         macp4 = data["ether_src"]
         intp4 = data["interface"]
@@ -239,7 +239,7 @@ def modify_route():
         table_clear("MyIngress.ipv4_reroute", 9090)
     for i in range(2):  # Mengulang 2 kali
         current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-        for interface, data in db_lsap4.items():
+        for interface, data in db_lsap4.copy().items():
             rutep4 = data["routelist"]
             macp4 = data["ether_src"]
             intp4 = data["interface"]
@@ -646,7 +646,8 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 else:
                     continue
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
-            add_to_p4(interface)  # Tambahkan rute baru ke P4
+        
+        add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
 
     print(f"lsack.list: {lsack_list}")
