@@ -718,12 +718,12 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             else:
                 if interface == "ens5" and mac_src == "50:00:00:00:30:00":
                     continue
-                else:
+                elif interface == "ens5" and mac_src != "50:00:00:00:30:00":
                     mac_src = "50:00:00:00:30:00"
                 
                 if interface == "ens6" and mac_src == "50:00:00:00:40:00":
                     continue
-                else:
+                elif interface == "ens6" and mac_src != "50:00:00:00:40:00":
                     mac_src = "50:00:00:00:40:00"
 
                 db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
