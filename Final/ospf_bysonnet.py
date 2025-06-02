@@ -214,20 +214,29 @@ def add_to_p4(interface):
                 continue
             else:
                 if intp4 == "ens5":
-                        parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
                         list_route[table_name]={
                             "command": parameter
                         }
                 elif intp4 == "ens6":
                     parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
-                    list_route[table_name]={
-                        "command": parameter
-                    }
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={
+                            "command": parameter
+                        }
                 try:
                     handle = table_add(parameter, 9090)
                     print(f"Added entry for {parameter} with handle {handle}")
                 except Exception as e:
                     print(f"Error adding entry for {parameter}: {e}")
+        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+        write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
 
 def modify_route():
     global db_lsap4, networklist, mac_src, list_route
@@ -949,9 +958,24 @@ def sniff_packets(interface, src_broadcast, source_ip):
    print("Sniffing packets...")
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt, interface,src_broadcast,source_ip), store=False, timeout=100000000)
 
+def modify_action():
+    while True:
+        status_modify = read_registerAll("modify_status", 9090)
+        if status_modify == 1:
+            print("Modify action is enabled")
+            get_register_p4()
+            time.sleep(1)
+            modify_route()
+        else:
+            print("Modify action is disabled")
+            time.sleep(1)
+            
 if __name__ == "__main__":
     
     threads = []
+    modify_thread = threading.Thread(target=modify_action)
+    modify_thread.start()
+    threads.append(modify_thread)
 
     interfaces_info = get_interfaces_info_with_interface_name()
 
