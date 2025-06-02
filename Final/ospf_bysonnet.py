@@ -966,6 +966,7 @@ def sniff_packets(interface, src_broadcast, source_ip):
 def modify_action():
     while True:
         status_modify = read_register("modify_status",0, 9090)
+        print(f"Modify status: {status_modify}")
         if status_modify == 1:
             print("Modify action is enabled")
             get_register_p4()
@@ -973,7 +974,6 @@ def modify_action():
             modify_route()
         else:
             print("Modify action is disabled")
-            time.sleep(1)
             
 if __name__ == "__main__":
     
