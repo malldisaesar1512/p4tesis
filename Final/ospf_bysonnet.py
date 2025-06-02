@@ -1,6 +1,7 @@
 from asyncio import threads
 from audioop import add
 from cmath import inf
+from distutils import command
 from json import load
 from os import link
 import os
@@ -134,9 +135,11 @@ lsa_link = OSPF_Link( #LinkLSA
 #################### P4 CONTROLLER #####################
 def read_registerAll(register, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate(input="register_read %s" % (register))
-    reg_val = [l for l in stdout.split('\n') if ' %s' % (register) in l][0].split('= ', 1)[1]
-    return reg_val.split(", ")
+    command = "register_read %s" % (register)
+    stdout, stderr = p.communicate(input=command.encode('utf-8'))
+    if stderr:
+        print("Error:", stderr.decode('utf-8'))
+    return
 
 def table_clear(table, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
