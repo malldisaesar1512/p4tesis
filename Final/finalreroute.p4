@@ -423,7 +423,7 @@ control MyIngress(inout headers hdr,
                 portout.read(var_portout1, (bit<32>)var_flowid);
                 if((meta.var_rtt >= var_threshold) || (meta.var_ecnstatus == 3) || (meta.var_linkstatus == 1)){
                     port_status.read(meta.var_portstatus,0);
-                    modify_status.write(0, 1);
+                    
                     if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
                         port_status.write(0, PORT_UP);   
                     }
@@ -446,6 +446,7 @@ control MyIngress(inout headers hdr,
             port_status.read(meta.var_portstatus,0);    
             if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
+                modify_status.write(0, 0);
                 var_portout1 = 2;
                 var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
@@ -454,6 +455,7 @@ control MyIngress(inout headers hdr,
             }
             else{
                 ipv4_lpm.apply();
+                modify_status.write(0, 1);
                 var_portout1 = 1;
                 var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
