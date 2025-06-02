@@ -148,9 +148,11 @@ def table_clear(table, thrift_port):
 
 def read_register(register, idx, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate(input="register_read %s %d" % (register, idx))
-    reg_val = [l for l in stdout.split('\n') if ' %s[%d]' % (register, idx) in l][0].split('= ', 1)[1]
-    return int(reg_val)
+    command = "register_read %s %d" % (register, idx)
+    stdout, stderr = p.communicate(input=command.encode('utf-8'))
+    if stderr:
+        print("Error:", stderr.decode('utf-8'))
+    return
 
 def write_register(register, idx, value, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -314,8 +316,8 @@ def get_register_p4():
 
     thrift_port = 9090
     # Membaca nilai register dari P4
-    ecn_mark = read_registerAll("ecn_status", thrift_port)
-    port_out = read_registerAll("portoutnew", thrift_port)
+    ecn_mark = read_registerAll("ecn_status",0, thrift_port)
+    port_out = read_registerAll("portoutnew",0, thrift_port)
     # Mengonversi nilai register ke integer
     if not ecn_mark or not port_out:
         print("No data found in registers.")
@@ -963,7 +965,7 @@ def sniff_packets(interface, src_broadcast, source_ip):
 
 def modify_action():
     while True:
-        status_modify = read_registerAll("modify_status", 9090)
+        status_modify = read_register("modify_status",0, 9090)
         if status_modify == 1:
             print("Modify action is enabled")
             get_register_p4()
