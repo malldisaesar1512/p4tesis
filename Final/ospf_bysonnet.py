@@ -301,7 +301,7 @@ def modify_route():
         table_clear("MyIngress.ipv4_reroute", 9090)
         for i in range(2):  # Mengulang 2 kali
             current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-            for interface, data in db_lsap4.copy().items():
+            for interface, data in db_lsap4.items():
                 rutep4 = data["routelist"]
                 macp4 = data["ether_src"]
                 intp4 = data["interface"]
@@ -317,7 +317,7 @@ def modify_route():
                         continue
                     else:
                         if intp4 == "ens5":
-                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
                             if parameter in list_route:
                                 continue
                             else:
@@ -325,7 +325,7 @@ def modify_route():
                                     "command": parameter
                                 }
                         elif intp4 == "ens6":
-                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
                             if parameter in list_route:
                                 continue
                             else:
