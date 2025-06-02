@@ -202,10 +202,10 @@ def add_to_p4(interface):
         rutep4 = data["routelist"]
         macp4 = data["ether_src"]
         intp4 = data["interface"]
-        if intp4 == "ens4":
+        if intp4 == "ens5":
             port_out = "0"
             table_name = "MyIngress.ipv4_lpm"
-        elif intp4 == "ens5":
+        elif intp4 == "ens6":
             port_out = "1"
             table_name = "MyIngress.ipv4_reroute"
 
@@ -243,10 +243,10 @@ def modify_route():
             rutep4 = data["routelist"]
             macp4 = data["ether_src"]
             intp4 = data["interface"]
-            if intp4 == "ens4":
+            if intp4 == "ens5":
                 port_out = "0"
                 table_name = "MyIngress.ipv4_reroute"
-            elif intp4 == "ens5":
+            elif intp4 == "ens6":
                 port_out = "1"
                 table_name = "MyIngress.ipv4_lpm"
 
