@@ -274,8 +274,8 @@ def modify_route():
 
     interfaces_proses = ['ens4','ens5']
 
-    result1 = check_link_status("10.10.1.1", count=1, packet_size=64)
-    result2 = check_link_status("11.11.1.1", count=1, packet_size=64)
+    result1 = check_link_status("10.10.1.1", 1, 64)
+    result2 = check_link_status("11.11.1.1", 1, 64)
 
     cost1 = cost_calculation(result1["estimated_throughput_bps"], result1["ecn_mark"], result1["average_rtt_ms"], result1["link_status"])
     cost2 = cost_calculation(result2["estimated_throughput_bps"], result2["ecn_mark"], result2["average_rtt_ms"], result2["link_status"])
@@ -353,25 +353,29 @@ def get_register_p4():
         print(f"Port Out: {port_out}")
 
 def check_link_status(target_ip, count, packet_size):
-    # def icmp_probe(target_ip, count=4, timeout=2, packet_size=64):
-    # """ Mengirim paket ICMP Echo Request ke target_ip dan mengukur link status, RTT, dan throughput.
+    """
+    Mengirim paket ICMP Echo Request ke target_ip dan mengukur link status, RTT, dan throughput.
 
-    # Parameters:
-    # - target_ip: alamat IP tujuan (string)
-    # - count: jumlah paket yang dikirim (default 4)
-    # - timeout: waktu tunggu balasan dalam detik (default 2)
-    # - packet_size: ukuran payload ICMP dalam bytes (default 64)
+    Parameters:
+    - target_ip: alamat IP tujuan (string)
+    - count: jumlah paket yang dikirim (int)
+    - packet_size: ukuran payload ICMP dalam bytes (int)
+    - timeout: waktu tunggu balasan dalam detik (default 2)
 
-    # Returns:
-    # - dict berisi status link, rata-rata RTT (ms), packet loss (%), dan throughput (bps) """
+    Returns:
+    - dict berisi status link, rata-rata RTT (ms), packet loss (%), dan throughput (bps)
+    """
     rtt_list = []
     received_packets = 0
 
     for seq in range(count):
         # Buat paket ICMP dengan payload sesuai ukuran
-        packet = IP(dst=target_ip)/ICMP(seq=seq)/("X"*(packet_size - 28))  # 28 bytes header IP+ICMP
+        # Header IP+ICMP biasanya 28 bytes, jadi payload = packet_size - 28
+        payload_size = max(packet_size - 28, 0)
+        packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
+        
         start_time = time.time()
-        reply = sr1(packet, timeout=timeout, verbose=0)
+        reply = sr1(packet, timeout=2, verbose=0)
         end_time = time.time()
 
         if reply is None:
