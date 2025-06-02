@@ -142,25 +142,12 @@ def read_registerAll(register, thrift_port):
     return
 
 def table_clear(table_name, thrift_port):
-    p = subprocess.Popen(
-        ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True  # Penting agar input/output berupa string
-    )
-    
-    command = f"table_clear {table_name}\n"
-    stdout, stderr = p.communicate(input=command)
-    
-    # Cari baris yang mengandung kata 'added' untuk mengambil handle
-    var_handle = [line for line in stdout.split('\n') if ' added' in line]
-    
-    if var_handle:
-        handle_str = var_handle[0].split('handle ', 1)[1]
-        return int(handle_str)
-    else:
-        raise RuntimeError(f"Failed to clear table : {stderr}")
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    command = "table_clear %s" % (table_name)
+    stdout, stderr = p.communicate(input=command.encode('utf-8'))
+    if stderr:
+        print("Error:", stderr.decode('utf-8'))
+    return
 
 # def read_register(register, idx, thrift_port):
 #     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
