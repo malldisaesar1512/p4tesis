@@ -427,11 +427,11 @@ control MyIngress(inout headers hdr,
                     if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
                         port_status.write(0, PORT_UP);   
                     }
-                    if((meta.var_portstatus == PORT_UP) || (meta.var_linkstatus == 0)){
+                    else if((meta.var_portstatus == PORT_UP) || (meta.var_linkstatus == 0)){
                         port_status.write(0, PORT_DOWN);
                     }
                 }
-                if(meta.var_rtt <= var_threshold || meta.var_ecnstatus == 0 || meta.var_linkstatus == 0){
+                else if(meta.var_rtt <= var_threshold || meta.var_ecnstatus == 0 || meta.var_linkstatus == 0){
                     port_status.read(meta.var_portstatus,0);
                     modify_status.write(0, 0);
                     if(meta.var_portstatus == PORT_DOWN){
