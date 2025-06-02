@@ -712,6 +712,16 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     newrute.append(rute)
                 else:
                     continue
+            if interface == "ens5" and mac_src == "50:00:00:00:30:00":
+                continue
+            else:
+                mac_src = "50:00:00:00:30:00"
+            
+            if interface == "ens6" and mac_src == "50:00:00:00:40:00":
+                continue
+            else:
+                mac_src = "50:00:00:00:40:00"
+
             if (newrute, netp4, interface, mac_src) in db_lsap4:
                 continue
             else:
