@@ -260,7 +260,7 @@ def modify_route():
                             "command": parameter
                         }
                     elif intp4 == "ens6":
-                        parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                        parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
                         list_route[table_name]={
                             "command": parameter
                         }
