@@ -146,13 +146,39 @@ def table_clear(table, thrift_port):
     stdout, stderr = p.communicate(input="table_clear %s" % (table))
     return
 
+# def read_register(register, idx, thrift_port):
+#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#     command = "register_read %s %d" % (register, idx)
+#     stdout, stderr = p.communicate(input=command.encode('utf-8'))
+#     if stderr:
+#         print("Error:", stderr.decode('utf-8'))
+#     return
 def read_register(register, idx, thrift_port):
-    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    command = "register_read %s %d" % (register, idx)
+    # Membuka proses CLI dengan port thrift yang diberikan
+    p = subprocess.Popen(
+        ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    
+    # Mengirim perintah register_read dan mendapatkan output bytes
+    command = f"register_read {register} {idx}"
     stdout, stderr = p.communicate(input=command.encode('utf-8'))
-    if stderr:
-        print("Error:", stderr.decode('utf-8'))
-    return
+    
+    # Decode bytes ke string
+    stdout_str = stdout.decode('utf-8')
+    
+    # Memproses output string untuk mendapatkan nilai register
+    try:
+        # Cari baris yang mengandung register dan index yang dimaksud
+        line = [l for l in stdout_str.split('\n') if f' {register}[{idx}]' in l][0]
+        reg_val = line.split('= ', 1)[1]
+        return int(reg_val)
+    except IndexError:
+        raise ValueError(f"Register {register}[{idx}] tidak ditemukan dalam output.")
+    except Exception as e:
+        raise RuntimeError(f"Terjadi kesalahan saat membaca register: {e}")
 
 def write_register(register, idx, value, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
