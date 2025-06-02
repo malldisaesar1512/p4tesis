@@ -309,47 +309,47 @@ def modify_route():
 
     print(f"Cost for link 1: {cost1}, Cost for link 2: {cost2}")
 
-    if cost1 < cost2:
+    if cost1 > cost2:
         table_clear("MyIngress.ipv4_lpm", 9090)
         table_clear("MyIngress.ipv4_reroute", 9090)
-    for i in range(2):  # Mengulang 2 kali
-        current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-        for interface, data in db_lsap4.copy().items():
-            rutep4 = data["routelist"]
-            macp4 = data["ether_src"]
-            intp4 = data["interface"]
-            if intp4 == "ens5":
-                port_out = "1"
-                table_name = "MyIngress.ipv4_reroute"
-            elif intp4 == "ens6":
-                port_out = "2"
-                table_name = "MyIngress.ipv4_lpm"
+        for i in range(2):  # Mengulang 2 kali
+            current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
+            for interface, data in db_lsap4.copy().items():
+                rutep4 = data["routelist"]
+                macp4 = data["ether_src"]
+                intp4 = data["interface"]
+                if intp4 == "ens5":
+                    port_out = "1"
+                    table_name = "MyIngress.ipv4_reroute"
+                elif intp4 == "ens6":
+                    port_out = "2"
+                    table_name = "MyIngress.ipv4_lpm"
 
-            for ip in rutep4:
-                if ip in networklist:
-                    continue
-                else:
-                    if intp4 == "ens5":
-                        parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-                        if parameter in list_route:
-                            continue
-                        else:
-                            list_route[table_name]={
-                                "command": parameter
-                            }
-                    elif intp4 == "ens6":
-                        parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
-                        if parameter in list_route:
-                            continue
-                        else:
-                            list_route[table_name]={
-                                "command": parameter
-                            }
-                    try:
-                        handle = table_add(parameter, 9090)
-                        print(f"Added entry for {parameter} with handle {handle}")
-                    except Exception as e:
-                        print(f"Error adding entry for {parameter}: {e}")
+                for ip in rutep4:
+                    if ip in networklist:
+                        continue
+                    else:
+                        if intp4 == "ens5":
+                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={
+                                    "command": parameter
+                                }
+                        elif intp4 == "ens6":
+                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={
+                                    "command": parameter
+                                }
+                        try:
+                            handle = table_add(parameter, 9090)
+                            print(f"Added entry for {parameter} with handle {handle}")
+                        except Exception as e:
+                            print(f"Error adding entry for {parameter}: {e}")
 
 #################### P4 CONTROLLER #####################
 def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
