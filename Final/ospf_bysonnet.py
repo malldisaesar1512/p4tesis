@@ -712,19 +712,20 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     newrute.append(rute)
                 else:
                     continue
-            if interface == "ens5" and mac_src == "50:00:00:00:30:00":
-                continue
-            else:
-                mac_src = "50:00:00:00:30:00"
             
-            if interface == "ens6" and mac_src == "50:00:00:00:40:00":
-                continue
-            else:
-                mac_src = "50:00:00:00:40:00"
-
             if newrute and netp4 and interface and mac_src in db_lsap4:
                 continue
             else:
+                if interface == "ens5" and mac_src == "50:00:00:00:30:00":
+                    continue
+                else:
+                    mac_src = "50:00:00:00:30:00"
+                
+                if interface == "ens6" and mac_src == "50:00:00:00:40:00":
+                    continue
+                else:
+                    mac_src = "50:00:00:00:40:00"
+
                 db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
         add_to_p4(interface)  # Tambahkan rute baru ke P4
