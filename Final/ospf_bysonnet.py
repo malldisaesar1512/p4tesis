@@ -268,6 +268,7 @@ def add_to_p4(interface):
                     print(f"Added entry for {parameter} with handle {handle}")
                 except Exception as e:
                     print(f"Error adding entry for {parameter}: {e}")
+
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
         write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
@@ -337,7 +338,10 @@ def modify_route():
                             print(f"Added entry for {parameter} with handle {handle}")
                         except Exception as e:
                             print(f"Error adding entry for {parameter}: {e}")
-
+    
+        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
 #################### P4 CONTROLLER #####################
 def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     BW_DEFAULT = 10000000  # Bandwidth default dalam bps
@@ -708,8 +712,11 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                     newrute.append(rute)
                 else:
                     continue
-            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
-        
+            if (newrute, netp4, interface, mac_src) in db_lsap4:
+                continue
+            else:
+                db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
+
         add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
 
