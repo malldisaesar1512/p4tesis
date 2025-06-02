@@ -1000,6 +1000,7 @@ def modify_action():
             modify_route()
         else:
             print("Modify action is disabled")
+            time.sleep(0.5)
             
 if __name__ == "__main__":
     
