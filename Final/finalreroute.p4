@@ -155,6 +155,7 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 register<bit<1>>(NUM_PORT) port_status;
 register<bit<9>>(NUM_PORT) portin;
 register<bit<9>>(NUM_PORT) portout;
+register<bit<9>>(NUM_PORT) portoutnew;
 register<bit<48>>(NUM_FLOW) mac_list;
 register<bit<1>>(NUM_PORT) linkstatus;
 
@@ -336,6 +337,7 @@ control MyIngress(inout headers hdr,
         bit<48> var_flowmark;
         bit<48> var_threshold;
         bit<9> var_port;
+        bit<9> var_portout2;
 
         var_flowid = 0;
         var_threshold = 250000; //refer to ITU-T G.1010
@@ -445,13 +447,17 @@ control MyIngress(inout headers hdr,
             if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
                 var_portout1 = 2;
+                var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
+                portoutnew.write(0, var_portout2);
                 port_status.write(0, PORT_DOWN);
             }
             else{
                 ipv4_lpm.apply();
                 var_portout1 = 1;
+                var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
+                portoutnew.write(0, var_portout2);
                 port_status.write(0, PORT_UP);
             }
         }

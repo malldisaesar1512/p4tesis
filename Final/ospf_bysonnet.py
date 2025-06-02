@@ -1,9 +1,13 @@
 from asyncio import threads
+from audioop import add
 from cmath import inf
+from json import load
 from os import link
 import os
 from socket import timeout
+from tabnanny import check
 from turtle import st
+from urllib import response
 from scapy.all import *
 from scapy.contrib.ospf import *
 import time
@@ -43,6 +47,7 @@ neighbor_default = "10.10.2.1"
 dr = "10.10.1.2"
 bdr = "10.10.1.1"
 lsadb_list = []
+lsadb_hdr_list = []
 lsreq_list = []
 lsreqdb_list = []
 lsudb_list = []
@@ -55,6 +60,7 @@ lsacknih = []
 LSA_listdb = []
 newrute = []
 rutep4 = []
+list_route = {}
 # interface = []
 list_interface = []
 list_ip = []
@@ -132,6 +138,11 @@ def read_registerAll(register, thrift_port):
     reg_val = [l for l in stdout.split('\n') if ' %s' % (register) in l][0].split('= ', 1)[1]
     return reg_val.split(", ")
 
+def table_clear(table, thrift_port):
+    p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate(input="table_clear %s" % (table))
+    return
+
 def read_register(register, idx, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate(input="register_read %s %d" % (register, idx))
@@ -186,7 +197,7 @@ def table_entry(table, network, thrift_port):
     return int(entry_val)
 
 def add_to_p4(interface):
-    global db_lsap4, networklist, mac_src
+    global db_lsap4, networklist, mac_src, list_route
     for interface, data in db_lsap4.items():
         rutep4 = data["routelist"]
         macp4 = data["ether_src"]
@@ -203,24 +214,148 @@ def add_to_p4(interface):
                 continue
             else:
                 parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                list_route[table_name]={
+                    "command": parameter
+                }
                 try:
                     handle = table_add(parameter, 9090)
                     print(f"Added entry for {parameter} with handle {handle}")
                 except Exception as e:
                     print(f"Error adding entry for {parameter}: {e}")
 
-#################### P4 CONTROLLER #####################
+def modify_route():
+    global db_lsap4, networklist, mac_src, list_route
 
-def check_link_status(target_ip, iface):
-    # Kirim paket ICMP untuk mengecek status link
-    payload = "X" * 58  # Payload untuk ICMP echo request, bisa disesuaikan
-    response = srp(Ether()/IP(dst=target_ip)/ICMP()/Raw(load=payload), iface=iface, timeout=1, verbose=False)[0]
-    
-    # Jika ada balasan, link hidup
-    if response:
-        return 1  # Link hidup
+    interfaces_proses = ['ens4','ens5']
+
+    result1 = check_link_status("10.10.1.1", count=1, packet_size=64)
+    result2 = check_link_status("11.11.1.1", count=1, packet_size=64)
+
+    cost1 = cost_calculation(result1["estimated_throughput_bps"], result1["ecn_mark"], result1["average_rtt_ms"], result1["link_status"])
+    cost2 = cost_calculation(result2["estimated_throughput_bps"], result2["ecn_mark"], result2["average_rtt_ms"], result2["link_status"])
+
+    if cost1 < cost2:
+        table_clear("MyIngress.ipv4_lpm", 9090)
+        table_clear("MyIngress.ipv4_reroute", 9090)
+    for i in range(2):  # Mengulang 2 kali
+        current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
+        for interface, data in db_lsap4.items():
+            rutep4 = data["routelist"]
+            macp4 = data["ether_src"]
+            intp4 = data["interface"]
+            if intp4 == "ens4":
+                port_out = "0"
+                table_name = "MyIngress.ipv4_reroute"
+            elif intp4 == "ens5":
+                port_out = "1"
+                table_name = "MyIngress.ipv4_lpm"
+
+            for ip in rutep4:
+                if ip in networklist:
+                    continue
+                else:
+                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    list_route[table_name]={
+                        "command": parameter
+                    }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+
+#################### P4 CONTROLLER #####################
+def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
+    BW_DEFAULT = 10000000  # Bandwidth default dalam bps
+    DELAY_PICO = 1000000  # Delay default dalam pikodetik (1 ms = 1.000.000 pikodetik)
+    WIDE_SCALE = 65536  # Skala lebar untuk menghitung biaya
+
+    if ecn_mark == 3:
+        load_ecn = 255
     else:
-        return 0  # Link mati
+        load_ecn = 1
+
+    max_throughput = (BW_DEFAULT / WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
+
+    net_throughput = max_throughput + (max_throughput/(256-load_ecn))   # Menghitung throughput dalam bps
+
+    latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
+
+    cost = (net_throughput + latensi) * link_status  # Menghitung biaya
+
+    return int(cost)  # Mengembalikan biaya sebagai integer
+
+def get_register_p4():
+    global rtt_p4, ecn_mark, port_out
+
+    thrift_port = 9090
+    # Membaca nilai register dari P4
+    ecn_mark = read_registerAll("ecn_status", thrift_port)
+    port_out = read_registerAll("portoutnew", thrift_port)
+    # Mengonversi nilai register ke integer
+    ecn_mark = [int(x) for x in ecn_mark]
+    port_out = [int(x) for x in port_out]
+
+def check_link_status(target_ip, count, packet_size):
+    # def icmp_probe(target_ip, count=4, timeout=2, packet_size=64):
+    # """ Mengirim paket ICMP Echo Request ke target_ip dan mengukur link status, RTT, dan throughput.
+
+    # Parameters:
+    # - target_ip: alamat IP tujuan (string)
+    # - count: jumlah paket yang dikirim (default 4)
+    # - timeout: waktu tunggu balasan dalam detik (default 2)
+    # - packet_size: ukuran payload ICMP dalam bytes (default 64)
+
+    # Returns:
+    # - dict berisi status link, rata-rata RTT (ms), packet loss (%), dan throughput (bps) """
+    rtt_list = []
+    received_packets = 0
+
+    for seq in range(count):
+        # Buat paket ICMP dengan payload sesuai ukuran
+        packet = IP(dst=target_ip)/ICMP(seq=seq)/("X"*(packet_size - 28))  # 28 bytes header IP+ICMP
+        start_time = time.time()
+        reply = sr1(packet, timeout=timeout, verbose=0)
+        end_time = time.time()
+
+        if reply is None:
+            print(f"Request timeout for seq={seq}")
+        else:
+            rtt = (end_time - start_time) * 1000  # RTT dalam ms
+            rtt_list.append(rtt)
+            received_packets += 1
+            print(f"Reply from {target_ip}: seq={seq} time={rtt:.2f} ms")
+
+        time.sleep(1)  # jeda 1 detik antar paket
+
+    packet_loss = ((count - received_packets) / count) * 100
+
+    if received_packets > 0:
+        avg_rtt = sum(rtt_list) / received_packets
+        # Estimasi throughput dalam bits per second (bps)
+        # Ukuran paket dalam bits dibagi RTT dalam detik
+        throughput = (packet_size * 8) / (avg_rtt / 1000)
+    else:
+        avg_rtt = None
+        throughput = 0
+
+    statuslink = 1 if received_packets > 0 else 0
+
+    return {
+        "link_status": statuslink,
+        "average_rtt_ms": avg_rtt,
+        "packet_loss_percent": packet_loss,
+        "estimated_throughput_bps": throughput
+    }
+    # # Kirim paket ICMP untuk mengecek status link
+    # payload = "X" * 58  # Payload untuk ICMP echo request, bisa disesuaikan
+    # response = srp(Ether()/IP(dst=target_ip)/ICMP()/Raw(load=payload), iface=iface, timeout=1, verbose=False)[0]
+    
+    # # Jika ada balasan, link hidup
+    # if response:
+    #     return 1  # Link hidup
+    # else:
+    #     return 0  # Link mati
 
 def get_interfaces_info_with_interface_name():
     global ips, netmasks, networks, statuses, interfaces_info, networklist
@@ -509,10 +644,9 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 else:
                     continue
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
-
-            
+            add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
-    
+
 
     print(f"lsack.list: {lsack_list}")
 
@@ -703,6 +837,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
+                        if lsalsu in lsadb_hdr_list:
+                            continue
+                        else:
+                            lsadb_hdr_list.append(lsalsu)
                         # print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     # print(f"LSA List: {lsackdb_list}")
@@ -756,7 +894,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     #     return
                     send_ospf_lsaack(interface, src_broadcast, source_ip, broadcast_ip)
                     print(f"Sent LS_ACK packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-                    time.sleep(1)
+                    time.sleep(2)
             if tracking_state.get(interface, {}).get("state") == "Full":
                 p = tracking_state.get(interface, {}).get("state")
                 print(f"{p}")
@@ -769,6 +907,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                     for i in range(jumlah_lsulsa):
                         lsalsu = lsu_layer.lsalist[i]
                         lsackdb_list.append(lsalsu)
+                        if lsalsu in lsadb_hdr_list:
+                            continue
+                        else:
+                            lsadb_hdr_list.append(lsalsu)
                         print(f"LSU {i+1}: ID: {lsalsu.id}, Type: {lsalsu.type}, Advertising Router: {lsalsu.adrouter}, sequence: {lsalsu.seq}")
                     # print(f"LSA List: {len(lsackdb_list)}")
                     send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)                    
