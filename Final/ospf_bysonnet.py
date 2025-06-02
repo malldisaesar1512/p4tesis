@@ -274,11 +274,22 @@ def modify_route():
 
     interfaces_proses = ['ens4','ens5']
 
+    thrift_port = 9090
+
+    # Membaca nilai register dari P4
+    ecn_mark = read_register("enc_status",0, thrift_port)
+    port_out = read_register("portout",0, thrift_port)
+
+    if ecn_mark == 0:
+        ecn_load = 1
+    elif ecn_mark == 3:
+        ecn_load = 255
+
     result1 = check_link_status("10.10.1.1", 1, 64)
     result2 = check_link_status("11.11.1.1", 1, 64)
 
-    cost1 = cost_calculation(result1["estimated_throughput_bps"], result1["ecn_mark"], result1["average_rtt_ms"], result1["link_status"])
-    cost2 = cost_calculation(result2["estimated_throughput_bps"], result2["ecn_mark"], result2["average_rtt_ms"], result2["link_status"])
+    cost1 = cost_calculation(result1["estimated_throughput_bps"], ecn_load, result1["average_rtt_ms"], result1["link_status"])
+    cost2 = cost_calculation(result2["estimated_throughput_bps"], ecn_load, result2["average_rtt_ms"], result2["link_status"])
 
     if cost1 < cost2:
         table_clear("MyIngress.ipv4_lpm", 9090)
@@ -336,21 +347,6 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     cost = (net_throughput + latensi) * link_status  # Menghitung biaya
 
     return int(cost)  # Mengembalikan biaya sebagai integer
-
-def get_register_p4():
-    global rtt_p4, ecn_mark, port_out
-
-    thrift_port = 9090
-    # Membaca nilai register dari P4
-    ecn_mark = read_register("enc_status",0, thrift_port)
-    port_out = read_register("portout",0, thrift_port)
-    # Mengonversi nilai register ke integer
-    if not ecn_mark or not port_out:
-        print("No data found in registers.")
-        return
-    else:
-        print(f"ECN Mark: {ecn_mark}")
-        print(f"Port Out: {port_out}")
 
 def check_link_status(target_ip, count, packet_size):
     """
@@ -999,8 +995,6 @@ def modify_action():
         print(f"Modify status: {status_modify}")
         if status_modify == 1:
             print("Modify action is enabled")
-            get_register_p4()
-            time.sleep(1)
             modify_route()
         else:
             print("Modify action is disabled")
