@@ -307,6 +307,8 @@ def modify_route():
     cost1 = cost_calculation(result1["estimated_throughput_bps"], ecn_load, result1["average_rtt_ms"], result1["link_status"])
     cost2 = cost_calculation(result2["estimated_throughput_bps"], ecn_load, result2["average_rtt_ms"], result2["link_status"])
 
+    print(f"Cost for link 1: {cost1}, Cost for link 2: {cost2}")
+
     if cost1 < cost2:
         table_clear("MyIngress.ipv4_lpm", 9090)
         table_clear("MyIngress.ipv4_reroute", 9090)
