@@ -266,7 +266,7 @@ def add_to_p4(interface):
                 except Exception as e:
                     print(f"Error adding entry for {parameter}: {e}")
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
 
 def modify_route():
@@ -342,8 +342,8 @@ def get_register_p4():
 
     thrift_port = 9090
     # Membaca nilai register dari P4
-    ecn_mark = read_register("ecn_status",0, thrift_port)
-    port_out = read_register("portoutnew",0, thrift_port)
+    ecn_mark = read_register("enc_status",0, thrift_port)
+    port_out = read_register("portout",0, thrift_port)
     # Mengonversi nilai register ke integer
     if not ecn_mark or not port_out:
         print("No data found in registers.")

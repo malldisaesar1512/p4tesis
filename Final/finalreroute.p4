@@ -162,7 +162,7 @@ register<bit<1>>(NUM_PORT) linkstatus;
 register<bit<48>>(NUM_FLOW) gudangrtt;
 register<bit<48>>(NUM_FLOW) flow_out;
 register<bit<48>>(NUM_FLOW) flow_in;
-register<bit<32>>(NUM_PORT) enc_status;
+register<bit<32>>(NUM_PORT) ecn_status;
 register<bit<9>>(NUM_PORT) port_status1;
 register<bit<1>>(NUM_PORT) modify_status;
 
@@ -280,7 +280,7 @@ control MyIngress(inout headers hdr,
     // }
 
     action cek_enc_status(){
-        enc_status.read(meta.var_ecnstatus,1);
+        ecn_status.read(meta.var_ecnstatus,1);
     }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -479,7 +479,7 @@ control MyEgress(inout headers hdr,
     action mark_ecn() {
         hdr.ipv4.ecn = 3;
         meta.var_ecnstatus = 3;
-        enc_status.write(1, meta.var_ecnstatus);
+        ecn_status.write(1, meta.var_ecnstatus);
 
     }
     apply { 
@@ -489,7 +489,7 @@ control MyEgress(inout headers hdr,
             }else{
                 hdr.ipv4.ecn = 0;
                 meta.var_ecnstatus = 0;
-                enc_status.write(1, meta.var_ecnstatus);
+                ecn_status.write(1, meta.var_ecnstatus);
             }
         }
      }
