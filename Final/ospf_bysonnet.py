@@ -293,8 +293,12 @@ def get_register_p4():
     ecn_mark = read_registerAll("ecn_status", thrift_port)
     port_out = read_registerAll("portoutnew", thrift_port)
     # Mengonversi nilai register ke integer
-    ecn_mark = [int(x) for x in ecn_mark]
-    port_out = [int(x) for x in port_out]
+    if not ecn_mark or not port_out:
+        print("No data found in registers.")
+        return
+    else:
+        print(f"ECN Mark: {ecn_mark}")
+        print(f"Port Out: {port_out}")
 
 def check_link_status(target_ip, count, packet_size):
     # def icmp_probe(target_ip, count=4, timeout=2, packet_size=64):
@@ -619,8 +623,6 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         lsack_type = i.type
         lsack_seq = i.seq
         
-
-        
         lsacknih = OSPF_LSA_Hdr(
                 age = 3300,
                 options=0x02,
@@ -646,7 +648,6 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
             add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
-
 
     print(f"lsack.list: {lsack_list}")
 
