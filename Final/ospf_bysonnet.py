@@ -1037,11 +1037,12 @@ def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
             status = 0 if reply else 1
             list_linkstatus.append(status)  # Tambahkan status ke list_linkstatus
             print(f"Interface {iface}: {status}")
+            print(f"Link status for {list_linkstatus}")
         if 1 in list_linkstatus:
             write_register("linkstatus",1, 0, 9090)
         else:  # Set status modify ke 1
             write_register("linkstatus",0, 0, 9090)
-        time.sleep(2)
+        time.sleep(1)
             
 if __name__ == "__main__":
     
