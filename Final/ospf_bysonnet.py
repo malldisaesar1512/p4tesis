@@ -281,9 +281,16 @@ def add_to_p4(interface):
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
         parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
         parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        table_add(parameter1, 9090)
-        table_add(parameter2, 9090)
-        
+        try:
+            handle = table_add(parameter1, 9090)
+            print(f"Added entry for {parameter1} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter1}: {e}")
+        try:
+            handle = table_add(parameter2, 9090)
+            print(f"Added entry for {parameter2} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter2}: {e}")
 
 def modify_route():
     global db_lsap4, networklist, mac_src, list_route
