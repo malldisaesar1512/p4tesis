@@ -276,7 +276,7 @@ def add_to_p4(interface):
 def modify_route():
     global db_lsap4, networklist, mac_src, list_route
 
-    interfaces_proses = ['ens4','ens5']
+    interfaces_proses = ['ens5','ens6']
 
     thrift_port = 9090
 
