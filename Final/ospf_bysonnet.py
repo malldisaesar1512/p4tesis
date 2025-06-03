@@ -264,6 +264,11 @@ def add_to_p4(interface):
                             "command": parameter
                         }
                 try:
+                    parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.2/32 => 50:00:00:00:10:00 0"
+                    parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.2/32 => 50:00:00:00:10:00 0"
+                    
+                    table_add(parameter1, 9090)
+                    table_add(parameter2, 9090)
                     handle = table_add(parameter, 9090)
                     print(f"Added entry for {parameter} with handle {handle}")
                 except Exception as e:
@@ -334,6 +339,11 @@ def modify_route():
                                     "command": parameter
                                 }
                         try:
+                            parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.2/32 => 50:00:00:00:10:00 0"
+                            parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.2/32 => 50:00:00:00:10:00 0"
+                            
+                            table_add(parameter1, 9090)
+                            table_add(parameter2, 9090)
                             handle = table_add(parameter, 9090)
                             print(f"Added entry for {parameter} with handle {handle}")
                         except Exception as e:
