@@ -39,6 +39,7 @@ seq_random = random.randint(1000000, 5000000)
 seq_exchange = 0
 router_status = "Master"
 id_dbd = ''
+list_linkstatus = []
 router_id = "10.10.1.2"  # Router ID
 router_id2 = "192.168.1.2"  # Router ID 2 (Neighbor)
 # area_id = "0.0.0.0"        # Area ID
@@ -1054,11 +1055,12 @@ def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
             packet = IP(dst=target_ip)/ICMP()
             reply = sr1(packet, timeout=timeout, verbose=0)
             status = 0 if reply else 1
-            if (iface == "ens5" and iface == "ens6") and status == 0:
-                write_register("linkstatus",0, 0, 9090)
-            elif (iface == "ens5" or iface == "ens6") and status == 1:  # Set status modify ke 1
-                write_register("linkstatus",1, 0, 9090)
+            list_linkstatus.append(status)  # Tambahkan status ke list_linkstatus
             print(f"Interface {iface}: {status}")
+        if 1 in list_linkstatus:
+            write_register("linkstatus",1, 0, 9090)
+        else:  # Set status modify ke 1
+            write_register("linkstatus",0, 0, 9090)
         time.sleep(2)
             
 if __name__ == "__main__":
