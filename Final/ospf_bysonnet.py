@@ -347,10 +347,10 @@ def modify_route():
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
         write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        table_add(parameter1, 9090)
-        table_add(parameter2, 9090)
+        # parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        # parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        # table_add(parameter1, 9090)
+        # table_add(parameter2, 9090)
 #################### P4 CONTROLLER #####################
 def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     BW_DEFAULT = 10000000  # Bandwidth default dalam bps
@@ -361,6 +361,7 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
         load_ecn = 255
     else:
         load_ecn = 1
+        
     if th_link == 0:
         max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
     else:
@@ -375,18 +376,6 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     return int(cost)  # Mengembalikan biaya sebagai integer
 
 def check_link_status(target_ip, count, packet_size):
-    """
-    Mengirim paket ICMP Echo Request ke target_ip dan mengukur link status, RTT, dan throughput.
-
-    Parameters:
-    - target_ip: alamat IP tujuan (string)
-    - count: jumlah paket yang dikirim (int)
-    - packet_size: ukuran payload ICMP dalam bytes (int)
-    - timeout: waktu tunggu balasan dalam detik (default 2)
-
-    Returns:
-    - dict berisi status link, rata-rata RTT (ms), packet loss (%), dan throughput (bps)
-    """
     rtt_list = []
     received_packets = 0
 
@@ -429,15 +418,6 @@ def check_link_status(target_ip, count, packet_size):
         "packet_loss_percent": packet_loss,
         "estimated_throughput_bps": throughput
     }
-    # # Kirim paket ICMP untuk mengecek status link
-    # payload = "X" * 58  # Payload untuk ICMP echo request, bisa disesuaikan
-    # response = srp(Ether()/IP(dst=target_ip)/ICMP()/Raw(load=payload), iface=iface, timeout=1, verbose=False)[0]
-    
-    # # Jika ada balasan, link hidup
-    # if response:
-    #     return 1  # Link hidup
-    # else:
-    #     return 0  # Link mati
 
 def get_interfaces_info_with_interface_name():
     global ips, netmasks, networks, statuses, interfaces_info, networklist
