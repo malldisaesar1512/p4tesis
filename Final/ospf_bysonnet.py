@@ -306,7 +306,7 @@ def modify_route():
         table_clear("MyIngress.ipv4_reroute", 9090)
         for i in range(2):  # Mengulang 2 kali
             current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-            for interface, data in db_lsap4.items():
+            for interface, data in db_lsap4.copy().items():
                 rutep4 = data["routelist"]
                 macp4 = data["ether_src"]
                 intp4 = data["interface"]
@@ -338,7 +338,6 @@ def modify_route():
                                     "command": parameter
                                 }
                         try:
-                            
                             handle = table_add(parameter, 9090)
                             print(f"Added entry for {parameter} with handle {handle}")
                         except Exception as e:
@@ -724,22 +723,22 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 else:
                     continue
             
-            if newrute and netp4 and interface and mac_src in db_lsap4:
+            # if newrute and netp4 and interface and mac_src in db_lsap4:
+            #     continue
+            # else:
+            if interface == "ens5" and mac_src == "50:00:00:00:30:00":
                 continue
-            else:
-                if interface == "ens5" and mac_src == "50:00:00:00:30:00":
-                    continue
-                elif interface == "ens5" and mac_src != "50:00:00:00:30:00":
-                    mac_src = "50:00:00:00:30:00"
-                
-                if interface == "ens6" and mac_src == "50:00:00:00:40:00":
-                    continue
-                elif interface == "ens6" and mac_src != "50:00:00:00:40:00":
-                    mac_src = "50:00:00:00:40:00"
+            elif interface == "ens5" and mac_src != "50:00:00:00:30:00":
+                mac_src = "50:00:00:00:30:00"
+            
+            if interface == "ens6" and mac_src == "50:00:00:00:40:00":
+                continue
+            elif interface == "ens6" and mac_src != "50:00:00:00:40:00":
+                mac_src = "50:00:00:00:40:00"
 
-                db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
+            db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
-        add_to_p4(interface)  # Tambahkan rute baru ke P4
+            add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
 
     print(f"lsack.list: {lsack_list}")
