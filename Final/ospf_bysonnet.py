@@ -277,6 +277,7 @@ def add_to_p4(interface):
         parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
         table_add(parameter1, 9090)
         table_add(parameter2, 9090)
+        
 
 def modify_route():
     global db_lsap4, networklist, mac_src, list_route
@@ -1043,6 +1044,7 @@ def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
         else:  # Set status modify ke 1
             write_register("linkstatus",0, 0, 9090)
         time.sleep(1)
+        list_linkstatus.clear()  # Kosongkan list_linkstatus untuk iterasi berikutnya
             
 if __name__ == "__main__":
     
