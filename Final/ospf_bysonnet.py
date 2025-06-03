@@ -256,6 +256,11 @@ def add_to_p4(interface):
                         list_route[table_name]={
                             "command": parameter
                         }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
                 elif intp4 == "ens6":
                     parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
                     if parameter in list_route:
@@ -264,11 +269,12 @@ def add_to_p4(interface):
                         list_route[table_name]={
                             "command": parameter
                         }
-                try:
-                    handle = table_add(parameter, 9090)
-                    print(f"Added entry for {parameter} with handle {handle}")
-                except Exception as e:
-                    print(f"Error adding entry for {parameter}: {e}")
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+                
 
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
         write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
