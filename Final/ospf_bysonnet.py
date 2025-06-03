@@ -1054,9 +1054,9 @@ def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
             packet = IP(dst=target_ip)/ICMP()
             reply = sr1(packet, timeout=timeout, verbose=0)
             status = 0 if reply else 1
-            if status == 0:
+            if (iface == "ens5" and iface == "ens6") and status == 0:
                 write_register("linkstatus",0, 0, 9090)
-            else:  # Set status modify ke 1
+            elif (iface == "ens5" or iface == "ens6") and status == 1:  # Set status modify ke 1
                 write_register("linkstatus",1, 0, 9090)
             print(f"Interface {iface}: {status}")
         time.sleep(2)
