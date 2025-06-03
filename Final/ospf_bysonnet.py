@@ -386,7 +386,7 @@ def check_link_status(target_ip, count, packet_size):
         packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
         
         start_time = time.time()
-        reply = sr1(packet, timeout=2, verbose=0)
+        reply = sr1(packet, timeout=1, verbose=0)
         end_time = time.time()
 
         if reply is None:
@@ -1028,6 +1028,28 @@ def modify_action():
         else:
             print("Modify action is disabled")
             time.sleep(0.5)
+
+def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
+    interfaces = ['ens5', 'ens6']
+    targets = {
+        'ens5': ip_ens5,
+        'ens6': ip_ens6
+    }
+
+    # Set interface secara eksplisit sebelum mengirim paket
+    while True:
+        for iface in interfaces:
+            conf.iface = iface
+            target_ip = targets[iface]
+            packet = IP(dst=target_ip)/ICMP()
+            reply = sr1(packet, timeout=timeout, verbose=0)
+            status = 0 if reply else 1
+            if status == 0:
+                write_register("linkstatus",0, 0, 9090)
+            else:  # Set status modify ke 1
+                write_register("linkstatus",1, 0, 9090)
+            print(f"Interface {iface}: {status}")
+        time.sleep(2)
             
 if __name__ == "__main__":
     
@@ -1035,6 +1057,10 @@ if __name__ == "__main__":
     modify_thread = threading.Thread(target=modify_action)
     modify_thread.start()
     threads.append(modify_thread)
+
+    probing_thread = threading.Thread(target=icmp_monitor_simple, args=('10.10.1.1', '11.11.1.1'))
+    probing_thread.start()
+    threads.append(probing_thread)
 
     interfaces_info = get_interfaces_info_with_interface_name()
 
