@@ -55,6 +55,7 @@ lsreqdb_list = []
 lsudb_list = []
 lsack_list = []
 lsackdb_list = []
+prev_status = {}
 lsulist = None
 a = []
 b = []
@@ -71,6 +72,7 @@ list_network = []
 neighbors_state = {}
 tracking_state = {}
 db_lsap4 = {}
+db_ipnhop = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
 
 ospf_link_list = []
@@ -481,10 +483,17 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
                 continue
             elif interface == "ens6" and mac_src != "50:00:00:00:40:00":
                 mac_src = "50:00:00:00:40:00"
+            
+            if interface == "ens7" and mac_src == "50:00:00:00:60:00":
+                continue    
+            elif interface == "ens7" and mac_src != "50:00:00:00:60:00":
+                mac_src = "50:00:00:00:60:00"
 
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
-            add_to_p4(interface)  # Tambahkan rute baru ke P4
+            initiate_top4()
+
+            # add_to_p4(interface)  # Tambahkan rute baru ke P4
             # print(f"LSA {i}: {lsacknih}") # Menampilkan informasi LSA
 
     print(f"lsack.list: {lsack_list}")
@@ -505,7 +514,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
 
 def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
     """Fungsi untuk menangani paket yang diterima"""
-    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew, mac_src
+    global neighbor_state, dbd_seq_num, seq_exchange, lsackdb_list, router_status, eth, ip_broadcast, ospf_header, ospf_hello_pkt, lsadb_list, jumlah_lsa, jumlah_lsreq, lsreq_list, lsreqdb_list, jumlah_lsulsa, lsudb_list, penghitung, lsanew, mac_src, db_ipnhop
     
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received packet on interface {interface}")
     # Cek apakah paket adalah paket OSPF
@@ -530,6 +539,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             if tracking_state.get(interface, {}).get("state") == "Down":
                 print(f"Received Hello from {src_ip}, moving to Init state")
                 if ip2 in network1 and src_ip not in ips:
+                    if src_ip not in db_ipnhop:
+                        db_ipnhop[interface] = {"ip": src_ip, "interface": interface}
+                    else:
+                        return
                     # print("Received Hello packet")
                     neighbor_state = "Full"
                     tracking_state[interface]["state"] = "Init"
@@ -788,30 +801,141 @@ def modify_action():
             print("Modify action is disabled")
             time.sleep(0.5)
 
-def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
-    interfaces = ['ens5', 'ens6']
-    targets = {
-        'ens5': ip_ens5,
-        'ens6': ip_ens6
-    }
 
-    # Set interface secara eksplisit sebelum mengirim paket
-    while True:
-        for iface in interfaces:
-            conf.iface = iface
-            target_ip = targets[iface]
-            packet = IP(dst=target_ip)/ICMP()
-            reply = sr1(packet, timeout=timeout, verbose=0)
-            status = 0 if reply else 1
-            list_linkstatus.append(status)  # Tambahkan status ke list_linkstatus
-            print(f"Interface {iface}: {status}")
-            print(f"Link status for {list_linkstatus}")
-        if 1 in list_linkstatus:
-            write_register("linkstatus",1, 0, 9090)
-        else:  # Set status modify ke 1
-            write_register("linkstatus",0, 0, 9090)
-        time.sleep(1)
-        list_linkstatus.clear()  # Kosongkan list_linkstatus untuk iterasi berikutnya
+def icmp_monitor_simple(timeout=1):
+    global prev_status
+    while not db_ipnhop.empty():
+        if prev_status is None:
+            prev_status = {}
+        
+        status_dict = {}
+
+        for iface, info in db_ipnhop.items():
+            ip_addr = info.get("ip")
+            if not ip_addr:
+                status_dict[iface] = 1
+                continue
+            try:
+                # Kirim paket ICMP echo request dan tunggu balasan
+                packet = IP(dst=ip_addr)/ICMP()
+                reply = sr1(packet, timeout=timeout, verbose=0)
+                if reply is not None:
+                    status_dict[iface] = 0  # Link aktif
+                else:
+                    status_dict[iface] = 1  # Link gagal
+                    if prev_status.get(iface) != 1:
+                        write_register("linkstatus", 1, 0, 9090)
+
+            except Exception as e:
+                print(f"Error pinging {ip_addr} on {iface}: {e}")
+                status_dict[iface] = 1
+        time.sleep(1)  # Tunggu sebelum iterasi berikutnya
+
+    # targets = {
+    #     'ens5': ip_ens5,
+    #     'ens6': ip_ens6
+    # }
+
+    # # Set interface secara eksplisit sebelum mengirim paket
+    # while True:
+    #     for iface in int_list:
+    #         conf.iface = iface
+    #         target_ip = targets[iface]
+    #         packet = IP(dst=target_ip)/ICMP()
+    #         reply = sr1(packet, timeout=timeout, verbose=0)
+    #         status = 0 if reply else 1
+    #         list_linkstatus.append(status)  # Tambahkan status ke list_linkstatus
+    #         print(f"Interface {iface}: {status}")
+    #         print(f"Link status for {list_linkstatus}")
+    #     if 1 in list_linkstatus:
+    #         write_register("linkstatus",1, 0, 9090)
+    #     else:  # Set status modify ke 1
+    #         write_register("linkstatus",0, 0, 9090)
+    #     time.sleep(1)
+    #     list_linkstatus.clear()  # Kosongkan list_linkstatus untuk iterasi berikutnya
+
+def initiate_top4():
+    global db_ipnhop, result_cost
+
+    result_cost = {}
+
+    ecn_mark = read_register("enc_status",0, 9090)
+    # port_out = read_register("portout",0, thrift_port)
+
+    if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
+        ecn_load = 1
+    elif ecn_mark == 3:
+        ecn_load = 255
+
+    for iface, info in db_ipnhop.items():
+        ip_addr = info.get("ip")
+        if ip_addr:
+            result = check_link_status(ip_addr, 1, 64)  # Cek status link untuk setiap IP di db_ipnhop
+            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["average_rtt_ms"], result["link_status"])
+            result_cost[iface] = {"cost": cost}
+    
+    items = [(iface, info['cost']) for iface, info in result_cost.items()]
+
+    # Urutkan berdasarkan cost ascending
+    items_sorted = sorted(items, key=lambda x: x[1])
+
+    # Berikan ranking mulai dari 1
+    for rank, (iface, cost) in enumerate(items_sorted, start=1):
+        result_cost[iface]['rank'] = rank
+
+    for interface, data in db_lsap4.copy().items():
+        rutep4 = data["routelist"]
+        macp4 = data["ether_src"]
+        intp4 = data["interface"]
+        ranking = result_cost.get(interface, {}).get('rank')
+        if ranking == "1":
+            table_name = "MyIngress.ipv4_lpm"
+        elif ranking == "2":
+            table_name = "MyIngress.ipv4_reroute"
+        
+        for ip in rutep4:
+            if ip in networklist:
+                continue
+            else:
+                if intp4 == "ens5":
+                    port_out = "1"
+                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={ "command": parameter }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+                elif intp4 == "ens6":
+                    port_out = "2"
+                    parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={ "command": parameter }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        try:
+            handle = table_add(parameter1, 9090)
+            print(f"Added entry for {parameter1} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter1}: {e}")
+        try:
+            handle = table_add(parameter2, 9090)
+            print(f"Added entry for {parameter2} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter2}: {e}")
 
 def add_to_p4(interface):
     global db_lsap4, networklist, mac_src, list_route
@@ -874,7 +998,7 @@ def add_to_p4(interface):
         except Exception as e:
             print(f"Error adding entry for {parameter2}: {e}")
 
-def modify_route():
+def modify_route(interface):
     global db_lsap4, networklist, mac_src, list_route
 
     interfaces_proses = ['ens5','ens6']
@@ -885,7 +1009,7 @@ def modify_route():
     ecn_mark = read_register("enc_status",0, thrift_port)
     port_out = read_register("portout",0, thrift_port)
 
-    if ecn_mark == 0:
+    if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
         ecn_load = 1
     elif ecn_mark == 3:
         ecn_load = 255
@@ -969,6 +1093,11 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
 
     cost = (net_throughput + latensi) * link_status  # Menghitung biaya
 
+    if cost == 0:
+        cost = 255
+    else:
+        cost = cost
+
     return int(cost)  # Mengembalikan biaya sebagai integer
 
 def check_link_status(target_ip, count, packet_size):
@@ -1021,11 +1150,11 @@ def check_link_status(target_ip, count, packet_size):
 ######################################### MAIN CODE ##########################################
 
 def get_interfaces_info_with_interface_name():
-    global ips, netmasks, networks, statuses, interfaces_info, networklist
+    global ips, netmasks, networks, statuses, interfaces_info, networklist, int_list
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
 
-    interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
+    int_list = []  # List untuk menyimpan data setiap interface sebagai dictionary
     ips = []         # List untuk menyimpan IP address
     networklist = []  # List untuk menyimpan network address
     h = 0
@@ -1052,10 +1181,10 @@ def get_interfaces_info_with_interface_name():
                         "status": "up" if is_up else "down",
                         "sequence": seq_random+h
                     }
-                    interfaces.append(interface_info)
+                    int_list.append(interface_info)
                     h=h+1
 
-    return interfaces
+    return int_list
 
 ###################################### Initiate Main Code ######################################
 if __name__ == "__main__":
@@ -1065,7 +1194,7 @@ if __name__ == "__main__":
     modify_thread.start()
     threads.append(modify_thread)
 
-    probing_thread = threading.Thread(target=icmp_monitor_simple, args=('10.10.1.1', '11.11.1.1'))
+    probing_thread = threading.Thread(target=icmp_monitor_simple)
     probing_thread.start()
     threads.append(probing_thread)
 
