@@ -883,14 +883,16 @@ def initiate_top4():
     for rank, (iface, cost) in enumerate(items_sorted, start=1):
         result_cost[iface]['rank'] = rank
 
+    print(f"Result Cost: {result_cost}")
+
     for interface, data in db_lsap4.copy().items():
         rutep4 = data["routelist"]
         macp4 = data["ether_src"]
         intp4 = data["interface"]
         ranking = result_cost.get(interface, {}).get('rank')
-        if ranking == "1":
+        if ranking == 1:
             table_name = "MyIngress.ipv4_lpm"
-        elif ranking == "2":
+        elif ranking == 2:
             table_name = "MyIngress.ipv4_reroute"
         
         for ip in rutep4:
