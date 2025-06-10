@@ -891,9 +891,9 @@ def initiate_top4():
         intp4 = data["interface"]
         ranking = result_cost.get(interface, {}).get('rank')
         if ranking == 1:
-            table_name = "MyIngress.ipv4_lpm"
+            table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
         elif ranking == 2:
-            table_name = "MyIngress.ipv4_reroute"
+            table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
         
         for ip in rutep4:
             if ip in networklist:
@@ -901,7 +901,7 @@ def initiate_top4():
             else:
                 if intp4 == "ens5":
                     port_out = "1"
-                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    parameter = f"{table_name} {ip} => {macp4} {port_out}"
                     if parameter in list_route:
                         continue
                     else:
@@ -913,7 +913,7 @@ def initiate_top4():
                         print(f"Error adding entry for {parameter}: {e}")
                 elif intp4 == "ens6":
                     port_out = "2"
-                    parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                    parameter = f"{table_name} {ip} => {macp4} {port_out}"
                     if parameter in list_route:
                         continue
                     else:
