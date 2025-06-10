@@ -25,7 +25,7 @@ import struct
 import subprocess
 from datetime import datetime
 
-#global variable
+#################################### Global Variables ########################################
 neighbor_state = "Down"
 penghitung = 0
 option_default = 0x02
@@ -133,6 +133,8 @@ lsa_link = OSPF_Link( #LinkLSA
                 metric=10
             )
 
+############################# GLOBAL VARIABLES #####################################
+
 #################### P4 CONTROLLER #####################
 def read_registerAll(register, thrift_port):
     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -150,13 +152,6 @@ def table_clear(table_name, thrift_port):
         print("Error:", stderr.decode('utf-8'))
     return
 
-# def read_register(register, idx, thrift_port):
-#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#     command = "register_read %s %d" % (register, idx)
-#     stdout, stderr = p.communicate(input=command.encode('utf-8'))
-#     if stderr:
-#         print("Error:", stderr.decode('utf-8'))
-#     return
 def read_register(register, idx, thrift_port):
     # Membuka proses CLI dengan port thrift yang diberikan
     p = subprocess.Popen(
@@ -197,13 +192,6 @@ def table_delete(table, idx, thrift_port):
     stdout, stderr = p.communicate(input="table_delete %s %d" % (table, idx))
     return 
 
-# def table_add(table, parametro, thrift_port):
-#     p = subprocess.Popen(['simple_switch_CLI', '--thrift-port', str(thrift_port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-#     stdout, stderr = p.communicate(input="table_add %s" % (parametro))
-#     var_handle = [l for l in stdout.split('\n') if ' %s' % ('added') in l][0].split('handle ', 1)[1]
-#     return int(var_handle)
-# import subprocess
-
 def table_add(parameter, thrift_port):
     p = subprocess.Popen(
         ['simple_switch_CLI', '--thrift-port', str(thrift_port)],
@@ -231,250 +219,9 @@ def table_entry(table, network, thrift_port):
     entry_val = [l for l in stdout.split('\n') if ' %s' % ('Dumping') in l][0].split('0x', 1)[1]
     return int(entry_val)
 
-def add_to_p4(interface):
-    global db_lsap4, networklist, mac_src, list_route
-    for interface, data in db_lsap4.copy().items():
-        rutep4 = data["routelist"]
-        macp4 = data["ether_src"]
-        intp4 = data["interface"]
-        if intp4 == "ens5":
-            port_out = "1"
-            table_name = "MyIngress.ipv4_lpm"
-        elif intp4 == "ens6":
-            port_out = "2"
-            table_name = "MyIngress.ipv4_reroute"
-
-        for ip in rutep4:
-            if ip in networklist:
-                continue
-            else:
-                if intp4 == "ens5":
-                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-                    if parameter in list_route:
-                        continue
-                    else:
-                        list_route[table_name]={
-                            "command": parameter
-                        }
-                    try:
-                        handle = table_add(parameter, 9090)
-                        print(f"Added entry for {parameter} with handle {handle}")
-                    except Exception as e:
-                        print(f"Error adding entry for {parameter}: {e}")
-                elif intp4 == "ens6":
-                    parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
-                    if parameter in list_route:
-                        continue
-                    else:
-                        list_route[table_name]={
-                            "command": parameter
-                        }
-                    try:
-                        handle = table_add(parameter, 9090)
-                        print(f"Added entry for {parameter} with handle {handle}")
-                    except Exception as e:
-                        print(f"Error adding entry for {parameter}: {e}")
-                
-
-        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
-        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        try:
-            handle = table_add(parameter1, 9090)
-            print(f"Added entry for {parameter1} with handle {handle}")
-        except Exception as e:
-            print(f"Error adding entry for {parameter1}: {e}")
-        try:
-            handle = table_add(parameter2, 9090)
-            print(f"Added entry for {parameter2} with handle {handle}")
-        except Exception as e:
-            print(f"Error adding entry for {parameter2}: {e}")
-
-def modify_route():
-    global db_lsap4, networklist, mac_src, list_route
-
-    interfaces_proses = ['ens5','ens6']
-
-    thrift_port = 9090
-
-    # Membaca nilai register dari P4
-    ecn_mark = read_register("enc_status",0, thrift_port)
-    port_out = read_register("portout",0, thrift_port)
-
-    if ecn_mark == 0:
-        ecn_load = 1
-    elif ecn_mark == 3:
-        ecn_load = 255
-
-    result1 = check_link_status("10.10.1.1", 1, 64)
-    result2 = check_link_status("11.11.1.1", 1, 64)
-
-    cost1 = cost_calculation(result1["estimated_throughput_bps"], ecn_load, result1["average_rtt_ms"], result1["link_status"])
-    cost2 = cost_calculation(result2["estimated_throughput_bps"], ecn_load, result2["average_rtt_ms"], result2["link_status"])
-
-    print(f"Cost for link 1: {cost1}, Cost for link 2: {cost2}")
-
-    if cost1 > cost2:
-        table_clear("MyIngress.ipv4_lpm", 9090)
-        table_clear("MyIngress.ipv4_reroute", 9090)
-        for i in range(2):  # Mengulang 2 kali
-            current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-            for interface, data in db_lsap4.copy().items():
-                rutep4 = data["routelist"]
-                macp4 = data["ether_src"]
-                intp4 = data["interface"]
-                if intp4 == "ens5":
-                    port_out = "1"
-                    table_name = "MyIngress.ipv4_reroute"
-                elif intp4 == "ens6":
-                    port_out = "2"
-                    table_name = "MyIngress.ipv4_lpm"
-
-                for ip in rutep4:
-                    if ip in networklist:
-                        continue
-                    else:
-                        if intp4 == "ens5":
-                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
-                            if parameter in list_route:
-                                continue
-                            else:
-                                list_route[table_name]={
-                                    "command": parameter
-                                }
-                        elif intp4 == "ens6":
-                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-                            if parameter in list_route:
-                                continue
-                            else:
-                                list_route[table_name]={
-                                    "command": parameter
-                                }
-                        try:
-                            handle = table_add(parameter, 9090)
-                            print(f"Added entry for {parameter} with handle {handle}")
-                        except Exception as e:
-                            print(f"Error adding entry for {parameter}: {e}")
-    
-        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
-        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        table_add(parameter1, 9090)
-        table_add(parameter2, 9090)
-        
 #################### P4 CONTROLLER #####################
-def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
-    BW_DEFAULT = 10000000  # Bandwidth default dalam bps
-    DELAY_PICO = 1000000  # Delay default dalam pikodetik (1 ms = 1.000.000 pikodetik)
-    WIDE_SCALE = 65536  # Skala lebar untuk menghitung biaya
 
-    if ecn_mark == 3:
-        load_ecn = 255
-    else:
-        load_ecn = 1
-
-    if th_link == 0:
-        max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
-    else:
-        max_throughput = (BW_DEFAULT / WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
-
-    net_throughput = max_throughput + (max_throughput/(256-load_ecn))   # Menghitung throughput dalam bps
-
-    latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
-
-    cost = (net_throughput + latensi) * link_status  # Menghitung biaya
-
-    return int(cost)  # Mengembalikan biaya sebagai integer
-
-def check_link_status(target_ip, count, packet_size):
-    rtt_list = []
-    received_packets = 0
-
-    for seq in range(count):
-        # Buat paket ICMP dengan payload sesuai ukuran
-        # Header IP+ICMP biasanya 28 bytes, jadi payload = packet_size - 28
-        payload_size = max(packet_size - 28, 0)
-        packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
-        
-        start_time = time.time()
-        reply = sr1(packet, timeout=1, verbose=0)
-        end_time = time.time()
-
-        if reply is None:
-            print(f"Request timeout for seq={seq}")
-            rtt = 0
-            rtt_list.append(rtt)
-            received_packets += 0
-        else:
-            rtt = (end_time - start_time) * 1000  # RTT dalam ms
-            rtt_list.append(rtt)
-            received_packets += 1
-            print(f"Reply from {target_ip}: seq={seq} time={rtt:.2f} ms")
-
-        time.sleep(1)  # jeda 1 detik antar paket
-
-    packet_loss = ((count - received_packets) / count) * 100
-
-    if received_packets > 0:
-        avg_rtt = sum(rtt_list) / received_packets
-        # Estimasi throughput dalam bits per second (bps)
-        # Ukuran paket dalam bits dibagi RTT dalam detik
-        throughput = (packet_size * 8) / (avg_rtt / 1000)
-    else:
-        avg_rtt = 0
-        throughput = 0
-
-    statuslink = 1 if received_packets > 0 else 0
-
-    return {
-        "link_status": statuslink,
-        "average_rtt_ms": avg_rtt,
-        "packet_loss_percent": packet_loss,
-        "estimated_throughput_bps": throughput
-    }
-
-def get_interfaces_info_with_interface_name():
-    global ips, netmasks, networks, statuses, interfaces_info, networklist
-    addrs = psutil.net_if_addrs()
-    stats = psutil.net_if_stats()
-
-    interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
-    ips = []         # List untuk menyimpan IP address
-    networklist = []  # List untuk menyimpan network address
-    h = 0
-    for iface, addr_list in addrs.items():
-        is_up = stats[iface].isup if iface in stats else False
-        for addr in addr_list:
-            if addr.family == socket.AF_INET:
-                ip = addr.address
-                netmask = addr.netmask
-                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
-                    network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-                    network_pre = f"{network.network_address}/{network.prefixlen}"
-                    network_address = str(network.network_address)
-                    if network_pre in networklist and ip in ips:
-                        continue
-                    else:
-                        networklist.append(network_pre)
-                        ips.append(ip)
-                    interface_info = {
-                        "interface": iface,
-                        "ip_address": ip,
-                        "netmask": netmask,
-                        "network": network_address,
-                        "status": "up" if is_up else "down",
-                        "sequence": seq_random+h
-                    }
-                    interfaces.append(interface_info)
-                    h=h+1
-
-    return interfaces
-
-
+#####################OSPF PACKET HANDLER#####################
 def send_hello_periodically(interval, interface, ip_address, source_ip):
     """Kirim paket Hello OSPF secara berkala"""
     global neighbor_state, neighbor_default, interfaces, ips, netmasks, networks, statuses, lsadb_link_default, lsadb_hdr_default, interfaces_info, totallink, seq_global,e
@@ -1023,6 +770,9 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
         #             tracking_state[interface]["state"] = "Full"
         #             send_ospf_lsaack(interface, src_broadcast, source_ip,broadcast_ip)
 
+#########################OSPF PACKET HANDLER#########################
+
+########################## MAIN CODE P4 ################################
 def sniff_packets(interface, src_broadcast, source_ip):
    print("Sniffing packets...")
    sniff(iface=interface , filter="ip proto ospf", prn=lambda pkt: handle_incoming_packet(pkt, interface,src_broadcast,source_ip), store=False, timeout=100000000)
@@ -1062,7 +812,252 @@ def icmp_monitor_simple(ip_ens5, ip_ens6, timeout=1):
             write_register("linkstatus",0, 0, 9090)
         time.sleep(1)
         list_linkstatus.clear()  # Kosongkan list_linkstatus untuk iterasi berikutnya
-            
+
+def add_to_p4(interface):
+    global db_lsap4, networklist, mac_src, list_route
+    for interface, data in db_lsap4.copy().items():
+        rutep4 = data["routelist"]
+        macp4 = data["ether_src"]
+        intp4 = data["interface"]
+        if intp4 == "ens5":
+            port_out = "1"
+            table_name = "MyIngress.ipv4_lpm"
+        elif intp4 == "ens6":
+            port_out = "2"
+            table_name = "MyIngress.ipv4_reroute"
+
+        for ip in rutep4:
+            if ip in networklist:
+                continue
+            else:
+                if intp4 == "ens5":
+                    parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={
+                            "command": parameter
+                        }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+                elif intp4 == "ens6":
+                    parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={
+                            "command": parameter
+                        }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
+                
+
+        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        try:
+            handle = table_add(parameter1, 9090)
+            print(f"Added entry for {parameter1} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter1}: {e}")
+        try:
+            handle = table_add(parameter2, 9090)
+            print(f"Added entry for {parameter2} with handle {handle}")
+        except Exception as e:
+            print(f"Error adding entry for {parameter2}: {e}")
+
+def modify_route():
+    global db_lsap4, networklist, mac_src, list_route
+
+    interfaces_proses = ['ens5','ens6']
+
+    thrift_port = 9090
+
+    # Membaca nilai register dari P4
+    ecn_mark = read_register("enc_status",0, thrift_port)
+    port_out = read_register("portout",0, thrift_port)
+
+    if ecn_mark == 0:
+        ecn_load = 1
+    elif ecn_mark == 3:
+        ecn_load = 255
+
+    result1 = check_link_status("10.10.1.1", 1, 64)
+    result2 = check_link_status("11.11.1.1", 1, 64)
+
+    cost1 = cost_calculation(result1["estimated_throughput_bps"], ecn_load, result1["average_rtt_ms"], result1["link_status"])
+    cost2 = cost_calculation(result2["estimated_throughput_bps"], ecn_load, result2["average_rtt_ms"], result2["link_status"])
+
+    print(f"Cost for link 1: {cost1}, Cost for link 2: {cost2}")
+
+    if cost1 > cost2:
+        table_clear("MyIngress.ipv4_lpm", 9090)
+        table_clear("MyIngress.ipv4_reroute", 9090)
+        for i in range(2):  # Mengulang 2 kali
+            current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
+            for interface, data in db_lsap4.copy().items():
+                rutep4 = data["routelist"]
+                macp4 = data["ether_src"]
+                intp4 = data["interface"]
+                if intp4 == "ens5":
+                    port_out = "1"
+                    table_name = "MyIngress.ipv4_reroute"
+                elif intp4 == "ens6":
+                    port_out = "2"
+                    table_name = "MyIngress.ipv4_lpm"
+
+                for ip in rutep4:
+                    if ip in networklist:
+                        continue
+                    else:
+                        if intp4 == "ens5":
+                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={
+                                    "command": parameter
+                                }
+                        elif intp4 == "ens6":
+                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={
+                                    "command": parameter
+                                }
+                        try:
+                            handle = table_add(parameter, 9090)
+                            print(f"Added entry for {parameter} with handle {handle}")
+                        except Exception as e:
+                            print(f"Error adding entry for {parameter}: {e}")
+    
+        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        table_add(parameter1, 9090)
+        table_add(parameter2, 9090)
+        
+def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
+    BW_DEFAULT = 10000000  # Bandwidth default dalam bps
+    DELAY_PICO = 1000000  # Delay default dalam pikodetik (1 ms = 1.000.000 pikodetik)
+    WIDE_SCALE = 65536  # Skala lebar untuk menghitung biaya
+
+    if ecn_mark == 3:
+        load_ecn = 255
+    else:
+        load_ecn = 1
+
+    if th_link == 0:
+        max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
+    else:
+        max_throughput = (BW_DEFAULT / WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
+
+    net_throughput = max_throughput + (max_throughput/(256-load_ecn))   # Menghitung throughput dalam bps
+
+    latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
+
+    cost = (net_throughput + latensi) * link_status  # Menghitung biaya
+
+    return int(cost)  # Mengembalikan biaya sebagai integer
+
+def check_link_status(target_ip, count, packet_size):
+    rtt_list = []
+    received_packets = 0
+
+    for seq in range(count):
+        # Buat paket ICMP dengan payload sesuai ukuran
+        # Header IP+ICMP biasanya 28 bytes, jadi payload = packet_size - 28
+        payload_size = max(packet_size - 28, 0)
+        packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
+        
+        start_time = time.time()
+        reply = sr1(packet, timeout=1, verbose=0)
+        end_time = time.time()
+
+        if reply is None:
+            print(f"Request timeout for seq={seq}")
+            rtt = 0
+            rtt_list.append(rtt)
+            received_packets += 0
+        else:
+            rtt = (end_time - start_time) * 1000  # RTT dalam ms
+            rtt_list.append(rtt)
+            received_packets += 1
+            print(f"Reply from {target_ip}: seq={seq} time={rtt:.2f} ms")
+
+        time.sleep(1)  # jeda 1 detik antar paket
+
+    packet_loss = ((count - received_packets) / count) * 100
+
+    if received_packets > 0:
+        avg_rtt = sum(rtt_list) / received_packets
+        # Estimasi throughput dalam bits per second (bps)
+        # Ukuran paket dalam bits dibagi RTT dalam detik
+        throughput = (packet_size * 8) / (avg_rtt / 1000)
+    else:
+        avg_rtt = 0
+        throughput = 0
+
+    statuslink = 1 if received_packets > 0 else 0
+
+    return {
+        "link_status": statuslink,
+        "average_rtt_ms": avg_rtt,
+        "packet_loss_percent": packet_loss,
+        "estimated_throughput_bps": throughput
+    }
+
+######################################### MAIN CODE ##########################################
+
+def get_interfaces_info_with_interface_name():
+    global ips, netmasks, networks, statuses, interfaces_info, networklist
+    addrs = psutil.net_if_addrs()
+    stats = psutil.net_if_stats()
+
+    interfaces = []  # List untuk menyimpan data setiap interface sebagai dictionary
+    ips = []         # List untuk menyimpan IP address
+    networklist = []  # List untuk menyimpan network address
+    h = 0
+    for iface, addr_list in addrs.items():
+        is_up = stats[iface].isup if iface in stats else False
+        for addr in addr_list:
+            if addr.family == socket.AF_INET:
+                ip = addr.address
+                netmask = addr.netmask
+                if ip and netmask and ip != "127.0.0.1" and ip != "10.0.137.31":
+                    network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                    network_pre = f"{network.network_address}/{network.prefixlen}"
+                    network_address = str(network.network_address)
+                    if network_pre in networklist and ip in ips:
+                        continue
+                    else:
+                        networklist.append(network_pre)
+                        ips.append(ip)
+                    interface_info = {
+                        "interface": iface,
+                        "ip_address": ip,
+                        "netmask": netmask,
+                        "network": network_address,
+                        "status": "up" if is_up else "down",
+                        "sequence": seq_random+h
+                    }
+                    interfaces.append(interface_info)
+                    h=h+1
+
+    return interfaces
+
+###################################### Initiate Main Code ######################################
 if __name__ == "__main__":
     
     threads = []
