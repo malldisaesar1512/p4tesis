@@ -895,6 +895,9 @@ def initiate_top4():
             table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
         elif ranking == 2:
             table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
+        else:
+            print(f"Interface {interface} does not have a valid ranking for routing")
+            continue
         
         for ip in rutep4:
             if ip in networklist:
