@@ -890,6 +890,7 @@ def initiate_top4():
         macp4 = data["ether_src"]
         intp4 = data["interface"]
         ranking = result_cost.get(interface, {}).get('rank')
+        print(f"Interface: {interface}, Ranking: {ranking}")
         if ranking == 1:
             table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
         elif ranking == 2:
