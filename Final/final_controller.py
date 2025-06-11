@@ -627,10 +627,16 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                             # send_ospf_dbd_first(src_ip, seq_random)
                             send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                             print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-                            print(f"jumlah LSA: {jumlah_lsa}")
+                            # print(f"jumlah LSA: {jumlah_lsa}")
                             try:
                                 for i in range(jumlah_lsa): #add LSA to list
-                                    lsa = dbd_layer.lsaheaders[i]
+                                    if i < len(packet.lsaheaders):  # Defensive check
+                                        lsa = packet.lsaheaders[i]
+                                        # Lakukan proses pada lsa
+                                    else:
+                                        # Log atau abaikan jika indeks tidak valid
+                                        print(f"Warning: Indeks {i} di luar jangkauan lsaheaders")
+                                    # lsa = dbd_layer.lsaheaders[i]
                                     if lsa in lsadb_list:
                                         continue
                                     else:
