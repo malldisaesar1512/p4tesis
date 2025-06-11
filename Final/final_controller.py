@@ -626,6 +626,7 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         # send_ospf_dbd_first(src_ip, seq_random)
                         send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                        print(f"jumlah LSA: {jumlah_lsa}")
                         for i in range(jumlah_lsa): #add LSA to list
                             lsa = dbd_layer.lsaheaders[i]
                             if lsa in lsadb_list:
