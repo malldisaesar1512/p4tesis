@@ -627,13 +627,17 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                         print(f"jumlah LSA: {jumlah_lsa}")
-                        for i in range(jumlah_lsa): #add LSA to list
-                            lsa = dbd_layer.lsaheaders[i]
-                            if lsa in lsadb_list:
-                                continue
-                            else:
-                                lsadb_list.append(lsa)
-                    #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                        try:
+                            for i in range(jumlah_lsa): #add LSA to list
+                                lsa = dbd_layer.lsaheaders[i]
+                                if lsa in lsadb_list:
+                                    continue
+                                else:
+                                    lsadb_list.append(lsa)
+                        except Exception as e:
+                            print(f"Error processing LSA headers: {e}")
+                            return
+                        #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
                         print(f"LSA List: {lsadb_list}")
                         send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
                     else:
