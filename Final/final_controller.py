@@ -875,6 +875,11 @@ def initiate_top4():
 
     print(f"Result Cost: {result_cost}")
 
+    a = len(result_cost)
+    b = len(int_list)
+
+    print(f"Length of result_cost: {a}, Length of int_list: {b}")
+
     parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
     parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
     try:
