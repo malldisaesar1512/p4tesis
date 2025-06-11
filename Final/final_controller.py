@@ -368,7 +368,7 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
     lsreq_list.clear()
-    lsadb_list.clear()
+    # lsadb_list.clear()
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
@@ -628,7 +628,10 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
                         print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                         for i in range(jumlah_lsa): #add LSA to list
                             lsa = dbd_layer.lsaheaders[i]
-                            lsadb_list.append(lsa)
+                            if lsa in lsadb_list:
+                                continue
+                            else:
+                                lsadb_list.append(lsa)
                     #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
                         print(f"LSA List: {lsadb_list}")
                         send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
