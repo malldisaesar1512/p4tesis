@@ -848,9 +848,7 @@ def rank_by_cost_inplace(result_cost, old_ranks=None):
 def initiate_top4():
     global db_ipnhop, result_cost, old_ranks
 
-    old_ranks = {iface: info.get('rank') for iface, info in result_cost.items()} if result_cost else {}
-
-    result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
+    result_cost = {}
 
     ecn_mark = read_register("enc_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
@@ -878,13 +876,6 @@ def initiate_top4():
 
     print(f"Result Cost: {result_cost}")
 
-    ranking_updated = rank_by_cost_inplace(result_cost, old_ranks)
-
-    if ranking_updated == True:
-        table_clear("MyIngress.ipv4_lpm", 9090)
-        table_clear("MyIngress.ipv4_reroute", 9090)
-    else:
-        print("No ranking update needed, skipping table clear.")
 
     parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
     parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
