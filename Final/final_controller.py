@@ -947,6 +947,8 @@ def initiate_top4():
             # write_register("linkstatus", 0, 0, 9090)  # Set link status to up
             # write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
             # write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+            
+            #kokgabisa
     else:
         print(f"Interface does not have a valid ranking for routing")
 
