@@ -804,7 +804,7 @@ def modify_action():
 
 def icmp_monitor_simple(timeout=1):
     global prev_status
-    while not db_ipnhop.empty():
+    while db_ipnhop:
         if prev_status is None:
             prev_status = {}
         
