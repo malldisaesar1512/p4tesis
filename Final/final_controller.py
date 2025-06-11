@@ -893,7 +893,7 @@ def initiate_top4():
     except Exception as e:
         print(f"Error adding entry for {parameter2}: {e}")
 
-    if len(result_cost) == len(int_list):
+    if len(result_cost) == len(db_ipnhop):
         for interface, data in db_lsap4.copy().items():
             rutep4 = data["routelist"]
             macp4 = data["ether_src"]
