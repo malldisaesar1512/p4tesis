@@ -848,8 +848,6 @@ def rank_by_cost_inplace(result_cost, old_ranks=None):
 def initiate_top4():
     global db_ipnhop, result_cost, old_ranks
 
-    result_cost = {}
-
     ecn_mark = read_register("enc_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
