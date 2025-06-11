@@ -71,6 +71,7 @@ list_netmask = []
 list_network = []
 neighbors_state = {}
 tracking_state = {}
+result_cost = {}
 db_lsap4 = {}
 db_ipnhop = {}
 target_ip = ipaddress.IPv4Address("0.0.0.0")
@@ -796,7 +797,7 @@ def modify_action():
         print(f"Modify status: {status_modify}")
         if status_modify == 1:
             print("Modify action is enabled")
-            # modify_route()
+            modify_route()
         else:
             print("Modify action is disabled")
             time.sleep(0.5)
@@ -831,33 +832,25 @@ def icmp_monitor_simple(timeout=1):
                 status_dict[iface] = 1
         time.sleep(1)  # Tunggu sebelum iterasi berikutnya
 
-    # targets = {
-    #     'ens5': ip_ens5,
-    #     'ens6': ip_ens6
-    # }
 
-    # # Set interface secara eksplisit sebelum mengirim paket
-    # while True:
-    #     for iface in int_list:
-    #         conf.iface = iface
-    #         target_ip = targets[iface]
-    #         packet = IP(dst=target_ip)/ICMP()
-    #         reply = sr1(packet, timeout=timeout, verbose=0)
-    #         status = 0 if reply else 1
-    #         list_linkstatus.append(status)  # Tambahkan status ke list_linkstatus
-    #         print(f"Interface {iface}: {status}")
-    #         print(f"Link status for {list_linkstatus}")
-    #     if 1 in list_linkstatus:
-    #         write_register("linkstatus",1, 0, 9090)
-    #     else:  # Set status modify ke 1
-    #         write_register("linkstatus",0, 0, 9090)
-    #     time.sleep(1)
-    #     list_linkstatus.clear()  # Kosongkan list_linkstatus untuk iterasi berikutnya
+def rank_by_cost_inplace(result_cost, old_ranks=None):
+    items = [(iface, info['cost']) for iface, info in result_cost.items()]
+    items_sorted = sorted(items, key=lambda x: x[1])
+    updated = False
+    for rank, (iface, cost) in enumerate(items_sorted, start=1):
+        old_rank = old_ranks.get(iface) if old_ranks else None
+        if result_cost[iface].get('rank') != rank:
+            result_cost[iface]['rank'] = rank
+            if old_rank != rank:
+                updated = True
+    return updated
 
 def initiate_top4():
-    global db_ipnhop, result_cost
+    global db_ipnhop, result_cost, old_ranks
 
-    result_cost = {}
+    old_ranks = {iface: info.get('rank') for iface, info in result_cost.items()} if result_cost else {}
+
+    result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
 
     ecn_mark = read_register("enc_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
@@ -885,6 +878,14 @@ def initiate_top4():
 
     print(f"Result Cost: {result_cost}")
 
+    ranking_updated = rank_by_cost_inplace(result_cost, old_ranks)
+
+    if ranking_updated == True:
+        table_clear("MyIngress.ipv4_lpm", 9090)
+        table_clear("MyIngress.ipv4_reroute", 9090)
+    else:
+        print("No ranking update needed, skipping table clear.")
+
     parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
     parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
     try:
@@ -898,7 +899,7 @@ def initiate_top4():
     except Exception as e:
         print(f"Error adding entry for {parameter2}: {e}")
 
-    if len(result_cost) > 1:
+    if len(result_cost) == len(int_list):
         for interface, data in db_lsap4.copy().items():
             rutep4 = data["routelist"]
             macp4 = data["ether_src"]
@@ -924,11 +925,11 @@ def initiate_top4():
                             continue
                         else:
                             list_route[table_name]={ "command": parameter }
-                        try:
-                            handle = table_add(parameter, 9090)
-                            print(f"Added entry for {parameter} with handle {handle}")
-                        except Exception as e:
-                            print(f"Error adding entry for {parameter}: {e}")
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
                     elif intp4 == "ens6":
                         port_out = "2"
                         parameter = f"{table_name} {ip} => {macp4} {port_out}"
@@ -936,11 +937,23 @@ def initiate_top4():
                             continue
                         else:
                             list_route[table_name]={ "command": parameter }
-                        try:
-                            handle = table_add(parameter, 9090)
-                            print(f"Added entry for {parameter} with handle {handle}")
-                        except Exception as e:
-                            print(f"Error adding entry for {parameter}: {e}")
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
+                    elif intp4 == "ens7":
+                        port_out = "2"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
             write_register("linkstatus", 0, 0, 9090)  # Set link status to up
             write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
             write_register("modify_status", 0, 0, 9090)  # Set port out to 0
@@ -990,6 +1003,19 @@ def add_to_p4(interface):
                         print(f"Added entry for {parameter} with handle {handle}")
                     except Exception as e:
                         print(f"Error adding entry for {parameter}: {e}")
+                elif intp4 == "ens7":
+                    parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
+                    if parameter in list_route:
+                        continue
+                    else:
+                        list_route[table_name]={
+                            "command": parameter
+                        }
+                    try:
+                        handle = table_add(parameter, 9090)
+                        print(f"Added entry for {parameter} with handle {handle}")
+                    except Exception as e:
+                        print(f"Error adding entry for {parameter}: {e}")
                 
 
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
@@ -1008,79 +1034,120 @@ def add_to_p4(interface):
         except Exception as e:
             print(f"Error adding entry for {parameter2}: {e}")
 
-def modify_route(interface):
-    global db_lsap4, networklist, mac_src, list_route
+def modify_route():
+    global db_ipnhop, result_cost, old_ranks
 
-    interfaces_proses = ['ens5','ens6']
+    old_ranks = {iface: info.get('rank') for iface, info in result_cost.items()} if result_cost else {}
 
-    thrift_port = 9090
+    result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
 
-    # Membaca nilai register dari P4
-    ecn_mark = read_register("enc_status",0, thrift_port)
-    port_out = read_register("portout",0, thrift_port)
+    ecn_mark = read_register("enc_status",0, 9090)
+    # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
         ecn_load = 1
     elif ecn_mark == 3:
         ecn_load = 255
 
-    result1 = check_link_status("10.10.1.1", 1, 64)
-    result2 = check_link_status("11.11.1.1", 1, 64)
+    for iface, info in db_ipnhop.items():
+        ip_addr = info.get("ip")
+        if ip_addr:
+            result = check_link_status(ip_addr, 1, 64)  # Cek status link untuk setiap IP di db_ipnhop
+            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["average_rtt_ms"], result["link_status"])
+            result_cost[iface] = {"cost": cost}
+    
+    items = [(iface, info['cost']) for iface, info in result_cost.items()]
 
-    cost1 = cost_calculation(result1["estimated_throughput_bps"], ecn_load, result1["average_rtt_ms"], result1["link_status"])
-    cost2 = cost_calculation(result2["estimated_throughput_bps"], ecn_load, result2["average_rtt_ms"], result2["link_status"])
+    # Urutkan berdasarkan cost ascending
+    items_sorted = sorted(items, key=lambda x: x[1])
 
-    print(f"Cost for link 1: {cost1}, Cost for link 2: {cost2}")
+    # Berikan ranking mulai dari 1
+    for rank, (iface, cost) in enumerate(items_sorted, start=1):
+        result_cost[iface]['rank'] = rank
 
-    if cost1 > cost2:
+    print(f"Result Cost: {result_cost}")
+
+    ranking_updated = rank_by_cost_inplace(result_cost, old_ranks)
+
+    if ranking_updated == True:
         table_clear("MyIngress.ipv4_lpm", 9090)
         table_clear("MyIngress.ipv4_reroute", 9090)
-        for i in range(2):  # Mengulang 2 kali
-            current_interface = interfaces_proses[i]  # Ambil interface sesuai iterasi
-            for interface, data in db_lsap4.copy().items():
-                rutep4 = data["routelist"]
-                macp4 = data["ether_src"]
-                intp4 = data["interface"]
-                if intp4 == "ens5":
-                    port_out = "1"
-                    table_name = "MyIngress.ipv4_reroute"
-                elif intp4 == "ens6":
-                    port_out = "2"
-                    table_name = "MyIngress.ipv4_lpm"
+    else:
+        print("No ranking update needed, skipping table clear.")
 
-                for ip in rutep4:
-                    if ip in networklist:
-                        continue
-                    else:
-                        if intp4 == "ens5":
-                            parameter = f"{table_name} MyIngress.ipv4_rerouting {ip} => {macp4} {port_out}"
-                            if parameter in list_route:
-                                continue
-                            else:
-                                list_route[table_name]={
-                                    "command": parameter
-                                }
-                        elif intp4 == "ens6":
-                            parameter = f"{table_name} MyIngress.ipv4_forward {ip} => {macp4} {port_out}"
-                            if parameter in list_route:
-                                continue
-                            else:
-                                list_route[table_name]={
-                                    "command": parameter
-                                }
-                        try:
-                            handle = table_add(parameter, 9090)
-                            print(f"Added entry for {parameter} with handle {handle}")
-                        except Exception as e:
-                            print(f"Error adding entry for {parameter}: {e}")
-    
-        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
-        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        table_add(parameter1, 9090)
-        table_add(parameter2, 9090)
+    parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+    parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+    try:
+        handle = table_add(parameter1, 9090)
+        print(f"Added entry for {parameter1} with handle {handle}")
+    except Exception as e:
+        print(f"Error adding entry for {parameter1}: {e}")
+    try:
+        handle = table_add(parameter2, 9090)
+        print(f"Added entry for {parameter2} with handle {handle}")
+    except Exception as e:
+        print(f"Error adding entry for {parameter2}: {e}")
+
+    if len(result_cost) == len(int_list):
+        for interface, data in db_lsap4.copy().items():
+            rutep4 = data["routelist"]
+            macp4 = data["ether_src"]
+            intp4 = data["interface"]
+            ranking = result_cost.get(interface, {}).get('rank')
+            print(f"Interface: {interface}, Ranking: {ranking}")
+            if ranking == 1:
+                table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
+            elif ranking == 2:
+                table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
+            else:
+                print(f"Interface {interface} does not have a valid ranking for routing")
+                continue
+            
+            for ip in rutep4:
+                if ip in networklist:
+                    continue
+                else:
+                    if intp4 == "ens5":
+                        port_out = "1"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
+                    elif intp4 == "ens6":
+                        port_out = "2"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
+                    elif intp4 == "ens7":
+                        port_out = "2"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                            try:
+                                handle = table_add(parameter, 9090)
+                                print(f"Added entry for {parameter} with handle {handle}")
+                            except Exception as e:
+                                print(f"Error adding entry for {parameter}: {e}")
+            write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+            write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+    else:
+        print(f"Interface does not have a valid ranking for routing")
         
 def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     BW_DEFAULT = 10000000  # Bandwidth default dalam bps
