@@ -431,7 +431,7 @@ control MyIngress(inout headers hdr,
                         port_status.write(0, PORT_DOWN);
                     }
                 }
-                else if(meta.var_rtt <= var_threshold || meta.var_ecnstatus == 0 || meta.var_linkstatus == 0){
+                else if(meta.var_rtt <= var_threshold && meta.var_ecnstatus == 0 && meta.var_linkstatus == 0){
                     port_status.read(meta.var_portstatus,0);
                     modify_status.write(0, 0);
                     if(meta.var_portstatus == PORT_DOWN){
