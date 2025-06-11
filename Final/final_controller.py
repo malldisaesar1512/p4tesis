@@ -865,7 +865,7 @@ def rank_by_cost_inplace(result_cost, old_ranks=None):
 def initiate_top4():
     global db_ipnhop, result_cost, old_ranks
 
-    ecn_mark = read_register("enc_status",0, 9090)
+    ecn_mark = read_register("ecn_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
@@ -967,7 +967,7 @@ def initiate_top4():
                             except Exception as e:
                                 print(f"Error adding entry for {parameter}: {e}")
             write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-            write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
             write_register("modify_status", 0, 0, 9090)  # Set port out to 0
             
             #kokgabisa
@@ -981,7 +981,7 @@ def modify_route():
 
     result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
 
-    ecn_mark = read_register("enc_status",0, 9090)
+    ecn_mark = read_register("ecn_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
@@ -1089,7 +1089,7 @@ def modify_route():
                             except Exception as e:
                                 print(f"Error adding entry for {parameter}: {e}")
             write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-            write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
             write_register("modify_status", 0, 0, 9090)  # Set port out to 0
     else:
         print(f"Interface does not have a valid ranking for routing")
