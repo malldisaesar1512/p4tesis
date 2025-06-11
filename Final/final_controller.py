@@ -885,8 +885,8 @@ def initiate_top4():
 
     print(f"Result Cost: {result_cost}")
 
-    parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:11:00 0"
-    parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:11:00 0"
+    parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+    parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
     try:
         handle = table_add(parameter1, 9090)
         print(f"Added entry for {parameter1} with handle {handle}")
@@ -995,8 +995,8 @@ def add_to_p4(interface):
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
         write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:11:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:11:00 0"
+        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
         try:
             handle = table_add(parameter1, 9090)
             print(f"Added entry for {parameter1} with handle {handle}")
@@ -1077,8 +1077,8 @@ def modify_route(interface):
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
         write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:11:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:11:00 0"
+        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
         table_add(parameter1, 9090)
         table_add(parameter2, 9090)
         
