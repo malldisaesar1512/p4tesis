@@ -885,63 +885,67 @@ def initiate_top4():
 
     print(f"Result Cost: {result_cost}")
 
-    for interface, data in db_lsap4.copy().items():
-        rutep4 = data["routelist"]
-        macp4 = data["ether_src"]
-        intp4 = data["interface"]
-        ranking = result_cost.get(interface, {}).get('rank')
-        print(f"Interface: {interface}, Ranking: {ranking}")
-        if ranking == 1:
-            table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
-        elif ranking == 2:
-            table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
-        else:
-            print(f"Interface {interface} does not have a valid ranking for routing")
-            continue
-        
-        for ip in rutep4:
-            if ip in networklist:
-                continue
+    parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
+    parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
+    try:
+        handle = table_add(parameter1, 9090)
+        print(f"Added entry for {parameter1} with handle {handle}")
+    except Exception as e:
+        print(f"Error adding entry for {parameter1}: {e}")
+    try:
+        handle = table_add(parameter2, 9090)
+        print(f"Added entry for {parameter2} with handle {handle}")
+    except Exception as e:
+        print(f"Error adding entry for {parameter2}: {e}")
+
+    if len(result_cost) > 1:
+        for interface, data in db_lsap4.copy().items():
+            rutep4 = data["routelist"]
+            macp4 = data["ether_src"]
+            intp4 = data["interface"]
+            ranking = result_cost.get(interface, {}).get('rank')
+            print(f"Interface: {interface}, Ranking: {ranking}")
+            if ranking == 1:
+                table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
+            elif ranking == 2:
+                table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
             else:
-                if intp4 == "ens5":
-                    port_out = "1"
-                    parameter = f"{table_name} {ip} => {macp4} {port_out}"
-                    if parameter in list_route:
-                        continue
-                    else:
-                        list_route[table_name]={ "command": parameter }
-                    try:
-                        handle = table_add(parameter, 9090)
-                        print(f"Added entry for {parameter} with handle {handle}")
-                    except Exception as e:
-                        print(f"Error adding entry for {parameter}: {e}")
-                elif intp4 == "ens6":
-                    port_out = "2"
-                    parameter = f"{table_name} {ip} => {macp4} {port_out}"
-                    if parameter in list_route:
-                        continue
-                    else:
-                        list_route[table_name]={ "command": parameter }
-                    try:
-                        handle = table_add(parameter, 9090)
-                        print(f"Added entry for {parameter} with handle {handle}")
-                    except Exception as e:
-                        print(f"Error adding entry for {parameter}: {e}")
-        write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
-        write_register("modify_status", 0, 0, 9090)  # Set port out to 0
-        parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
-        try:
-            handle = table_add(parameter1, 9090)
-            print(f"Added entry for {parameter1} with handle {handle}")
-        except Exception as e:
-            print(f"Error adding entry for {parameter1}: {e}")
-        try:
-            handle = table_add(parameter2, 9090)
-            print(f"Added entry for {parameter2} with handle {handle}")
-        except Exception as e:
-            print(f"Error adding entry for {parameter2}: {e}")
+                print(f"Interface {interface} does not have a valid ranking for routing")
+                continue
+            
+            for ip in rutep4:
+                if ip in networklist:
+                    continue
+                else:
+                    if intp4 == "ens5":
+                        port_out = "1"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                        try:
+                            handle = table_add(parameter, 9090)
+                            print(f"Added entry for {parameter} with handle {handle}")
+                        except Exception as e:
+                            print(f"Error adding entry for {parameter}: {e}")
+                    elif intp4 == "ens6":
+                        port_out = "2"
+                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                        if parameter in list_route:
+                            continue
+                        else:
+                            list_route[table_name]={ "command": parameter }
+                        try:
+                            handle = table_add(parameter, 9090)
+                            print(f"Added entry for {parameter} with handle {handle}")
+                        except Exception as e:
+                            print(f"Error adding entry for {parameter}: {e}")
+            write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+    else:
+        print(f"Interface does not have a valid ranking for routing")
 
 def add_to_p4(interface):
     global db_lsap4, networklist, mac_src, list_route
