@@ -614,42 +614,46 @@ def handle_incoming_packet(packet, interface, src_broadcast, source_ip):
             if tracking_state.get(interface, {}).get("state") == "2-Way":
                 if ip2 in network1 and src_ip not in ips:
                     dbd_layer = packet.getlayer(OSPF_DBDesc)
-                    if dbd_layer.dbdescr == 0x00:
-                        jumlah_lsa = len(dbd_layer.lsaheaders)
-                        # print(f"{dbd_layer.show()}")
-                        # print(f"Jumlah LSA: {jumlah_lsa}")
-                        router_status = "Master"
-                        # print(f"{router_status} DBD")
-                        seq_exchange = dbd_layer.ddseq
-                        print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
-                        tracking_state[interface]["state"] = "Exchange"
-                        # send_ospf_dbd_first(src_ip, seq_random)
-                        send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
-                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
-                        print(f"jumlah LSA: {jumlah_lsa}")
-                        try:
-                            for i in range(jumlah_lsa): #add LSA to list
-                                lsa = dbd_layer.lsaheaders[i]
-                                if lsa in lsadb_list:
-                                    continue
-                                else:
-                                    lsadb_list.append(lsa)
-                        except Exception as e:
-                            print(f"Error processing LSA headers: {e}")
+                    try:
+                        if dbd_layer.dbdescr == 0x00:
+                            jumlah_lsa = len(dbd_layer.lsaheaders)
+                            # print(f"{dbd_layer.show()}")
+                            # print(f"Jumlah LSA: {jumlah_lsa}")
+                            router_status = "Master"
+                            # print(f"{router_status} DBD")
+                            seq_exchange = dbd_layer.ddseq
+                            print(f"Received DBD from {src_ip}, moving to Exchange state as Master")
+                            tracking_state[interface]["state"] = "Exchange"
+                            # send_ospf_dbd_first(src_ip, seq_random)
+                            send_ospf_dbd(interface, src_broadcast, source_ip,src_ip)
+                            print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                            print(f"jumlah LSA: {jumlah_lsa}")
+                            try:
+                                for i in range(jumlah_lsa): #add LSA to list
+                                    lsa = dbd_layer.lsaheaders[i]
+                                    if lsa in lsadb_list:
+                                        continue
+                                    else:
+                                        lsadb_list.append(lsa)
+                            except Exception as e:
+                                print(f"Error processing LSA headers: {e}")
+                                return
+                            #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
+                            print(f"LSA List: {lsadb_list}")
+                            send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
+                        else:
                             return
-                        #     print(f"LSA {i+1}: ID: {lsa.id}, Type: {lsa.type}, Advertising Router: {lsa.adrouter}, Sequence Number: {lsa.seq}")
-                        print(f"LSA List: {lsadb_list}")
-                        send_ospf_lsr(interface, src_broadcast, source_ip,src_ip) #kirim LSR ke neighbor
-                    else:
-                        return
-                        router_status = "Slave"
-                        print(f"{router_status} DBD")
-                        seq_exchange = dbd_layer.ddseq
-                        print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
-                        neighbor_state = "Exchange"
-                        # send_ospf_dbd_first(src_ip, seq_random)
-                        send_ospf_dbd(src_ip)
-                        print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
+                    except Exception as e:
+                        print(f"Error processing DBD packet: {e}")
+
+                        # router_status = "Slave"
+                        # print(f"{router_status} DBD")
+                        # seq_exchange = dbd_layer.ddseq
+                        # print(f"Received DBD from {src_ip}, moving to Exchange state as Slave")
+                        # neighbor_state = "Exchange"
+                        # # send_ospf_dbd_first(src_ip, seq_random)
+                        # send_ospf_dbd(src_ip)
+                        # print(f"Sent DBD packet to {src_ip} at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
                     
                     
         elif ospfhdr_layer.type == 3:  # LSR packet
