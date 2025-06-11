@@ -859,7 +859,7 @@ def initiate_top4():
 
     result_cost = {}
 
-    ecn_mark = read_register("ecn_status",0, 9090)
+    ecn_mark = read_register("enc_status",0, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
@@ -942,7 +942,7 @@ def initiate_top4():
                         except Exception as e:
                             print(f"Error adding entry for {parameter}: {e}")
             write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
             write_register("modify_status", 0, 0, 9090)  # Set port out to 0
     else:
         print(f"Interface does not have a valid ranking for routing")
@@ -993,7 +993,7 @@ def add_to_p4(interface):
                 
 
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
         parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
         parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
@@ -1016,7 +1016,7 @@ def modify_route(interface):
     thrift_port = 9090
 
     # Membaca nilai register dari P4
-    ecn_mark = read_register("ecn_status",0, thrift_port)
+    ecn_mark = read_register("enc_status",0, thrift_port)
     port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
@@ -1075,7 +1075,7 @@ def modify_route(interface):
                             print(f"Error adding entry for {parameter}: {e}")
     
         write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-        write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+        write_register("enc_status", 0, 0, 9090)  # Set ECN status to 0
         write_register("modify_status", 0, 0, 9090)  # Set port out to 0
         parameter1 = f"MyIngress.ipv4_lpm MyIngress.ipv4_forward 192.168.1.3/32 => 50:00:00:00:10:00 0"
         parameter2 = f"MyIngress.ipv4_reroute MyIngress.ipv4_rerouting 192.168.1.3/32 => 50:00:00:00:10:00 0"
