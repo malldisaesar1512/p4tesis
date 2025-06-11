@@ -894,7 +894,7 @@ def initiate_top4():
             intp4 = data["interface"]
             ranking = result_cost.get(interface, {}).get('rank')
 
-            print(f"Interface: {interface}, Ranking: {ranking}")
+            print(f"Interface: {interface}, Ranking: {ranking}, MAC: {macp4}, IPs: {rutep4}")
             
             if ranking == 1:
                 table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
