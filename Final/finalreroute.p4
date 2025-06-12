@@ -165,6 +165,7 @@ register<bit<48>>(NUM_FLOW) flow_in;
 register<bit<32>>(NUM_PORT) ecn_status;
 register<bit<9>>(NUM_PORT) port_status1;
 register<bit<1>>(NUM_PORT) modify_status;
+register<bit<1>>(NUM_PORT) packet_status;
 
 //------------------------------------------------------------------
 // INGRESS PROCESSING
@@ -338,6 +339,7 @@ control MyIngress(inout headers hdr,
         bit<48> var_threshold;
         bit<9> var_port;
         bit<9> var_portout2;
+        bit<1> var_packetstatus;
 
         var_flowid = 0;
         var_threshold = 250000; //refer to ITU-T G.1010
@@ -401,10 +403,14 @@ control MyIngress(inout headers hdr,
                 if((hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2) && var_time1 == 0){
                     var_time1 = standard_metadata.ingress_global_timestamp;
                     gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
+                    var_packetstatus = 1;
+                    packet_status.write(0, var_packetstatus);
                 }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
                     var_time2 = standard_metadata.ingress_global_timestamp;
                     meta.var_rtt = var_time2 - var_time1;
                     var_time1 = 0;
+                    var_packetstatus = 0;
+                    packet_status.write(0, var_packetstatus);
                     meta.var_portin = standard_metadata.ingress_port;
                     portin.write((bit<32>)var_flowid, meta.var_portin);
                     gudangrtt.write((bit<32>)var_hash_out, var_time1);
@@ -423,13 +429,28 @@ control MyIngress(inout headers hdr,
                     portout.read(var_portout1, (bit<32>)var_flowid);
                     if((meta.var_rtt >= var_threshold) || (meta.var_ecnstatus == 3) || (meta.var_linkstatus == 1)){
                         port_status.read(meta.var_portstatus,0);
+                        packet_status.read(var_packetstatus,0);
                         // modify_status.write(0, 1);
-                        if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
-                            port_status.write(0, PORT_UP);   
+                        if(var_packetstatus == 1){
+                            if(meta.var_portstatus == PORT_DOWN){
+                                port_status.write(0, PORT_DOWN);   
+                            }else{
+                                port_status.write(0, PORT_UP);
+                            }
                         }
-                        else if((meta.var_portstatus == PORT_UP) || (meta.var_linkstatus == 0)){
-                            port_status.write(0, PORT_DOWN);
+                        else if(var_packetstatus == 0){
+                            if(meta.var_portstatus == PORT_DOWN){
+                                port_status.write(0, PORT_UP);   
+                            }else{
+                                port_status.write(0, PORT_DOWN);
+                            }
                         }
+                        // if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
+                        //     port_status.write(0, PORT_UP);   
+                        // }
+                        // else if((meta.var_portstatus == PORT_UP) || (meta.var_linkstatus == 0)){
+                        //     port_status.write(0, PORT_DOWN);
+                        // }
                     }
                     else if(meta.var_rtt <= var_threshold && meta.var_ecnstatus == 0 && meta.var_linkstatus == 0){
                         port_status.read(meta.var_portstatus,0);
