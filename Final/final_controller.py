@@ -240,10 +240,13 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
                 e = OSPF_LSA_Hdr(age=1, options=0x02, type=1, id=info['ip_address'], adrouter=info['ip_address'], seq=info['sequence'])
                 seq_global = info['sequence']       
 
-            if d in ospf_link_list and e in lsadb_hdr_default:
+            if d in ospf_link_list:
                 continue
-            else:
+            elif d not in ospf_link_list :
                 ospf_link_list.append(d)
+            elif e in lsadb_hdr_default:
+                continue
+            elif e not in lsadb_hdr_default:
                 lsadb_hdr_default.append(e)
         
         if neighbor_state == "Down":
