@@ -370,8 +370,8 @@ def send_ospf_lsr(interface, src_broadcast, source_ip,neighbor_ip):
     # print(f"LSR List: {lsreq_list}")
     sendp(ospf_lsr_pkt, iface=interface, verbose=0)
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Sending LSR packet to {neighbor_ip}")
-    # lsreq_list.clear()
-    # lsadb_list.clear()
+    lsreq_list.clear()
+    lsadb_list.clear()
 
 def send_ospf_lsu(interface, src_broadcast, source_ip, neighbor_ip):
     global lsudb_list, lsreqdb_list, lsa_type1, lsadb_link_default, jumlah_lsreq, b, lsulist
