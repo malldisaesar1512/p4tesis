@@ -432,14 +432,14 @@ control MyIngress(inout headers hdr,
                         packet_status.read(var_packetstatus,0);
                         // modify_status.write(0, 1);
                         if(var_packetstatus == 1){
-                            if(meta.var_portstatus == PORT_DOWN){
+                            if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
                                 port_status.write(0, PORT_DOWN);   
                             }else{
                                 port_status.write(0, PORT_UP);
                             }
                         }
                         else if(var_packetstatus == 0){
-                            if(meta.var_portstatus == PORT_DOWN){
+                            if((meta.var_portstatus == PORT_DOWN) || (meta.var_linkstatus == 1)){
                                 port_status.write(0, PORT_UP);   
                             }else{
                                 port_status.write(0, PORT_DOWN);
