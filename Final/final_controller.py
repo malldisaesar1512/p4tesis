@@ -919,7 +919,9 @@ def initiate_top4():
         print(f"Interface does not have a valid ranking for routing")
 
 def modify_route():
-    global db_ipnhop, result_cost, old_ranks
+    global db_ipnhop, result_cost, old_ranks, list_route
+
+    list_route.clear()
 
     print(f"result_cost before modification: {result_cost}")
 
