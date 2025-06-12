@@ -446,21 +446,21 @@ control MyIngress(inout headers hdr,
             port_status.read(meta.var_portstatus,0);    
             if(meta.var_portstatus == PORT_DOWN){
                 ipv4_reroute.apply();
-                // modify_status.write(0, 1);
                 var_portout1 = 2;
                 var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
                 portoutnew.write(0, var_portout2);
                 port_status.write(0, PORT_DOWN);
+                modify_status.write(0, 1);
             }
             else{
                 ipv4_lpm.apply();
-                // modify_status.write(0, 0);
                 var_portout1 = 1;
                 var_portout2 = standard_metadata.egress_spec;
                 portout.write((bit<32>)var_flowid, var_portout1);
                 portoutnew.write(0, var_portout2);
                 port_status.write(0, PORT_UP);
+                modify_status.write(0, 0);
             }
         }
         else{

@@ -782,7 +782,10 @@ def icmp_monitor_simple(timeout=1):
                 else:
                     status_dict[iface] = 1  # Link gagal
                     if prev_status.get(iface) != 1:
-                        write_register("linkstatus", 1, 0, 9090)
+                        try:
+                            write_register("linkstatus", 1, 0, 9090)
+                        except Exception as e:
+                            print(f"Error writing to register: {e}")
 
             except Exception as e:
                 print(f"Error pinging {ip_addr} on {iface}: {e}")
@@ -968,6 +971,10 @@ def modify_route():
         print(f"Added entry for {parameter2} with handle {handle}")
     except Exception as e:
         print(f"Error adding entry for {parameter2}: {e}")
+    
+    write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+    write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+    write_register("modify_status", 0, 0, 9090)  # Set port out to 0
 
     a = len(result_cost)
     b = len(int_list)
@@ -1029,9 +1036,6 @@ def modify_route():
                                 print(f"Added entry for {parameter} with handle {handle}")
                             except Exception as e:
                                 print(f"Error adding entry for {parameter}: {e}")
-            write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
-            write_register("modify_status", 0, 0, 9090)  # Set port out to 0
     else:
         print(f"Interface does not have a valid ranking for routing")
         
