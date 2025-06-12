@@ -921,6 +921,8 @@ def initiate_top4():
 def modify_route():
     global db_ipnhop, result_cost, old_ranks
 
+    print(f"result_cost before modification: {result_cost}")
+
     old_ranks = {iface: info.get('rank') for iface, info in result_cost.items()} if result_cost else {}
 
     print(f"Old Ranks: {old_ranks}")
