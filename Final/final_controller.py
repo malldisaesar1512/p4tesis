@@ -923,6 +923,8 @@ def modify_route():
 
     old_ranks = {iface: info.get('rank') for iface, info in result_cost.items()} if result_cost else {}
 
+    print(f"Old Ranks: {old_ranks}")
+
     result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
 
     ecn_mark = read_register("ecn_status",0, 9090)
