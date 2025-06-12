@@ -793,6 +793,7 @@ def icmp_monitor_simple(timeout=1):
             except Exception as e:
                 print(f"Error pinging {ip_addr} on {iface}: {e}")
                 status_dict[iface] = 1
+            print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)}")
             print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'}")
         time.sleep(1)  # Tunggu sebelum iterasi berikutnya
 
