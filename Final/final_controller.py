@@ -783,7 +783,7 @@ def icmp_monitor_simple(timeout=1):
                     status_dict[iface] = 1  # Link gagal
                     if prev_status.get(iface) != 1:
                         try:
-                            write_register("linkstatus", 1, 0, 9090)
+                            write_register("linkstatus", 0, 1, 9090)
                         except Exception as e:
                             print(f"Error writing to register: {e}")
 
