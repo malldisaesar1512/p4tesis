@@ -347,8 +347,8 @@ control MyIngress(inout headers hdr,
             if(hdr.ipv4.dstAddr == 0xffffffff || hdr.ipv4.dstAddr == 0xe0000005 || hdr.ipv4.dstAddr == 0x0b0b0102 || hdr.ipv4.dstAddr == 0x0b0b0101 || hdr.ipv4.dstAddr == 0x0a0a0101 || hdr.ipv4.dstAddr == 0x0a0a0102){ //noaction ospf dan ping
                 NoAction();
             }
-            
-            if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ //hashing packet in
+            else{
+                if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ //hashing packet in
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 2){
@@ -463,6 +463,8 @@ control MyIngress(inout headers hdr,
                 modify_status.write(0, 0);
             }
         }
+            }
+            
         else{
             drop();
         }
