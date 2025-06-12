@@ -433,6 +433,7 @@ control MyIngress(inout headers hdr,
                         // modify_status.write(0, 1);
                         if(var_packetstatus == 1){
                             if(meta.var_linkstatus == 1){
+                                modify_status.write(0, 1);
                                 if(meta.var_portstatus == PORT_DOWN){
                                     port_status.write(0, PORT_UP);
                                 }else{
@@ -489,7 +490,6 @@ control MyIngress(inout headers hdr,
                     portout.write((bit<32>)var_flowid, var_portout1);
                     portoutnew.write(0, var_portout2);
                     port_status.write(0, PORT_DOWN);
-                    modify_status.write(0, 1);
                 }
                 else{
                     ipv4_lpm.apply();
