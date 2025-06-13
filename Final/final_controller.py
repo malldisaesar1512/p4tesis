@@ -925,6 +925,8 @@ def initiate_top4():
 def modify_route():
     global db_ipnhop, result_cost, old_ranks, list_route
 
+    start_time = time.time()  # Record start time
+
     list_route.clear()
 
     print(f"result_cost before modification: {result_cost}")
@@ -1049,6 +1051,11 @@ def modify_route():
                                 print(f"Error adding entry for {parameter}: {e}")
     else:
         print(f"Interface does not have a valid ranking for routing")
+    
+    end_time = time.time()  # record end time
+
+    elapsed_time_microseconds = (end_time - start_time) * 1_000_000  # convert seconds to microseconds
+    print(f"Execution time: {elapsed_time_microseconds:.2f} microseconds")
         
 def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     BW_DEFAULT = 10000000  # Bandwidth default dalam bps
