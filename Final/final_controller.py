@@ -781,7 +781,12 @@ def icmp_monitor_simple(timeout=1):
                 packet = IP(dst=ip_addr)/ICMP()
                 reply = sr1(packet, timeout=timeout, verbose=0)
                 if reply is not None:
-                    status_dict[iface] = 0  # Link aktif
+                    status_dict[iface] = 0
+                    if prev_status.get(iface) == 1:
+                        try:
+                            write_register("linkstatus", 0, 0, 9090)
+                        except Exception as e:
+                            print(f"Error writing to register: {e}")  # Link aktif
                 else:
                     status_dict[iface] = 1  # Link gagal
                     if prev_status.get(iface) != 1:
