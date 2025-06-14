@@ -800,6 +800,7 @@ def icmp_monitor_simple(timeout=1):
                 status_dict[iface] = 1
             print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)}")
             print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'}")
+        prev_status = status_dict.copy()  # Simpan status sebelumnya untuk iterasi berikutnya
         time.sleep(1)  # Tunggu sebelum iterasi berikutnya
 
 
