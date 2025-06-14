@@ -782,7 +782,7 @@ def icmp_monitor_simple(timeout=1):
                 reply = sr1(packet, timeout=timeout, verbose=0)
                 if reply is not None:
                     status_dict[iface] = 0
-                    if prev_status.get(iface) == 1:
+                    if prev_status.get(iface) == 1 or prev_status.get(iface) == 0:
                         try:
                             write_register("linkstatus", 0, 0, 9090)
                         except Exception as e:
