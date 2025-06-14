@@ -371,7 +371,7 @@ control MyIngress(inout headers hdr,
 
                         hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a,ip_b}, (bit<32>)NUM_FLOW);
                         flow_out.write((bit<32>)var_flowid, var_hash_out);
-                    }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 5){
+                    }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 14){
                         ip_a = hdr.ipv4.dstAddr;
                         ip_b = hdr.ipv4.srcAddr;
                         port_a = hdr.tcp.dstPort;
