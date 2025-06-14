@@ -405,7 +405,7 @@ control MyIngress(inout headers hdr,
                     gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
                     var_packetstatus = 1;
                     packet_status.write(0, var_packetstatus);
-                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 5) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
+                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 20) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
                     var_time2 = standard_metadata.ingress_global_timestamp;
                     meta.var_rtt = var_time2 - var_time1;
                     var_time1 = 0;
