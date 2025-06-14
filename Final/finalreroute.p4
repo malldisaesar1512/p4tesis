@@ -156,6 +156,7 @@ register<bit<1>>(NUM_PORT) port_status;
 register<bit<9>>(NUM_PORT) portin;
 register<bit<9>>(NUM_PORT) portout;
 register<bit<9>>(NUM_PORT) portoutnew;
+register<bit<8>>(NUM_FLOW) tcpflag;
 register<bit<48>>(NUM_FLOW) mac_list;
 register<bit<1>>(NUM_PORT) linkstatus;
 
@@ -340,6 +341,7 @@ control MyIngress(inout headers hdr,
         bit<9> var_port;
         bit<9> var_portout2;
         bit<1> var_packetstatus;
+        bit<8> var_tcpflag;
 
         var_flowid = 0;
         var_threshold = 250000; //refer to ITU-T G.1010
@@ -399,6 +401,13 @@ control MyIngress(inout headers hdr,
                 flow_in.read(var_hash_in, (bit<32>)var_flowid);
                 flow_out.read(var_hash_out, (bit<32>)var_flowid);
                 gudangrtt.read(var_time1, (bit<32>)var_hash_in);//value,index
+
+                if (hdr.tcp.flags == 2){
+                    var_tcpflag = 2;
+                }else{
+                    var_tcpflag = hdr.tcp.flags;
+                    tcpflag.write(0, var_tcpflag);
+                }
 
                 if((hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2) && var_time1 == 0){
                     var_time1 = standard_metadata.ingress_global_timestamp;
