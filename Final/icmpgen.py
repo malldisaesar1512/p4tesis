@@ -11,6 +11,7 @@ def icmp_ping(src_mac, dst_mac, src_ip, dst_ip, count):
             print(f"ICMP Ping {i+1}: RTT = {rtt:.2f} ms")
         else:
             print(f"ICMP Ping {i+1}: Request timed out")
+        time.sleep(1)
 
 if __name__ == "__main__":
     src_mac = "50:00:00:00:10:00"
