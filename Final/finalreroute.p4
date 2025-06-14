@@ -373,7 +373,7 @@ control MyIngress(inout headers hdr,
 
                         hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a,ip_b}, (bit<32>)NUM_FLOW);
                         flow_out.write((bit<32>)var_flowid, var_hash_out);
-                    }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 14){
+                    }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 20){
                         ip_a = hdr.ipv4.dstAddr;
                         ip_b = hdr.ipv4.srcAddr;
                         port_a = hdr.tcp.dstPort;
@@ -414,7 +414,7 @@ control MyIngress(inout headers hdr,
                     gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
                     var_packetstatus = 1;
                     packet_status.write(0, var_packetstatus);
-                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 14) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
+                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 20) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
                     var_time2 = standard_metadata.ingress_global_timestamp;
                     meta.var_rtt = var_time2 - var_time1;
                     var_time1 = 0;
