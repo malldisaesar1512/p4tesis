@@ -1108,9 +1108,8 @@ def check_link_status(target_ip, count, packet_size):
         payload_size = max(packet_size - 28, 0)
         packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
         
-        start_time = time.time()
         reply = sr1(packet, timeout=1, verbose=0)
-        end_time = time.time()
+
 
         if reply is None:
             print(f"Request timeout for seq={seq}")
@@ -1118,7 +1117,7 @@ def check_link_status(target_ip, count, packet_size):
             rtt_list.append(rtt)
             received_packets += 0
         else:
-            rtt = (end_time - start_time) * 1000  # RTT dalam ms
+            rtt = (reply.time - packet.sent_time) * 1000  # RTT dalam ms
             rtt_list.append(rtt)
             received_packets += 1
             print(f"Reply from {target_ip}: seq={seq} time={rtt:.2f} ms")
