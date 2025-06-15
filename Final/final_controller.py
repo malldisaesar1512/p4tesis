@@ -1078,7 +1078,7 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     # else:
     #     max_throughput = (BW_DEFAULT * WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
 
-    net_throughput = max_throughput/(256-load_ecn)  # Menghitung throughput dalam bps
+    net_throughput = th_link/(256-load_ecn)  # Menghitung throughput dalam bps
 
     latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
 
