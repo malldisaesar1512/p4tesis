@@ -921,7 +921,7 @@ def initiate_top4():
                             except Exception as e:
                                 print(f"Error adding entry for {parameter}: {e}")
             write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-            write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+            write_register("ecn_status", 1, 0, 9090)  # Set ECN status to 0
             write_register("modify_status", 0, 0, 9090)  # Set port out to 0
             
             #kokgabisa
@@ -992,7 +992,7 @@ def modify_route():
         print(f"Error adding entry for {parameter2}: {e}")
     
     write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-    write_register("ecn_status", 0, 0, 9090)  # Set ECN status to 0
+    write_register("ecn_status", 1, 0, 9090)  # Set ECN status to 0
     write_register("modify_status", 0, 0, 9090)  # Set port out to 0
 
     a = len(result_cost)
@@ -1080,7 +1080,11 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
 
     net_throughput = th_link/(256-load_ecn)  # Menghitung throughput dalam bps
 
+    print(f"Net Throughput: {net_throughput} bps")
+
     latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
+
+    print(f"Latency: {latensi} pikodetik")
 
     if link_status == 0:
         cost = 0  # Jika status link down, biaya adalah 0
