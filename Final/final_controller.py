@@ -1088,7 +1088,7 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
         cost = (net_throughput + latensi) / link_status  # Menghitung biaya
 
     if cost == 0:
-        cost = 255
+        cost = 255555  # Jika biaya adalah 0, set ke nilai maksimum (255555)
     else:
         cost = cost
 
