@@ -1084,6 +1084,8 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
 
     latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
 
+    print(f"RTT Link: {rtt_link} ms")
+
     print(f"Latency: {latensi} pikodetik")
 
     if link_status == 0:
@@ -1139,7 +1141,7 @@ def check_link_status(target_ip, count, packet_size):
 
     return {
         "link_status": statuslink,
-        "average_rtt_ms": avg_rtt,
+        "rtt_ms": rtt,
         "packet_loss_percent": packet_loss,
         "estimated_throughput_bps": throughput
     }
