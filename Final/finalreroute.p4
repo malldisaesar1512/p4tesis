@@ -449,6 +449,7 @@ control MyIngress(inout headers hdr,
                                     port_status.write(0, PORT_DOWN);
                                 }
                             }else{
+                                modify_status.write(0, 1);
                                 if(meta.var_portstatus == PORT_DOWN){
                                     port_status.write(0, PORT_DOWN);   
                                 }else{

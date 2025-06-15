@@ -1076,7 +1076,7 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     if th_link == 0:
         max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
     else:
-        max_throughput = (BW_DEFAULT / WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
+        max_throughput = (BW_DEFAULT * WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
 
     net_throughput = max_throughput + (max_throughput/(256-load_ecn))   # Menghitung throughput dalam bps
 
