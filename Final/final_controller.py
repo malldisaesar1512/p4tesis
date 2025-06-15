@@ -1131,12 +1131,12 @@ def check_link_status(target_ip, count, packet_size):
     packet_loss = ((count - received_packets) / count) * 100
 
     if received_packets > 0:
-        avg_rtt = sum(rtt_list) / received_packets
+        # avg_rtt = sum(rtt_list) / received_packets
         # Estimasi throughput dalam bits per second (bps)
         # Ukuran paket dalam bits dibagi RTT dalam detik
-        throughput = (packet_size * 8) / (avg_rtt / 1000)
+        throughput = (packet_size * 8) / (rtt / 1000)
     else:
-        avg_rtt = 0
+        rtt = 0
         throughput = 0
 
     statuslink = 1 if received_packets > 0 else 0
