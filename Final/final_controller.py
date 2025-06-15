@@ -819,7 +819,7 @@ def rank_by_cost_inplace(result_cost, old_ranks=None):
 def initiate_top4():
     global db_ipnhop, result_cost, old_ranks
 
-    ecn_mark = read_register("ecn_status",0, 9090)
+    ecn_mark = read_register("ecn_status",1, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
@@ -943,7 +943,7 @@ def modify_route():
 
     result_cost.clear()  # Kosongkan result_cost sebelum perhitungan baru
 
-    ecn_mark = read_register("ecn_status",0, 9090)
+    ecn_mark = read_register("ecn_status",1, 9090)
     # port_out = read_register("portout",0, thrift_port)
 
     if ecn_mark == 0 or ecn_mark == 1 or ecn_mark == 2:
