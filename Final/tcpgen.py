@@ -10,10 +10,10 @@ def custom_tcp_ping(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count)
         resp = srp1(pkt, timeout=2, verbose=0)
 
         if resp is None:
-            print(f"Request timed out for ping {i+1}")
+            print(f"Request timed out for ping {i+1} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         else:
             rtt = (resp.time - pkt.sent_time) * 1000  # RTT dalam ms
-            print(f"Ping {i+1}: RTT = {rtt:.2f} ms")
+            print(f"Ping {i+1}: RTT = {rtt:.2f} ms at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         time.sleep(1)
 
 if __name__ == "__main__":

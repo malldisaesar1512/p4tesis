@@ -8,9 +8,9 @@ def icmp_ping(src_mac, dst_mac, src_ip, dst_ip, count):
         resp = srp1(pkt, timeout=2, verbose=0)
         if resp:
             rtt = (resp.time - pkt.sent_time) * 1000  # RTT dalam ms
-            print(f"ICMP Ping {i+1}: RTT = {rtt:.2f} ms")
+            print(f"ICMP Ping {i+1}: RTT = {rtt:.2f} ms at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         else:
-            print(f"ICMP Ping {i+1}: Request timed out")
+            print(f"ICMP Ping {i+1}: Request timed out at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         time.sleep(1)
 
 if __name__ == "__main__":
