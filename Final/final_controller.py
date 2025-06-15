@@ -831,7 +831,7 @@ def initiate_top4():
         ip_addr = info.get("ip")
         if ip_addr:
             result = check_link_status(ip_addr, 1, 64)  # Cek status link untuk setiap IP di db_ipnhop
-            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["average_rtt_ms"], result["link_status"])
+            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["rtt_ms"], result["link_status"])
             result_cost[iface] = {"cost": cost}
     
     items = [(iface, info['cost']) for iface, info in result_cost.items()]
@@ -955,7 +955,7 @@ def modify_route():
         ip_addr = info.get("ip")
         if ip_addr:
             result = check_link_status(ip_addr, 1, 64)  # Cek status link untuk setiap IP di db_ipnhop
-            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["average_rtt_ms"], result["link_status"])
+            cost = cost_calculation(result["estimated_throughput_bps"], ecn_load, result["rtt_ms"], result["link_status"])
             result_cost[iface] = {"cost": cost}
     
     items = [(iface, info['cost']) for iface, info in result_cost.items()]
