@@ -1,6 +1,6 @@
 from asyncio import threads
 from audioop import add
-from cmath import inf
+from cmath import cos, inf
 from distutils import command
 from json import load
 from os import link
@@ -1073,16 +1073,19 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
     else:
         load_ecn = 1
 
-    if th_link == 0:
-        max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
-    else:
-        max_throughput = (BW_DEFAULT * WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
+    # if th_link == 0:
+    #     max_throughput = 0  # Jika throughput link adalah 0, set ke 0 untuk menghindari pembagian dengan nol
+    # else:
+    #     max_throughput = (BW_DEFAULT * WIDE_SCALE)/th_link  # Menghitung throughput maksimum dalam Bps
 
-    net_throughput = max_throughput + (max_throughput/(256-load_ecn))   # Menghitung throughput dalam bps
+    net_throughput = max_throughput/(256-load_ecn)  # Menghitung throughput dalam bps
 
     latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
 
-    cost = (net_throughput + latensi) * link_status  # Menghitung biaya
+    if link_status == 0:
+        cost = 0  # Jika status link down, biaya adalah 0
+    else:
+        cost = (net_throughput + latensi) / link_status  # Menghitung biaya
 
     if cost == 0:
         cost = 255
