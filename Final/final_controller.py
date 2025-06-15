@@ -1080,6 +1080,8 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
 
     net_throughput = th_link/(256-load_ecn)  # Menghitung throughput dalam bps
 
+    print(f"Throughput Link: {th_link} bps")
+
     print(f"Net Throughput: {net_throughput} bps")
 
     latensi = (rtt_link * WIDE_SCALE) / DELAY_PICO  # Menghitung latensi dalam pikodetik
