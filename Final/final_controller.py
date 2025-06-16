@@ -1044,7 +1044,7 @@ def modify_route():
                             except Exception as e:
                                 print(f"Error adding entry for {parameter}: {e}")
                     elif intp4 == "ens7":
-                        port_out = "2"
+                        port_out = "3"
                         parameter = f"{table_name} {ip} => {macp4} {port_out}"
                         if parameter in list_route:
                             continue
