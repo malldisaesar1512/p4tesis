@@ -875,6 +875,7 @@ def initiate_top4():
             print(f"Interface: {interface}, Ranking: {ranking}, MAC: {macp4}, IPs: {rutep4}")
             
             if(rutep4 == "192.168.1.0/24"):
+                print(f"rute: {rutep4} is a default route, skipping")
                 continue
             else:
                 if ranking == 1:
@@ -1014,6 +1015,7 @@ def modify_route():
             print(f"Interface: {interface}, Ranking: {ranking}")
 
             if(rutep4 == "192.168.1.0/24"):
+                print(f"rute: {rutep4} is a default route, skipping")
                 continue
             else:
                 if ranking == 1:
