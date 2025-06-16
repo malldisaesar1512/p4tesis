@@ -1012,54 +1012,58 @@ def modify_route():
             intp4 = data["interface"]
             ranking = result_cost.get(interface, {}).get('rank')
             print(f"Interface: {interface}, Ranking: {ranking}")
-            if ranking == 1:
-                table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
-            elif ranking == 2:
-                table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
-            else:
-                print(f"Interface {interface} does not have a valid ranking for routing")
+
+            if(rutep4 == "192.168.1.0/24"):
                 continue
-            
-            for ip in rutep4:
-                if ip in networklist:
-                    continue
+            else:
+                if ranking == 1:
+                    table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
+                elif ranking == 2:
+                    table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
                 else:
-                    if intp4 == "ens5":
-                        port_out = "1"
-                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
-                        if parameter in list_route:
-                            continue
-                        else:
-                            list_route[table_name]={ "command": parameter }
-                            try:
-                                handle = table_add(parameter, 9090)
-                                print(f"Added entry for {parameter} with handle {handle}")
-                            except Exception as e:
-                                print(f"Error adding entry for {parameter}: {e}")
-                    elif intp4 == "ens6":
-                        port_out = "2"
-                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
-                        if parameter in list_route:
-                            continue
-                        else:
-                            list_route[table_name]={ "command": parameter }
-                            try:
-                                handle = table_add(parameter, 9090)
-                                print(f"Added entry for {parameter} with handle {handle}")
-                            except Exception as e:
-                                print(f"Error adding entry for {parameter}: {e}")
-                    elif intp4 == "ens7":
-                        port_out = "3"
-                        parameter = f"{table_name} {ip} => {macp4} {port_out}"
-                        if parameter in list_route:
-                            continue
-                        else:
-                            list_route[table_name]={ "command": parameter }
-                            try:
-                                handle = table_add(parameter, 9090)
-                                print(f"Added entry for {parameter} with handle {handle}")
-                            except Exception as e:
-                                print(f"Error adding entry for {parameter}: {e}")
+                    print(f"Interface {interface} does not have a valid ranking for routing")
+                    continue
+                
+                for ip in rutep4:
+                    if ip in networklist:
+                        continue
+                    else:
+                        if intp4 == "ens5":
+                            port_out = "1"
+                            parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={ "command": parameter }
+                                try:
+                                    handle = table_add(parameter, 9090)
+                                    print(f"Added entry for {parameter} with handle {handle}")
+                                except Exception as e:
+                                    print(f"Error adding entry for {parameter}: {e}")
+                        elif intp4 == "ens6":
+                            port_out = "2"
+                            parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={ "command": parameter }
+                                try:
+                                    handle = table_add(parameter, 9090)
+                                    print(f"Added entry for {parameter} with handle {handle}")
+                                except Exception as e:
+                                    print(f"Error adding entry for {parameter}: {e}")
+                        elif intp4 == "ens7":
+                            port_out = "3"
+                            parameter = f"{table_name} {ip} => {macp4} {port_out}"
+                            if parameter in list_route:
+                                continue
+                            else:
+                                list_route[table_name]={ "command": parameter }
+                                try:
+                                    handle = table_add(parameter, 9090)
+                                    print(f"Added entry for {parameter} with handle {handle}")
+                                except Exception as e:
+                                    print(f"Error adding entry for {parameter}: {e}")
     else:
         print(f"Interface does not have a valid ranking for routing")
     
