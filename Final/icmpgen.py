@@ -1,16 +1,22 @@
 from scapy.all import *
 import time
+from datetime import datetime
 
 def icmp_ping(src_mac, dst_mac, src_ip, dst_ip, count):
     print("Sending ICMP ping...")
     for i in range(count):
         pkt = Ether(src=src_mac, dst=dst_mac) / IP(src=src_ip, dst=dst_ip) / ICMP()
         resp = srp1(pkt, timeout=2, verbose=0)
+        now = datetime.now()
+        timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]  # Milliseconds precision
         if resp:
-            rtt = (resp.time - pkt.sent_time) * 1000  # RTT dalam ms
-            print(f"ICMP Ping {i+1}: RTT = {rtt:.2f} ms at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            if resp.time and pkt.sent_time:
+                rtt = (resp.time - pkt.sent_time) * 1000  # RTT in ms
+                print(f"ICMP Ping {i+1}: RTT = {rtt:.2f} ms at {timestamp}")
+            else:
+                print(f"ICMP Ping {i+1}: Response received but timing unavailable at {timestamp}")
         else:
-            print(f"ICMP Ping {i+1}: Request timed out at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"ICMP Ping {i+1}: Request timed out at {timestamp}")
         time.sleep(1)
 
 if __name__ == "__main__":
@@ -21,3 +27,4 @@ if __name__ == "__main__":
 
     count = int(input("Enter number of ICMP pings to send: "))
     icmp_ping(src_mac, dst_mac, src_ip, dst_ip, count)
+
