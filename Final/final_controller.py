@@ -803,7 +803,7 @@ def icmp_monitor_simple(timeout=1):
             print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)}")
             print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'}")
         prev_status = status_dict.copy()  # Simpan status sebelumnya untuk iterasi berikutnya
-        time.sleep(2)  # Tunggu sebelum iterasi berikutnya
+        time.sleep(5)  # Tunggu sebelum iterasi berikutnya
 
 
 def rank_by_cost_inplace(result_cost, old_ranks=None):
