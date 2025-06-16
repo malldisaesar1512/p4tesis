@@ -874,20 +874,19 @@ def initiate_top4():
 
             print(f"Interface: {interface}, Ranking: {ranking}, MAC: {macp4}, IPs: {rutep4}")
             
-            if(rutep4 == "192.168.1.0/24"):
-                print(f"rute: {rutep4} is a default route, skipping")
-                continue
+            if ranking == 1:
+                table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
+            elif ranking == 2:
+                table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
             else:
-                if ranking == 1:
-                    table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
-                elif ranking == 2:
-                    table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
-                else:
-                    print(f"Interface {interface} does not have a valid ranking for routing")
+                print(f"Interface {interface} does not have a valid ranking for routing")
+                continue
+            
+            for ip in rutep4:
+                if ip in networklist:
                     continue
-                
-                for ip in rutep4:
-                    if ip in networklist:
+                else:
+                    if (ip == "192.168.1.0/24"):
                         continue
                     else:
                         if intp4 == "ens5":
@@ -926,9 +925,9 @@ def initiate_top4():
                                     print(f"Added entry for {parameter} with handle {handle}")
                                 except Exception as e:
                                     print(f"Error adding entry for {parameter}: {e}")
-                write_register("linkstatus", 0, 0, 9090)  # Set link status to up
-                write_register("ecn_status", 1, 0, 9090)  # Set ECN status to 0
-                write_register("modify_status", 0, 0, 9090)  # Set port out to 0
+            write_register("linkstatus", 0, 0, 9090)  # Set link status to up
+            write_register("ecn_status", 1, 0, 9090)  # Set ECN status to 0
+            write_register("modify_status", 0, 0, 9090)  # Set port out to 0
             
             #kokgabisa
     else:
@@ -1013,21 +1012,19 @@ def modify_route():
             intp4 = data["interface"]
             ranking = result_cost.get(interface, {}).get('rank')
             print(f"Interface: {interface}, Ranking: {ranking}")
-
-            if(rutep4 == "192.168.1.0/24"):
-                print(f"rute: {rutep4} is a default route, skipping")
-                continue
+            if ranking == 1:
+                table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
+            elif ranking == 2:
+                table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
             else:
-                if ranking == 1:
-                    table_name = "MyIngress.ipv4_lpm MyIngress.ipv4_forward"
-                elif ranking == 2:
-                    table_name = "MyIngress.ipv4_reroute MyIngress.ipv4_rerouting"
-                else:
-                    print(f"Interface {interface} does not have a valid ranking for routing")
+                print(f"Interface {interface} does not have a valid ranking for routing")
+                continue
+            
+            for ip in rutep4:
+                if ip in networklist:
                     continue
-                
-                for ip in rutep4:
-                    if ip in networklist:
+                else:
+                    if (ip == "192.168.1.0/24"):
                         continue
                     else:
                         if intp4 == "ens5":
