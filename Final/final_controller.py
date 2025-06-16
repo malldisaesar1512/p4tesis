@@ -787,8 +787,8 @@ def icmp_monitor_simple(timeout=1):
                 print(f"Error pinging {ip_addr} on {iface}: {e}")
                 status_dict[iface] = 1
 
-            print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)}")
-            print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'}")
+            print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Check if any interface failed
         any_failed = any(status == 1 for status in status_dict.values())
