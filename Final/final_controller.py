@@ -777,33 +777,39 @@ def icmp_monitor_simple(timeout=1):
                 status_dict[iface] = 1
                 continue
             try:
-                # Kirim paket ICMP echo request dan tunggu balasan
                 packet = IP(dst=ip_addr)/ICMP()
                 reply = sr1(packet, timeout=timeout, verbose=0)
                 if reply is not None:
                     status_dict[iface] = 0
-                    if prev_status.get(iface) == 1 or prev_status.get(iface) == 0:
-                        try:
-                            write_register("linkstatus", 0, 0, 9090)
-                            print(f"Link {iface} to {ip_addr} is active, writing to register")
-                        except Exception as e:
-                            print(f"Error writing to register: {e}")  # Link aktif
                 else:
-                    status_dict[iface] = 1  # Link gagal
-                    if prev_status.get(iface) != 1:
-                        try:
-                            write_register("linkstatus", 0, 1, 9090)
-                            print(f"Link {iface} to {ip_addr} is down, writing to register")
-                        except Exception as e:
-                            print(f"Error writing to register: {e}")
-
+                    status_dict[iface] = 1
             except Exception as e:
                 print(f"Error pinging {ip_addr} on {iface}: {e}")
                 status_dict[iface] = 1
+
             print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)}")
             print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'}")
-        prev_status = status_dict.copy()  # Simpan status sebelumnya untuk iterasi berikutnya
-        time.sleep(5)  # Tunggu sebelum iterasi berikutnya
+
+        # Check if any interface failed
+        any_failed = any(status == 1 for status in status_dict.values())
+        prev_failed = any(prev_status.get(iface) == 1 for iface in status_dict)
+
+        try:
+            if any_failed:
+                # If now any are failed and previously were not, write failed status
+                if not prev_failed:
+                    write_register("linkstatus", 0, 1, 9090)
+                    print("One or more links are down, writing to register")
+            else:
+                # If now none failed and previously any were failed, write active status
+                if prev_failed:
+                    write_register("linkstatus", 0, 0, 9090)
+                    print("All links are active, writing to register")
+        except Exception as e:
+            print(f"Error writing to register: {e}")
+
+        prev_status = status_dict.copy()
+        time.sleep(5)
 
 
 def rank_by_cost_inplace(result_cost, old_ranks=None):
