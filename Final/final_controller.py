@@ -489,10 +489,10 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
             elif interface == "ens6" and mac_src != "50:00:00:00:40:00":
                 mac_src = "50:00:00:00:40:00"
             
-            if interface == "ens7" and mac_src == "50:00:00:00:60:00":
+            if interface == "ens7" and mac_src == "50:00:00:00:70:00":
                 continue    
-            elif interface == "ens7" and mac_src != "50:00:00:00:60:00":
-                mac_src = "50:00:00:00:60:00"
+            elif interface == "ens7" and mac_src != "50:00:00:00:70:00":
+                mac_src = "50:00:00:00:70:00"
 
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
