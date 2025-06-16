@@ -771,7 +771,7 @@ def icmp_monitor_simple(timeout=1):
         
         status_dict = {}
 
-        for iface, info in db_ipnhop.items():
+        for iface, info in db_ipnhop.copy().items():
             ip_addr = info.get("ip")
             if not ip_addr:
                 status_dict[iface] = 1
