@@ -760,7 +760,7 @@ def modify_action():
             modify_route()
         else:
             print("Modify action is disabled")
-            time.sleep(0.2)
+            time.sleep(0.1)
 
 
 def icmp_monitor_simple(timeout=1):
