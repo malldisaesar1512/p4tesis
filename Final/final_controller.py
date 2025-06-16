@@ -1090,13 +1090,13 @@ def cost_calculation(th_link, ecn_mark, rtt_link, link_status):
 
     print(f"Latency: {latensi} pikodetik")
 
-    if link_status == 0:
+    if link_status == 1:
         cost = 0  # Jika status link down, biaya adalah 0
     else:
         cost = (net_throughput + latensi) / link_status  # Menghitung biaya
 
     if cost == 0:
-        cost = 255555  # Jika biaya adalah 0, set ke nilai maksimum (255555)
+        cost = 1000000  # Jika biaya adalah 0, set ke nilai maksimum (255555)
     else:
         cost = cost
 
