@@ -763,7 +763,7 @@ def modify_action():
             time.sleep(0)
 
 
-def icmp_monitor_simple(timeout=1):
+def icmp_monitor_simple(timeout=0.5):
     global prev_status
     while True:
         if prev_status is None:
@@ -811,7 +811,7 @@ def icmp_monitor_simple(timeout=1):
             print(f"Error writing to register: {e}")
 
         prev_status = status_dict.copy()
-        time.sleep(2)
+        time.sleep(0)
 
 
 def rank_by_cost_inplace(result_cost, old_ranks=None):
