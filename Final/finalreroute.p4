@@ -508,6 +508,7 @@ control MyIngress(inout headers hdr,
                     portout.write((bit<32>)var_flowid, var_portout1);
                     portoutnew.write(0, var_portout2);
                     port_status.write(0, PORT_DOWN);
+                    ecn_status.write(1, 0); //reset ecn status
                 }
                 else{
                     ipv4_lpm.apply();
