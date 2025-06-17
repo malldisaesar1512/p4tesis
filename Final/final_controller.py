@@ -3,7 +3,7 @@ from audioop import add
 from cmath import cos, inf
 from distutils import command
 from json import load
-from os import link
+from os import link, times
 import os
 from socket import timeout
 from tabnanny import check
@@ -779,6 +779,8 @@ def icmp_monitor_simple(timeout=1):
             try:
                 packet = IP(dst=ip_addr)/ICMP()
                 reply = sr1(packet, timeout=timeout, verbose=0)
+                now = datetime.now()
+                timestamp = now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]  # Milliseconds precision
                 if reply is not None:
                     status_dict[iface] = 0
                 else:
@@ -787,8 +789,8 @@ def icmp_monitor_simple(timeout=1):
                 print(f"Error pinging {ip_addr} on {iface}: {e}")
                 status_dict[iface] = 1
 
-            print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Interface: {iface}, Prev Status: {prev_status.get(iface)} at {timestamp}")
+            print(f"Interface: {iface}, Status: {'Active' if status_dict[iface] == 0 else 'Failed'} at {timestamp}")
 
         # Check if any interface failed
         any_failed = any(status == 1 for status in status_dict.values())
@@ -809,7 +811,7 @@ def icmp_monitor_simple(timeout=1):
             print(f"Error writing to register: {e}")
 
         prev_status = status_dict.copy()
-        time.sleep(5)
+        time.sleep(2)
 
 
 def rank_by_cost_inplace(result_cost, old_ranks=None):
@@ -1126,7 +1128,7 @@ def check_link_status(target_ip, count, packet_size):
         payload_size = max(packet_size - 28, 0)
         packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
         
-        reply = sr1(packet, timeout=1, verbose=0)
+        reply = sr1(packet, timeout=0.25, verbose=0)
 
 
         if reply is None:
