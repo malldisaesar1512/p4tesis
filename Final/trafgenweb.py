@@ -1,7 +1,7 @@
 import requests
 import time
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 def measure_total_page_content(url):
     start_time = time.time()
@@ -10,22 +10,19 @@ def measure_total_page_content(url):
     
     # Request HTML utama
     try:
-        response = session.get(url, stream=True)
+        response = session.get(url, timeout=10)
         response.raise_for_status()
     except Exception as e:
         print(f"Gagal request halaman: {e}")
         return
     
-    # Hitung size HTML
-    html_bytes = 0
-    for chunk in response.iter_content(chunk_size=4096):
-        if chunk:
-            html_bytes += len(chunk)
+    # Ambil seluruh content HTML sekaligus
+    content = response.content
+    html_bytes = len(content)
     total_bytes += html_bytes
     
-    # Parse HTML untuk dapatkan semua resource penting
-    response_content = response.content
-    soup = BeautifulSoup(response_content, 'html.parser')
+    # Parsing HTML untuk dapatkan semua resource penting
+    soup = BeautifulSoup(content, 'html.parser')
     
     # Kumpulkan URL resource dari img, link(css), script(js)
     resource_urls = set()
@@ -48,12 +45,9 @@ def measure_total_page_content(url):
     # Download semua resource dan hitung size
     for resource_url in resource_urls:
         try:
-            resource_response = session.get(resource_url, stream=True, timeout=10)
+            resource_response = session.get(resource_url, timeout=10)
             resource_response.raise_for_status()
-            resource_bytes = 0
-            for chunk in resource_response.iter_content(chunk_size=4096):
-                if chunk:
-                    resource_bytes += len(chunk)
+            resource_bytes = len(resource_response.content)
             total_bytes += resource_bytes
         except Exception as e:
             print(f"Gagal request resource {resource_url}: {e}")
