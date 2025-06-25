@@ -1,7 +1,14 @@
 from scapy.all import *
 import time
 
+MAX_PAYLOAD_SIZE = 1400  # Batas payload max agar tidak fragmentasi di jaringan Ethernet (MTU 1500 - header IP & TCP)
+
 def custom_tcp_ping(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps=1, size=40):
+    # Validasi ukuran payload agar tidak melebihi MAX_PAYLOAD_SIZE
+    if size > MAX_PAYLOAD_SIZE:
+        print(f"Size too large! Limiting to {MAX_PAYLOAD_SIZE} bytes to avoid fragmentation.")
+        size = MAX_PAYLOAD_SIZE
+
     interval = 1.0 / rps
     payload = b'X' * size  # Ukuran payload bytes sebesar parameter size
     
@@ -43,6 +50,6 @@ if __name__ == "__main__":
 
     count = int(input("Enter number of TCP pings to send: "))
     rps = float(input("Enter requests per second: "))
-    size = int(input("Enter packet size in bytes: "))
+    size = int(input(f"Enter packet size in bytes (max {MAX_PAYLOAD_SIZE}): "))
 
     custom_tcp_ping(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps, size)
