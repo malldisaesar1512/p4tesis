@@ -1,41 +1,54 @@
 from scapy.all import *
 import time
 
-MAX_PAYLOAD_SIZE = 1400  # Batas payload max agar tidak fragmentasi di jaringan Ethernet (MTU 1500 - header IP & TCP)
+MTU = 1500
+IP_HEADER_SIZE = 20
+TCP_HEADER_SIZE = 20
+MAX_FRAGMENT_SIZE = MTU - IP_HEADER_SIZE  # Fragment size untuk IP layer (payload di IP layer)
 
-def custom_tcp_ping(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps=1, size=40):
-    # Validasi ukuran payload agar tidak melebihi MAX_PAYLOAD_SIZE
-    if size > MAX_PAYLOAD_SIZE:
-        print(f"Size too large! Limiting to {MAX_PAYLOAD_SIZE} bytes to avoid fragmentation.")
-        size = MAX_PAYLOAD_SIZE
-
+def custom_tcp_ping_fragmented(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps=1, size=2000):
     interval = 1.0 / rps
-    payload = b'X' * size  # Ukuran payload bytes sebesar parameter size
     
     total_bytes_sent = 0
     start_time = time.time()
     
+    payload = b'X' * size  # payload sesuai size diminta
+    
     for i in range(count):
-        # Membuat paket TCP SYN dengan layer Ethernet, IP, dan payload sesuai ukuran
-        pkt = Ether(src=src_mac, dst=dst_mac) / IP(src=src_ip, dst=dst_ip) / TCP(sport=src_port, dport=dst_port, flags='S') / Raw(load=payload)
-
-        # Mengirim paket dan mengukur RTT
-        resp = srp1(pkt, timeout=2, verbose=0)
-
+        # Buat paket TCP SYN tanpa payload dulu (header saja)
+        base_pkt = Ether(src=src_mac, dst=dst_mac) / IP(src=src_ip, dst=dst_ip) / TCP(sport=src_port, dport=dst_port, flags='S')
+        
+        # Gabungkan header TCP + payload sebagai data load IP, nanti di-fragment
+        # Buat paket IP terpisah dengan layer TCP+payload sebagai Raw, fragmentasi di level IP saja
+        ip_pkt = IP(src=src_ip, dst=dst_ip) / TCP(sport=src_port, dport=dst_port, flags='S') / Raw(payload)
+        
+        # Fragmentasi paket IP ini (frag size MAX_FRAGMENT_SIZE)
+        frags = fragment(ip_pkt, fragsize=MAX_FRAGMENT_SIZE)
+        
+        # Kirim setiap fragmen dengan layer Ethernet
+        for idx, frag in enumerate(frags):
+            ether_frag = Ether(src=src_mac, dst=dst_mac) / frag
+            sendp(ether_frag, verbose=0)
+            total_bytes_sent += len(ether_frag)
+            # print(f"Sent fragment {idx+1} of size {len(ether_frag)} bytes")
+        
+        # Cek respons hanya untuk fragmen pertama saja dengan srp1
+        first_frag_pkt = Ether(src=src_mac, dst=dst_mac) / frags[0]
+        resp = srp1(first_frag_pkt, timeout=2, verbose=0)
+        
         if resp is None:
             print(f"Request timed out for ping {i+1} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         else:
-            rtt = (resp.time - pkt.sent_time) * 1000  # RTT dalam ms
+            rtt = (resp.time - first_frag_pkt.sent_time) * 1000  # RTT dalam ms
             print(f"Ping {i+1}: RTT = {rtt:.2f} ms at {time.strftime('%Y-%m-%d %H:%M:%S')}")
         
-        total_bytes_sent += len(pkt)  # Menambahkan ukuran paket yang terkirim
-        time.sleep(interval)  # Jeda sesuai rata-rata paket per detik
-
+        time.sleep(interval)
+    
     end_time = time.time()
-    duration = end_time - start_time  # Waktu total pengiriman dalam detik
+    duration = end_time - start_time
     throughput_bps = (total_bytes_sent * 8) / duration  # bits per second
-    throughput_kbps = throughput_bps / 1000  # konversi ke Kbps
-
+    throughput_kbps = throughput_bps / 1000
+    
     print(f"\nTotal bytes sent: {total_bytes_sent} bytes")
     print(f"Total duration: {duration:.2f} seconds")
     print(f"Average throughput: {throughput_kbps:.2f} Kbps")
@@ -50,6 +63,6 @@ if __name__ == "__main__":
 
     count = int(input("Enter number of TCP pings to send: "))
     rps = float(input("Enter requests per second: "))
-    size = int(input(f"Enter packet size in bytes (max {MAX_PAYLOAD_SIZE}): "))
+    size = int(input(f"Enter packet size in bytes (can be more than MTU {MTU}): "))
 
-    custom_tcp_ping(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps, size)
+    custom_tcp_ping_fragmented(src_mac, dst_mac, src_ip, dst_ip, src_port, dst_port, count, rps, size)
