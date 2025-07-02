@@ -95,5 +95,5 @@ def traffic_generator(url, total_requests=10, target_rps=1):
 if __name__ == "__main__":
     target_url = "http://192.168.2.2"
     jumlah_request = int(input("Masukkan jumlah total request: "))
-    target_rps = float(input("Masukkan target requests per second: "))
+    target_rps = int(input("Masukkan target requests per second: "))
     traffic_generator(target_url, jumlah_request, target_rps)
