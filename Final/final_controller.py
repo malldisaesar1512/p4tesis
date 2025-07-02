@@ -811,7 +811,7 @@ def icmp_monitor_simple(timeout=0.5):
             print(f"Error writing to register: {e}")
 
         prev_status = status_dict.copy()
-        time.sleep(0)
+        time.sleep(2)
 
 
 def rank_by_cost_inplace(result_cost, old_ranks=None):
