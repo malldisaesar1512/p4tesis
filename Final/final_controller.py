@@ -265,6 +265,7 @@ def send_hello_periodically(interval, interface, ip_address, source_ip):
         print(f"ospf_link_list: {ospf_link_list}")
         print(f"lsadb_hdr_default: {lsadb_hdr_default}")
         print(f"threads:{threads}")
+        print(f"int_list:{db_ipnhop}")
         
         print(f"Sent OSPF Hello packet at {time.strftime('%Y-%m-%d %H:%M:%S')} - State: {neighbor_state}")
         time.sleep(interval)
