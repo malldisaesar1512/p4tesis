@@ -349,7 +349,7 @@ control MyIngress(inout headers hdr,
 
         if(hdr.ipv4.isValid()){
             if(hdr.ipv4.dstAddr == 0xffffffff || hdr.ipv4.dstAddr == 0xe0000005 || hdr.ipv4.dstAddr == 0x0b0b0102 || hdr.ipv4.dstAddr == 0x0b0b0101 || hdr.ipv4.dstAddr == 0x0a0a0101 || hdr.ipv4.dstAddr == 0x0a0a0102 || hdr.ipv4.dstAddr == 0x0c0c0101 || hdr.ipv4.dstAddr == 0x0c0c0102){ //noaction ospf dan ping
-                NoAction();
+                drop();
             }
             else{
                 if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ //hashing packet in
