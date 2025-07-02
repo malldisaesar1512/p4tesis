@@ -30,15 +30,17 @@ def fetch_full_request(url):
     start_time = time.time()
     try:
         response = requests.get(url, timeout=10, stream=True)
-        content = b""
+        content_bytes = b""
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
-                content += chunk
-        main_content_length = len(content)
-
+                content_bytes += chunk
+        main_content_length = len(content_bytes)
         content_type = response.headers.get('Content-Type', '')
+
         if 'text/html' in content_type:
-            resource_links = extract_links(response.text, url)
+            # decode content bytes sekali saja, bukan akses response.text ulang
+            content_str = content_bytes.decode(response.encoding or 'utf-8', errors='replace')
+            resource_links = extract_links(content_str, url)
         else:
             resource_links = set()
     except requests.RequestException:
@@ -55,6 +57,7 @@ def fetch_full_request(url):
     total_bytes = main_content_length + resource_total_size
     total_time = end_time - start_time
     return total_bytes, total_time
+
 
 def traffic_generator(url, total_requests=10, target_rps=1):
     rtt_list = []
