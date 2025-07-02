@@ -8,13 +8,19 @@ def traffic_generator(url, num_requests=10):
 
     for i in range(num_requests):
         start_time = time.time()
-        response = requests.get(url)
+        response = requests.get(url, stream=True)
+        
+        # Membaca keseluruhan content secara eksplisit agar pastikan content sepenuhnya diterima
+        content = b""
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                content += chunk
         end_time = time.time()
 
         rtt = end_time - start_time
         rtt_list.append(rtt)
 
-        data_length = len(response.content)
+        data_length = len(content)
         total_bytes += data_length
         total_time += rtt
 
