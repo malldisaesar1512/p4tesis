@@ -1,3 +1,4 @@
+import argparse
 import requests
 import time
 import re
@@ -38,7 +39,6 @@ def fetch_full_request(url):
         content_type = response.headers.get('Content-Type', '')
 
         if 'text/html' in content_type:
-            # decode content bytes sekali saja, bukan akses response.text ulang
             content_str = content_bytes.decode(response.encoding or 'utf-8', errors='replace')
             resource_links = extract_links(content_str, url)
         else:
@@ -58,8 +58,7 @@ def fetch_full_request(url):
     total_time = end_time - start_time
     return total_bytes, total_time
 
-
-def traffic_generator(url, total_requests=10, target_rps=1):
+def traffic_generator(url, total_requests, target_rps):
     rtt_list = []
     total_bytes = 0
     requests_sent = 0
@@ -68,30 +67,26 @@ def traffic_generator(url, total_requests=10, target_rps=1):
 
     with ThreadPoolExecutor(max_workers=max(10, target_rps * 2)) as executor:
         while requests_sent < total_requests:
-            second_start = int(time.time())
+            second_start = time.time()
             batch_count = 0
             futures = []
             
-            # Submit requests for this second up to target_rps or remaining requests
             while batch_count < target_rps and requests_sent < total_requests:
                 futures.append(executor.submit(fetch_full_request, url))
                 batch_count += 1
                 requests_sent += 1
 
-            # Collect results
             for future in as_completed(futures):
                 bytes_recv, rtt = future.result()
                 total_bytes += bytes_recv
                 rtt_list.append(rtt)
 
-            # Wait remainder of the second to maintain request rate precisely
-            time_now = time.time()
-            elapsed = time_now - second_start
+            elapsed = time.time() - second_start
             if elapsed < 1.0:
                 time.sleep(1.0 - elapsed)
 
     total_duration = sum(rtt_list) if rtt_list else 0
-    total_time_wallclock = max(1, len(rtt_list) // target_rps)   # minimal 1 second
+    total_time_wallclock = max(1, len(rtt_list) // target_rps)
 
     avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
     throughput = total_bytes / total_time_wallclock if total_time_wallclock > 0 else 0
@@ -105,8 +100,14 @@ def traffic_generator(url, total_requests=10, target_rps=1):
     print(f"Target Requests Per Second (int): {target_rps} req/s")
     print(f"Actual Requests Per Second (approx): {actual_rps:.2f} req/s")
 
+def main():
+    parser = argparse.ArgumentParser(description="Advanced Traffic Generator with full resource fetch")
+    parser.add_argument('--url', type=str, required=True, help='Target URL to request')
+    parser.add_argument('--req', type=int, required=True, help='Jumlah total request')
+    parser.add_argument('--rps', type=int, required=True, help='Target requests per second')
+    args = parser.parse_args()
+
+    traffic_generator(args.url, args.req, args.rps)
+
 if __name__ == "__main__":
-    target_url = "http://192.168.2.2"
-    jumlah_request = int(input("Masukkan jumlah total request (int): "))
-    target_rps = int(input("Masukkan target requests per second (int): "))
-    traffic_generator(target_url, jumlah_request, target_rps)
+    main()
