@@ -7,11 +7,6 @@ import time
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 
-def zipf_mandelbrot(N, q, s):
-    ranks = np.arange(1, N + 1)
-    weights = (ranks + q) ** -s
-    probabilities = weights / weights.sum()
-    return probabilities
 
 def log_to_log(data, filename='request_log_http.log'):
     with open(filename, mode='a') as file:
@@ -79,13 +74,12 @@ def make_request(url, results):
     
     log_to_log(log_data)
 
-def generate_traffic(urls, num_requests, requests_per_second, zipf_params):
-    probabilities = zipf_mandelbrot(len(urls), *zipf_params)
+def generate_traffic(urls, num_requests, requests_per_second):
     results = []
     executor = ThreadPoolExecutor(max_workers=100)
     
     for _ in range(num_requests):
-        url = np.random.choice(urls, p=probabilities)
+        url = urls
         executor.submit(make_request, url, results)
         time.sleep(1 / requests_per_second)
 
@@ -109,26 +103,14 @@ def calculate_totals_and_averages(results):
 
 def main():
     print("############ Tunggu Sebentar ############")
-    
-    parser = argparse.ArgumentParser(description='Generate traffic for URLs with Zipf distribution.')
-    parser.add_argument('-url', type=int, required=True, help='Number of URLs')
-    parser.add_argument('-req', type=int, required=True, help='Number of requests')
-    parser.add_argument('-rps', type=float, required=True, help='Requests per second')
-    parser.add_argument('-zipf', type=float, nargs=2, required=True, help='Zipf parameters: q and s')
-
-    args = parser.parse_args()
-
-    number_of_requests = args.req
-    requests_per_second = args.rps
-    zipf_params = tuple(args.zipf)
-
-    df = pd.read_csv('url_bineca_http.csv')
-    urls = df['URL'].tolist()
+    urlnya = "http://192.168.2.2"
+    jumlah_request = int(input("Masukkan jumlah total request: "))
+    target_rps = int(input("Masukkan target requests per second: "))
 
     with open('request_log_http.log', mode='w') as file:
         file.write("URL\tStart Time\tEnd Time\tRTT (ms)\tStatus Code\tContent Size (bytes)\tThroughput (bytes/ms)\n")
 
-    results = generate_traffic(urls, number_of_requests, requests_per_second, zipf_params)
+    results = generate_traffic(urlnya, jumlah_request, target_rps)
     
     total_data, average_data = calculate_totals_and_averages(results)
     
