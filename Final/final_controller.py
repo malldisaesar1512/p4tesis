@@ -857,7 +857,7 @@ def initiate_top4():
     print(f"Result Cost: {result_cost}")
 
     a = len(result_cost)
-    b = len(int_list)
+    b = len(db_ipnhop)
 
     print(f"Length of result_cost: {a}, Length of int_list: {b}")
 
