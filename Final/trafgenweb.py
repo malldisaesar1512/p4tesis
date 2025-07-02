@@ -26,60 +26,74 @@ def fetch_content(url):
         end = time.time()
         size = len(content)
         elapsed = end - start
-        print(f"Fetched: {url} ({size} bytes) in {elapsed:.4f} s")
         return size, elapsed
-    except requests.RequestException as ex:
-        print(f"Failed to fetch {url}: {ex}")
+    except requests.RequestException:
         return 0, 0
 
-def traffic_generator(url, num_requests=10, max_workers=10):
-    total_bytes = 0
+def fetch_and_resources(url):
+    main_bytes, main_time = fetch_content(url)
+    try:
+        response = requests.get(url, timeout=10)
+        if 'text/html' in response.headers.get('Content-Type', ''):
+            resource_links = extract_links(response.text, url)
+        else:
+            resource_links = set()
+    except requests.RequestException:
+        resource_links = set()
+    
+    total_bytes = main_bytes
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_content, res_url) for res_url in resource_links]
+        for future in as_completed(futures):
+            res_bytes, _ = future.result()
+            total_bytes += res_bytes
+
+    return main_time, total_bytes
+
+def traffic_generator(url, total_requests=10, target_rps=1):
     rtt_list = []
+    total_bytes = 0
 
-    overall_start = time.time()
+    start_time = time.time()
+    # We will send requests in batches according to target_rps
+    requests_sent = 0
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for i in range(num_requests):
-            print(f"\nRequest {i+1} to {url}")
-            # Fetch halaman utama dan catat RTT
-            future_main = executor.submit(fetch_content, url)
-            main_bytes, main_time = future_main.result()
-            rtt_list.append(main_time)
-            total_bytes += main_bytes
+    with ThreadPoolExecutor(max_workers=target_rps*2) as executor:
+        while requests_sent < total_requests:
+            batch_size = min(target_rps, total_requests - requests_sent)
+            batch_start = time.time()
 
-            # Ambil ulang halaman utama untuk parsing resource
-            try:
-                response = requests.get(url, timeout=10)
-                content_type = response.headers.get('Content-Type', '')
-                if 'text/html' in content_type:
-                    html_text = response.text
-                    resource_links = extract_links(html_text, url)
-                else:
-                    resource_links = set()
-            except requests.RequestException:
-                resource_links = set()
-
-            # Fetch resource secara paralel
-            futures = {executor.submit(fetch_content, res_url): res_url for res_url in resource_links}
+            futures = [executor.submit(fetch_and_resources, url) for _ in range(batch_size)]
             for future in as_completed(futures):
-                res_bytes, res_time = future.result()
-                total_bytes += res_bytes
+                main_time, bytes_received = future.result()
+                rtt_list.append(main_time)
+                total_bytes += bytes_received
 
-    overall_end = time.time()
-    total_time = overall_end - overall_start
+            requests_sent += batch_size
+
+            batch_end = time.time()
+            elapsed = batch_end - batch_start
+            # Sleep to keep total batch time ~1 second to match target RPS
+            if elapsed < 1.0:
+                time.sleep(1.0 - elapsed)
+
+    end_time = time.time()
+    total_duration = end_time - start_time
 
     avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
-    throughput = total_bytes / total_time if total_time > 0 else 0
-    rps = num_requests / total_time if total_time > 0 else 0
+    throughput = total_bytes / total_duration if total_duration > 0 else 0
+    actual_rps = len(rtt_list) / total_duration if total_duration > 0 else 0
 
     print("\n=== Summary ===")
     print(f"Average RTT (main pages): {avg_rtt:.4f} seconds")
     print(f"Total Data Received (including resources): {total_bytes} bytes")
-    print(f"Total Time (all requests): {total_time:.4f} seconds")
+    print(f"Total Time (all requests completed): {total_duration:.4f} seconds")
     print(f"Throughput (total bytes / total time): {throughput:.2f} bytes/second")
-    print(f"Requests Per Second (RPS): {rps:.2f} req/s")
+    print(f"Target Requests Per Second: {target_rps:.2f} req/s")
+    print(f"Actual Requests Per Second: {actual_rps:.2f} req/s")
 
 if __name__ == "__main__":
     target_url = "http://192.168.2.2"
-    jumlah_request = int(input("Masukkan jumlah request: "))
-    traffic_generator(target_url, jumlah_request)
+    jumlah_request = int(input("Masukkan jumlah total request: "))
+    target_rps = float(input("Masukkan target requests per second: "))
+    traffic_generator(target_url, jumlah_request, target_rps)
