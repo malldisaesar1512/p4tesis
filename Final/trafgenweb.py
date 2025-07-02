@@ -65,12 +65,14 @@ def traffic_generator(url, total_requests, target_rps):
 
     print(f"Starting traffic generator for {total_requests} requests with target {target_rps} requests/sec...\n")
 
+    start_time_overall = time.time()  # Start wall clock timer
+
     with ThreadPoolExecutor(max_workers=max(10, target_rps * 2)) as executor:
         while requests_sent < total_requests:
             second_start = time.time()
             batch_count = 0
             futures = []
-            
+
             while batch_count < target_rps and requests_sent < total_requests:
                 futures.append(executor.submit(fetch_full_request, url))
                 batch_count += 1
@@ -85,8 +87,9 @@ def traffic_generator(url, total_requests, target_rps):
             if elapsed < 1.0:
                 time.sleep(1.0 - elapsed)
 
-    total_duration = sum(rtt_list) if rtt_list else 0
-    total_time_wallclock = max(1, len(rtt_list) // target_rps)
+    end_time_overall = time.time()  # End wall clock timer
+
+    total_time_wallclock = end_time_overall - start_time_overall
 
     avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
     throughput = total_bytes / total_time_wallclock if total_time_wallclock > 0 else 0
@@ -95,7 +98,7 @@ def traffic_generator(url, total_requests, target_rps):
     print("\n=== Summary ===")
     print(f"Average RTT (full page + all resources): {avg_rtt:.4f} seconds")
     print(f"Total Data Received (including resources): {total_bytes} bytes")
-    print(f"Total Time (wall clock, rounded): {total_time_wallclock} seconds")
+    print(f"Total Time (wall clock): {total_time_wallclock:.4f} seconds")
     print(f"Throughput (total bytes / total time): {throughput:.2f} bytes/second")
     print(f"Target Requests Per Second (int): {target_rps} req/s")
     print(f"Actual Requests Per Second (approx): {actual_rps:.2f} req/s")
