@@ -70,12 +70,14 @@ def traffic_generator(url, num_requests=10, max_workers=10):
 
     avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
     throughput = total_bytes / total_time if total_time > 0 else 0
+    rps = num_requests / total_time if total_time > 0 else 0
 
     print("\n=== Summary ===")
     print(f"Average RTT (main pages): {avg_rtt:.4f} seconds")
     print(f"Total Data Received (including resources): {total_bytes} bytes")
     print(f"Total Time (all requests): {total_time:.4f} seconds")
     print(f"Throughput (total bytes / total time): {throughput:.2f} bytes/second")
+    print(f"Requests Per Second (RPS): {rps:.2f} req/s")
 
 if __name__ == "__main__":
     target_url = "http://192.168.2.2"
