@@ -1,65 +1,34 @@
 import requests
 import time
-from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 
-def measure_total_page_content(url):
-    start_time = time.time()
-    session = requests.Session()
+def traffic_generator(url, num_requests=10):
+    rtt_list = []
     total_bytes = 0
-    
-    # Request HTML utama
-    try:
-        response = session.get(url, timeout=10)
-        response.raise_for_status()
-    except Exception as e:
-        print(f"Gagal request halaman: {e}")
-        return
-    
-    # Ambil seluruh content HTML sekaligus
-    content = response.content
-    html_bytes = len(content)
-    total_bytes += html_bytes
-    
-    # Parsing HTML untuk dapatkan semua resource penting
-    soup = BeautifulSoup(content, 'html.parser')
-    
-    # Kumpulkan URL resource dari img, link(css), script(js)
-    resource_urls = set()
-    # img src
-    for img in soup.find_all('img'):
-        src = img.get('src')
-        if src:
-            resource_urls.add(urljoin(url, src))
-    # link rel=stylesheet
-    for link_tag in soup.find_all('link', rel='stylesheet'):
-        href = link_tag.get('href')
-        if href:
-            resource_urls.add(urljoin(url, href))
-    # script src
-    for script in soup.find_all('script', src=True):
-        src = script.get('src')
-        if src:
-            resource_urls.add(urljoin(url, src))
-    
-    # Download semua resource dan hitung size
-    for resource_url in resource_urls:
-        try:
-            resource_response = session.get(resource_url, timeout=10)
-            resource_response.raise_for_status()
-            resource_bytes = len(resource_response.content)
-            total_bytes += resource_bytes
-        except Exception as e:
-            print(f"Gagal request resource {resource_url}: {e}")
-    
-    end_time = time.time()
-    rtt_total = end_time - start_time
-    throughput = (total_bytes * 8) / rtt_total if rtt_total > 0 else 0
-    
-    print(f"Total konten (HTML + img + CSS + JS): {total_bytes} bytes")
-    print(f"Waktu total (RTT-like): {rtt_total:.4f} detik")
-    print(f"Throughput: {throughput:.2f} bit/detik")
+    total_time = 0.0
+
+    for i in range(num_requests):
+        start_time = time.time()
+        response = requests.get(url)
+        end_time = time.time()
+
+        rtt = end_time - start_time
+        rtt_list.append(rtt)
+
+        data_length = len(response.content)
+        total_bytes += data_length
+        total_time += rtt
+
+        print(f"Request {i+1}: RTT = {rtt:.4f} s, Data received = {data_length} bytes")
+
+    avg_rtt = sum(rtt_list) / len(rtt_list)
+    throughput = total_bytes / total_time if total_time > 0 else 0
+
+    print("\n=== Summary ===")
+    print(f"Average RTT: {avg_rtt:.4f} seconds")
+    print(f"Total Data Received: {total_bytes} bytes")
+    print(f"Throughput: {throughput:.2f} bytes/second")
 
 if __name__ == "__main__":
-    url = "http://192.168.2.2"
-    measure_total_page_content(url)
+    target_url = "http://192.168.2.2"
+    jumlah_request = int(input("Masukkan jumlah request: "))
+    traffic_generator(target_url, jumlah_request)
