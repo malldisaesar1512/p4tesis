@@ -1,125 +1,112 @@
-import requests
-import numpy as np
-from datetime import datetime
-import pandas as pd
 import argparse
+import requests
 import time
+import re
 from urllib.parse import urljoin
-from concurrent.futures import ThreadPoolExecutor
-
-
-def log_to_log(data, filename='request_log_http.log'):
-    with open(filename, mode='a') as file:
-        file.write('\t'.join(map(str, data)) + '\n')
-
-def fetch_content_size(url):
-    content_size = 0
-    try:
-        response = requests.get(url)
-        content_size += len(response.content)
-        
-        links = extract_links(response.text, url)
-        for link in links:
-            try:
-                content_response = requests.get(link)
-                content_size += len(content_response.content)
-            except requests.exceptions.RequestException:
-                pass
-    except requests.exceptions.RequestException:
-        pass
-    return content_size
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def extract_links(html, base_url):
-    links = []
-    start = 0
-    while True:
-        start_link = html.find("src=\"", start)
-        if start_link == -1:
-            start_link = html.find("href=\"", start)
-        if start_link == -1:
-            break
-        start_quote = html.find("\"", start_link + 1)
-        end_quote = html.find("\"", start_quote + 1)
-        link = html[start_quote + 1: end_quote]
-        if link.startswith(("http", "//")):
-            links.append(link if link.startswith("http") else "http:" + link)
-        else:
-            links.append(urljoin(base_url, link))
-        start = end_quote + 1
+    pattern = r'<img[^>]+src=["\'](.*?)["\']|<script[^>]+src=["\'](.*?)["\']|<link[^>]+href=["\'](.*?)["\']'
+    matches = re.findall(pattern, html, re.IGNORECASE)
+    links = set()
+    for match in matches:
+        for link in match:
+            if link:
+                absolute_link = urljoin(base_url, link)
+                links.add(absolute_link)
     return links
 
-def make_request(url, results):
-    start_time = datetime.now()
+def fetch_content(url):
     try:
-        content_size = fetch_content_size(url)
-        end_time = datetime.now()
-        rtt = (end_time - start_time).total_seconds() * 1000
-        
-        if rtt < 1:
-            rtt = 1
-        
-        throughput = content_size / rtt
-        
-        log_data = [url, start_time, end_time, rtt, 200, content_size, throughput]
-        results.append(log_data)
-        print(f"Request to {url} completed with status code: 200, RTT: {rtt:.6f} ms, Content size: {content_size} bytes, Throughput: {throughput:.2f} bytes/ms")
-    except requests.exceptions.RequestException as e:
-        end_time = datetime.now()
-        rtt = (end_time - start_time).total_seconds() * 1000
-        if rtt < 1:
-            rtt = 1
-        log_data = [url, start_time, end_time, rtt, f"Failed: {e}", 0, 0]
-        results.append(log_data)
-        print(f"Request to {url} failed: {e}, RTT: {rtt:.6f} ms")
-    
-    log_to_log(log_data)
+        response = requests.get(url, stream=True, timeout=10)
+        content = b""
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                content += chunk
+        return len(content)
+    except requests.RequestException as e:
+        print(f"Failed to fetch resource {url}: {e}")
+        return 0
 
-def generate_traffic(urls, num_requests, requests_per_second):
-    results = []
-    executor = ThreadPoolExecutor(max_workers=100)
-    
-    for _ in range(num_requests):
-        url = urls
-        executor.submit(make_request, url, results)
-        time.sleep(1 / requests_per_second)
+def fetch_full_request(url):
+    start_time = time.time()
+    try:
+        response = requests.get(url, timeout=10, stream=True)
+        content_bytes = b""
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                content_bytes += chunk
+        main_content_length = len(content_bytes)
+        content_type = response.headers.get('Content-Type', '')
 
-    executor.shutdown(wait=True)
-    return results
+        if 'text/html' in content_type:
+            content_str = content_bytes.decode(response.encoding or 'utf-8', errors='replace')
+            resource_links = extract_links(content_str, url)
+        else:
+            resource_links = set()
+    except requests.RequestException as e:
+        print(f"Failed to fetch main URL {url}: {e}")
+        return 0, 0.0
 
-def calculate_totals_and_averages(results):
-    if not results:
-        print("No results to calculate totals and averages.")
-        return ["Total", "", "", 0, "", "", 0], ["Average", "", "", 0, "", "", 0]
-    
-    total_rtt = sum(result[3] for result in results)
-    total_throughput = sum(result[6] for result in results)
-    average_rtt = total_rtt / len(results)
-    average_throughput = total_throughput / len(results)
-    
-    total_data = ["Total", "", "", total_rtt, "", "", total_throughput]
-    average_data = ["Average", "", "", average_rtt, "", "", average_throughput]
-    
-    return total_data, average_data
+    resource_total_size = 0
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_content, res_url) for res_url in resource_links]
+        for future in as_completed(futures):
+            resource_total_size += future.result()
+
+    end_time = time.time()
+    total_bytes = main_content_length + resource_total_size
+    total_time = end_time - start_time
+    return total_bytes, total_time
+
+def traffic_generator(url, total_requests, target_rps):
+    rtt_list = []
+    total_bytes = 0
+    requests_sent = 0
+
+    print(f"Starting traffic generator for {total_requests} requests with target {target_rps} requests/sec...\n")
+
+    start_time_overall = time.time()  # Start wall clock timer
+
+    max_workers = max(10, target_rps * 2)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for _ in range(total_requests):
+            futures.append(executor.submit(fetch_full_request, url))
+
+        # Process results as they complete, summing up total bytes and RTT
+        for future in as_completed(futures):
+            try:
+                bytes_recv, rtt = future.result()
+                total_bytes += bytes_recv
+                if rtt > 0:
+                    rtt_list.append(rtt)
+            except Exception as e:
+                print(f"Request execution failed: {e}")
+
+    end_time_overall = time.time()  # End wall clock timer
+
+    total_time_wallclock = end_time_overall - start_time_overall
+
+    avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
+    throughput = total_bytes / total_time_wallclock if total_time_wallclock > 0 else 0
+    actual_rps = len(rtt_list) / total_time_wallclock if total_time_wallclock > 0 else 0
+
+    print("\n=== Summary ===")
+    print(f"Average RTT (full page + all resources): {avg_rtt:.4f} seconds")
+    print(f"Total Data Received (including resources): {total_bytes} bytes")
+    print(f"Total Time (wall clock): {total_time_wallclock:.4f} seconds")
+    print(f"Target Requests Per Second (int): {target_rps} req/s")
+    print(f"Actual Requests Per Second (approx): {actual_rps:.2f} req/s")
 
 def main():
-    print("############ Tunggu Sebentar ############")
-    urlnya = "http://192.168.2.2"
-    jumlah_request = int(input("Masukkan jumlah total request: "))
-    target_rps = int(input("Masukkan target requests per second: "))
+    parser = argparse.ArgumentParser(description="Improved Traffic Generator with full resource fetch")
+    parser.add_argument('--url', type=str, required=True, help='Target URL to request')
+    parser.add_argument('--req', type=int, required=True, help='Jumlah total request')
+    parser.add_argument('--rps', type=int, required=True, help='Target requests per second')
+    args = parser.parse_args()
 
-    with open('request_log_http.log', mode='w') as file:
-        file.write("URL\tStart Time\tEnd Time\tRTT (ms)\tStatus Code\tContent Size (bytes)\tThroughput (bytes/ms)\n")
-
-    results = generate_traffic(urlnya, jumlah_request, target_rps)
-    
-    total_data, average_data = calculate_totals_and_averages(results)
-    
-    with open('request_log_http.log', mode='a') as file:
-        file.write('\t'.join(map(str, total_data)) + '\n')
-        file.write('\t'.join(map(str, average_data)) + '\n')
-    
-    print(f"Total RTT: {total_data[3]:.2f} ms, Total Throughput: {total_data[6]:.2f} bytes/ms")
-    print(f"Average RTT: {average_data[3]:.2f} ms, Average Throughput: {average_data[6]:.2f} bytes/ms")
+    traffic_generator(args.url, args.req, args.rps)
 
 if __name__ == "__main__":
     main()
