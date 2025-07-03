@@ -38,7 +38,7 @@ def extract_links_bs(html_content, base_url):
 def fetch_content(url):
     """Mengunduh konten dari satu URL (biasanya aset)."""
     try:
-        response = requests.get(url, headers=REQUEST_HEADERS, timeout=10)
+        response = requests.get(url, headers=REQUEST_HEADERS, timeout=3000)
         response.raise_for_status()
         return len(response.content)
     except requests.RequestException:
@@ -48,7 +48,7 @@ def fetch_full_request(url):
     """Satu siklus lengkap: mengunduh halaman utama, mem-parsing, dan mengunduh semua asetnya."""
     start_time = time.perf_counter()
     try:
-        main_response = requests.get(url, headers=REQUEST_HEADERS, timeout=10)
+        main_response = requests.get(url, headers=REQUEST_HEADERS, timeout=3000)
         main_response.raise_for_status()
         main_content_bytes = main_response.content
         main_content_length = len(main_content_bytes)
