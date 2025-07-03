@@ -1,122 +1,155 @@
-import time
 import argparse
-import concurrent.futures
 import requests
-from bs4 import BeautifulSoup
+import time
 from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from bs4 import BeautifulSoup
+
+# Header untuk meniru browser, mengurangi kemungkinan diblokir
+REQUEST_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 def format_bytes(size):
-    """Fungsi helper untuk memformat bytes menjadi KB, MB, GB, dll."""
+    """Fungsi helper untuk memformat bytes menjadi KB, MB, GB."""
     if size is None or size == 0:
         return "0 B"
     power = 1024
     n = 0
-    power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
+    power_labels = {0: 'B', 1: 'KB', 2: 'MB', 3: 'GB'}
     while size >= power and n < len(power_labels) - 1:
         size /= power
         n += 1
     return f"{size:.2f} {power_labels[n]}"
 
-def fetch_page_and_assets(url, test_num, total_tests):
-    """
-    Mengunduh halaman utama dan semua aset yang tertaut di HTML-nya.
-    Mengembalikan tuple (total_bytes, duration).
-    """
-    print(f"  -> Memulai tes [{test_num}/{total_tests}] untuk {url}...")
-    start_time = time.perf_counter()
-    total_bytes = 0
-    
+def extract_links_bs(html_content, base_url):
+    """Mengekstrak link aset menggunakan BeautifulSoup agar lebih robust."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    links = set()
+    for tag in soup.find_all(['link', 'script', 'img']):
+        if tag.name == 'link' and tag.has_attr('href'):
+            links.add(urljoin(base_url, tag['href']))
+        elif tag.name == 'script' and tag.has_attr('src'):
+            links.add(urljoin(base_url, tag['src']))
+        elif tag.name == 'img' and tag.has_attr('src'):
+            links.add(urljoin(base_url, tag['src']))
+    return links
+
+def fetch_content(url):
+    """Mengunduh konten dari satu URL (biasanya aset)."""
     try:
-        # 1. Ambil halaman HTML utama
-        response = requests.get(url, timeout=10)
-        response.raise_for_status() # Lontarkan error jika status bukan 2xx
-        total_bytes += len(response.content)
-        
-        # 2. Parse HTML untuk mencari aset
-        soup = BeautifulSoup(response.text, 'html.parser')
-        asset_urls = set()
+        response = requests.get(url, headers=REQUEST_HEADERS, timeout=10)
+        response.raise_for_status()
+        return len(response.content)
+    except requests.RequestException:
+        return 0
 
-        # Cari tag link (CSS), script (JS), dan img (gambar)
-        for tag in soup.find_all(['link', 'script', 'img']):
-            if tag.name == 'link' and tag.has_attr('href'):
-                asset_urls.add(urljoin(url, tag['href']))
-            elif tag.name == 'script' and tag.has_attr('src'):
-                asset_urls.add(urljoin(url, tag['src']))
-            elif tag.name == 'img' and tag.has_attr('src'):
-                asset_urls.add(urljoin(url, tag['src']))
+def fetch_full_request(url):
+    """Satu siklus lengkap: mengunduh halaman utama, mem-parsing, dan mengunduh semua asetnya."""
+    start_time = time.perf_counter()
+    try:
+        main_response = requests.get(url, headers=REQUEST_HEADERS, timeout=10)
+        main_response.raise_for_status()
+        main_content_bytes = main_response.content
+        main_content_length = len(main_content_bytes)
+
+        content_type = main_response.headers.get('Content-Type', '')
+        if 'text/html' in content_type:
+            html_str = main_content_bytes.decode(main_response.encoding or 'utf-8', errors='replace')
+            resource_links = extract_links_bs(html_str, url)
+        else:
+            resource_links = set()
+
+    except requests.RequestException:
+        return 0, 0.0, False
+
+    resource_total_size = 0
+    if resource_links:
+        max_asset_workers = min(10, len(resource_links))
+        with ThreadPoolExecutor(max_workers=max_asset_workers) as executor:
+            futures = [executor.submit(fetch_content, res_url) for res_url in resource_links]
+            for future in as_completed(futures):
+                resource_total_size += future.result()
+
+    end_time = time.perf_counter()
+    total_bytes = main_content_length + resource_total_size
+    total_time = end_time - start_time
+    return total_bytes, total_time, True
+
+def traffic_generator(url, total_requests, rps):
+    """Orkestrasi utama dengan rate limiting yang presisi."""
+    rtt_list = []
+    total_bytes_transferred = 0
+    successful_requests = 0
+
+    print(f"Memulai traffic generator untuk {total_requests} request ke {url}...")
+    print(f"RPS yang diatur: {rps} req/detik\n")
+
+    # Ukuran worker pool disarankan sedikit lebih besar dari RPS untuk menangani antrian
+    max_workers = rps * 2 
+
+    start_time_overall = time.perf_counter()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        dispatch_start_time = time.perf_counter()
         
-        # 3. Ambil setiap aset
-        # (Dalam contoh ini kita lakukan sekuensial untuk kesederhanaan,
-        # namun ini sudah jauh lebih cepat dari Selenium)
-        for asset_url in asset_urls:
+        # --- BLOK RATE LIMITER ---
+        # Loop ini bertanggung jawab untuk mengirimkan tugas pada kecepatan yang tepat.
+        for i in range(total_requests):
+            # Hitung waktu seharusnya tugas ini dikirim
+            expected_dispatch_time = dispatch_start_time + (i / rps)
+            
+            # Tidur hingga waktu pengiriman yang tepat tiba
+            sleep_duration = expected_dispatch_time - time.perf_counter()
+            if sleep_duration > 0:
+                time.sleep(sleep_duration)
+            
+            # Kirim tugas ke thread pool untuk dieksekusi di latar belakang
+            futures.append(executor.submit(fetch_full_request, url))
+        # --- AKHIR BLOK RATE LIMITER ---
+
+        # Mengumpulkan hasil dari tugas yang telah selesai
+        for future in as_completed(futures):
             try:
-                asset_response = requests.get(asset_url, timeout=5)
-                if asset_response.ok:
-                    total_bytes += len(asset_response.content)
-            except requests.exceptions.RequestException:
-                # Abaikan aset yang gagal diunduh
-                pass
-                
-    except requests.exceptions.RequestException as e:
-        print(f"\nError saat mengambil halaman utama [{test_num}]: {e}")
-        return (None, None)
+                bytes_recv, rtt, success = future.result()
+                if success:
+                    total_bytes_transferred += bytes_recv
+                    rtt_list.append(rtt)
+                    successful_requests += 1
+            except Exception as e:
+                print(f"Eksekusi sebuah request gagal: {e}")
 
-    duration = time.perf_counter() - start_time
-    print(f"  <- Selesai tes [{test_num}/{total_tests}] dalam {duration:.2f} detik. Total ukuran: {format_bytes(total_bytes)}")
-    return (total_bytes, duration)
+    end_time_overall = time.perf_counter()
+    total_time_wallclock = end_time_overall - start_time_overall
+
+    avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
+    throughput_bps = total_bytes_transferred / total_time_wallclock if total_time_wallclock > 0 else 0
+    actual_rps = successful_requests / total_time_wallclock if total_time_wallclock > 0 else 0
+
+    print("\n" + "="*20 + " RINGKASAN " + "="*20)
+    print(f"Waktu Total Eksekusi      : {total_time_wallclock:.2f} detik")
+    print(f"Total Request Berhasil    : {successful_requests}/{total_requests}")
+    print(f"Total Data Diterima       : {format_bytes(total_bytes_transferred)}")
+    print("-" * 51)
+    print(f"Rata-rata RTT (Halaman)   : {avg_rtt:.4f} detik")
+    print(f"RPS Diatur                : {rps} req/detik")
+    print(f"RPS Aktual (Tercapai)     : {actual_rps:.2f} req/detik")
+    print(f"Throughput Sistem         : {format_bytes(throughput_bps)}/detik")
+    print("=" * 51)
 
 def main():
-    parser = argparse.ArgumentParser(description="Traffic Generator dengan Parsing Aset (Non-Selenium).")
-    parser.add_argument('--url', type=str, default="http://192.168.2.2", help="URL target website.")
-    parser.add_argument('--total', type=int, default=50, help="Jumlah total pengujian yang akan dijalankan.")
-    parser.add_argument('--rps', type=int, default=10, help="Jumlah tes paralel (concurrent requests).")
-    
+    parser = argparse.ArgumentParser(description="Traffic Generator dengan Rate Limiting Presisi")
+    parser.add_argument('--url', type=str, required=True, help='URL target yang akan diuji.')
+    parser.add_argument('--jumlah', type=int, required=True, help='Jumlah total request yang akan dikirim.')
+    parser.add_argument('--rps', type=int, required=True, help='Request Per Second yang diinginkan.')
     args = parser.parse_args()
 
-    print(f"🚀 Memulai Analisis Paralel (Metode Parsing)...")
-    print(f"   - URL Target            : {args.url}")
-    print(f"   - Jumlah Total Uji      : {args.total}")
-    print(f"   - Tes Paralel (RPS)     : {args.rps}")
-    print("-" * 40)
+    if args.rps <= 0:
+        print("RPS harus lebih besar dari 0.")
+        return
 
-    results = []
-    
-    waktu_mulai_total = time.perf_counter()
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.rps) as executor:
-        futures = [executor.submit(fetch_page_and_assets, args.url, i+1, args.total) for i in range(args.total)]
-        
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result[0] is not None:
-                results.append(result)
-
-    waktu_selesai_total = time.perf_counter()
-    
-    jumlah_sukses = len(results)
-    if jumlah_sukses > 0:
-        total_ukuran = sum(r[0] for r in results)
-        total_waktu_muat = sum(r[1] for r in results)
-        rata_rata_ukuran = total_ukuran / jumlah_sukses
-        rata_rata_waktu = total_waktu_muat / jumlah_sukses
-        # Throughput keseluruhan sistem (total data / total waktu eksekusi)
-        overall_throughput = total_ukuran / (waktu_selesai_total - waktu_mulai_total)
-    else:
-        rata_rata_ukuran = 0
-        rata_rata_waktu = 0
-        overall_throughput = 0
-
-    print("\n✅ Proses Selesai!")
-    print("=" * 40)
-    print("📊 HASIL PENGUJIAN (METODE PARSING)")
-    print("=" * 40)
-    print(f"Total Waktu Eksekusi  : {waktu_selesai_total - waktu_mulai_total:.2f} detik")
-    print(f"Pengujian Berhasil    : {jumlah_sukses}/{args.total}")
-    print("-" * 40)
-    print(f"Rata-rata Waktu Muat  : {rata_rata_waktu:.2f} detik/halaman")
-    print(f"Rata-rata Ukuran      : {format_bytes(rata_rata_ukuran)}/halaman")
-    print(f"Throughput Sistem     : {format_bytes(overall_throughput)}/s")
-    print("=" * 40)
+    traffic_generator(args.url, args.jumlah, args.rps)
 
 if __name__ == "__main__":
     main()
