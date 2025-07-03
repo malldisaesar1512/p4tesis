@@ -49,7 +49,8 @@ def fetch_full_request(url):
         return 0, 0.0
 
     resource_total_size = 0
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    max_resource_workers = min(10, len(resource_links)) if resource_links else 1
+    with ThreadPoolExecutor(max_workers=max_resource_workers) as executor:
         futures = [executor.submit(fetch_content, res_url) for res_url in resource_links]
         for future in as_completed(futures):
             resource_total_size += future.result()
@@ -62,19 +63,19 @@ def fetch_full_request(url):
 def traffic_generator(url, total_requests, target_rps):
     rtt_list = []
     total_bytes = 0
-    requests_sent = 0
 
     print(f"Starting traffic generator for {total_requests} requests with target {target_rps} requests/sec...\n")
 
-    start_time_overall = time.time()  # Start wall clock timer
+    start_time_overall = time.time()  # mulai waktu keseluruhan
 
     max_workers = max(10, target_rps * 2)
+    max_workers = min(max_workers, 100)  # batas maksimal worker menjadi 100
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for _ in range(total_requests):
             futures.append(executor.submit(fetch_full_request, url))
 
-        # Process results as they complete, summing up total bytes and RTT
         for future in as_completed(futures):
             try:
                 bytes_recv, rtt = future.result()
@@ -84,7 +85,7 @@ def traffic_generator(url, total_requests, target_rps):
             except Exception as e:
                 print(f"Request execution failed: {e}")
 
-    end_time_overall = time.time()  # End wall clock timer
+    end_time_overall = time.time()  # selesai waktu keseluruhan
 
     total_time_wallclock = end_time_overall - start_time_overall
 
@@ -97,7 +98,7 @@ def traffic_generator(url, total_requests, target_rps):
     print(f"Total Data Received (including resources): {total_bytes} bytes")
     print(f"Total Time (wall clock): {total_time_wallclock:.4f} seconds")
     print(f"Throughput (total bytes / total time): {throughput:.2f} bytes/second")
-    print(f"Target Requests Per Second (int): {target_rps} req/s")
+    print(f"Target Requests Per Second: {target_rps} req/s")
     print(f"Actual Requests Per Second (approx): {actual_rps:.2f} req/s")
 
 def main():
