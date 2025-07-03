@@ -18,7 +18,7 @@ def extract_links(html, base_url):
 
 def fetch_content(url):
     try:
-        response = requests.get(url, stream=True, timeout=10)
+        response = requests.get(url, stream=True, timeout=100)
         content = b""
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
