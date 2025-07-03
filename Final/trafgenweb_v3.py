@@ -1,13 +1,9 @@
-import requests
 import time
-import threading
-from datetime import datetime
 import argparse
-import json
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
+import concurrent.futures
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 def format_bytes(size):
     """Fungsi helper untuk memformat bytes menjadi KB, MB, GB, dll."""
@@ -21,108 +17,106 @@ def format_bytes(size):
         n += 1
     return f"{size:.2f} {power_labels[n]}"
 
-def get_full_page_load_metrics(url):
+def fetch_page_and_assets(url, test_num, total_tests):
     """
-    Menggunakan Selenium untuk satu sesi pemuatan halaman penuh.
-    Mengembalikan tuple: (total_bytes, load_time).
+    Mengunduh halaman utama dan semua aset yang tertaut di HTML-nya.
+    Mengembalikan tuple (total_bytes, duration).
     """
+    print(f"  -> Memulai tes [{test_num}/{total_tests}] untuk {url}...")
+    start_time = time.perf_counter()
     total_bytes = 0
-    load_time = 0
     
-    # --- Pengaturan Selenium ---
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--log-level=3") # Hanya menampilkan error fatal
-    logging_prefs = {'performance': 'ALL'}
-    chrome_options.set_capability('goog:loggingPrefs', logging_prefs)
-
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-
     try:
-        start_time = time.perf_counter()
-        driver.get(url)
-        # Ambil metrik 'navigationStart' dan 'loadEventEnd' dari Timing API browser
-        navigation_start = driver.execute_script("return window.performance.timing.navigationStart")
-        load_event_end = driver.execute_script("return window.performance.timing.loadEventEnd")
+        # 1. Ambil halaman HTML utama
+        response = requests.get(url, timeout=10)
+        response.raise_for_status() # Lontarkan error jika status bukan 2xx
+        total_bytes += len(response.content)
         
-        # Hitung waktu muat halaman dari perspektif browser
-        # Jika load_event_end belum ada (halaman masih loading), fallback ke perf_counter
-        if load_event_end > 0:
-            load_time = (load_event_end - navigation_start) / 1000.0 # konversi ke detik
-        else:
-            # Fallback jika timing API gagal
-            end_time = time.perf_counter()
-            load_time = end_time - start_time
-        
-        # Mengambil log performa untuk menghitung total bytes
-        logs = driver.get_log('performance')
-        for entry in logs:
-            log = json.loads(entry['message'])['message']
-            if log['method'] == 'Network.dataReceived' and 'params' in log and 'encodedDataLength' in log['params']:
-                total_bytes += log['params']['encodedDataLength']
-                
-    except Exception as e:
-        print(f"\nError saat menganalisis {url}: {e}")
-        return (None, None)
-    finally:
-        driver.quit()
-        
-    return (total_bytes, load_time)
+        # 2. Parse HTML untuk mencari aset
+        soup = BeautifulSoup(response.text, 'html.parser')
+        asset_urls = set()
 
+        # Cari tag link (CSS), script (JS), dan img (gambar)
+        for tag in soup.find_all(['link', 'script', 'img']):
+            if tag.name == 'link' and tag.has_attr('href'):
+                asset_urls.add(urljoin(url, tag['href']))
+            elif tag.name == 'script' and tag.has_attr('src'):
+                asset_urls.add(urljoin(url, tag['src']))
+            elif tag.name == 'img' and tag.has_attr('src'):
+                asset_urls.add(urljoin(url, tag['src']))
+        
+        # 3. Ambil setiap aset
+        # (Dalam contoh ini kita lakukan sekuensial untuk kesederhanaan,
+        # namun ini sudah jauh lebih cepat dari Selenium)
+        for asset_url in asset_urls:
+            try:
+                asset_response = requests.get(asset_url, timeout=5)
+                if asset_response.ok:
+                    total_bytes += len(asset_response.content)
+            except requests.exceptions.RequestException:
+                # Abaikan aset yang gagal diunduh
+                pass
+                
+    except requests.exceptions.RequestException as e:
+        print(f"\nError saat mengambil halaman utama [{test_num}]: {e}")
+        return (None, None)
+
+    duration = time.perf_counter() - start_time
+    print(f"  <- Selesai tes [{test_num}/{total_tests}] dalam {duration:.2f} detik. Total ukuran: {format_bytes(total_bytes)}")
+    return (total_bytes, duration)
 
 def main():
-    parser = argparse.ArgumentParser(description="Analisis Beban Halaman Berurutan menggunakan Selenium.")
+    parser = argparse.ArgumentParser(description="Traffic Generator dengan Parsing Aset (Non-Selenium).")
     parser.add_argument('--url', type=str, default="http://192.168.2.2", help="URL target website.")
-    parser.add_argument('--total', type=int, default=5, help="Jumlah total pengujian yang akan dijalankan.")
+    parser.add_argument('--total', type=int, default=50, help="Jumlah total pengujian yang akan dijalankan.")
+    parser.add_argument('--rps', type=int, default=10, help="Jumlah tes paralel (concurrent requests).")
     
     args = parser.parse_args()
 
-    print(f"🚀 Memulai Analisis Berurutan...")
-    print(f"   - URL Target    : {args.url}")
-    print(f"   - Jumlah Uji    : {args.total}")
+    print(f"🚀 Memulai Analisis Paralel (Metode Parsing)...")
+    print(f"   - URL Target            : {args.url}")
+    print(f"   - Jumlah Total Uji      : {args.total}")
+    print(f"   - Tes Paralel (RPS)     : {args.rps}")
     print("-" * 40)
 
-    hasil_ukuran = []
-    hasil_waktu_muat = []
+    results = []
     
     waktu_mulai_total = time.perf_counter()
 
-    for i in range(args.total):
-        print(f"Running test [{i+1}/{args.total}]...")
-        size, load_time = get_full_page_load_metrics(args.url)
-        if size is not None and load_time is not None:
-            hasil_ukuran.append(size)
-            hasil_waktu_muat.append(load_time)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.rps) as executor:
+        futures = [executor.submit(fetch_page_and_assets, args.url, i+1, args.total) for i in range(args.total)]
+        
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result[0] is not None:
+                results.append(result)
 
     waktu_selesai_total = time.perf_counter()
     
-    # --- Kalkulasi Hasil ---
-    jumlah_sukses = len(hasil_ukuran)
+    jumlah_sukses = len(results)
     if jumlah_sukses > 0:
-        rata_rata_ukuran = sum(hasil_ukuran) / jumlah_sukses
-        rata_rata_waktu = sum(hasil_waktu_muat) / jumlah_sukses
-        # Throughput = rata-rata data yang diunduh per detik selama rata-rata waktu muat
-        avg_throughput = rata_rata_ukuran / rata_rata_waktu if rata_rata_waktu > 0 else 0
+        total_ukuran = sum(r[0] for r in results)
+        total_waktu_muat = sum(r[1] for r in results)
+        rata_rata_ukuran = total_ukuran / jumlah_sukses
+        rata_rata_waktu = total_waktu_muat / jumlah_sukses
+        # Throughput keseluruhan sistem (total data / total waktu eksekusi)
+        overall_throughput = total_ukuran / (waktu_selesai_total - waktu_mulai_total)
     else:
         rata_rata_ukuran = 0
         rata_rata_waktu = 0
-        avg_throughput = 0
+        overall_throughput = 0
 
-    # --- Menampilkan Output ---
     print("\n✅ Proses Selesai!")
     print("=" * 40)
-    print("📊 HASIL PENGUJIAN HALAMAN LENGKAP")
+    print("📊 HASIL PENGUJIAN (METODE PARSING)")
     print("=" * 40)
     print(f"Total Waktu Eksekusi  : {waktu_selesai_total - waktu_mulai_total:.2f} detik")
     print(f"Pengujian Berhasil    : {jumlah_sukses}/{args.total}")
     print("-" * 40)
     print(f"Rata-rata Waktu Muat  : {rata_rata_waktu:.2f} detik/halaman")
     print(f"Rata-rata Ukuran      : {format_bytes(rata_rata_ukuran)}/halaman")
-    print(f"Rata-rata Throughput  : {format_bytes(avg_throughput)}/s")
+    print(f"Throughput Sistem     : {format_bytes(overall_throughput)}/s")
     print("=" * 40)
-
 
 if __name__ == "__main__":
     main()
