@@ -31,7 +31,7 @@ def fetch_content(url):
 def fetch_full_request(url):
     start_time = time.time()
     try:
-        response = requests.get(url, timeout=10, stream=True)
+        response = requests.get(url, timeout=100, stream=True)
         content_bytes = b""
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
