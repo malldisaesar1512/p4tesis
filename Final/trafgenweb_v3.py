@@ -3,130 +3,125 @@ import time
 import threading
 from datetime import datetime
 import argparse
-
-# --- Variabel Global untuk menyimpan hasil dari semua thread ---
-# List untuk menyimpan RTT (Round-Trip Time) dari request yang berhasil
-hasil_rtt = []
-# Menghitung jumlah request yang gagal
-jumlah_error = 0
-# MENGHITUNG TOTAL BYTES YANG DITERIMA DARI SEMUA REQUEST BERHASIL (PERUBAHAN)
-total_bytes_diterima = 0
-# Lock untuk sinkronisasi akses ke variabel global di atas
-lock = threading.Lock()
-
-def kirim_request(url):
-    """
-    Fungsi yang dijalankan oleh setiap thread untuk mengirim satu HTTP GET request.
-    Fungsi ini mengukur RTT, menangani error, dan mengakumulasi ukuran respons.
-    """
-    global jumlah_error
-    global total_bytes_diterima
-    
-    try:
-        waktu_awal_req = time.perf_counter()
-        # Mengirim request dengan timeout 10 detik
-        response = requests.get(url, timeout=10)
-        waktu_akhir_req = time.perf_counter()
-
-        # Memastikan request berhasil (status code 2xx)
-        if response.ok:
-            rtt = waktu_akhir_req - waktu_awal_req
-            # Mendapatkan ukuran konten respons dalam bytes (PERUBAHAN)
-            ukuran_respons = len(response.content)
-            
-            # Menggunakan lock untuk memodifikasi variabel global secara aman
-            with lock:
-                hasil_rtt.append(rtt)
-                total_bytes_diterima += ukuran_respons # (PERUBAHAN)
-        else:
-            with lock:
-                jumlah_error += 1
-                
-    except requests.exceptions.RequestException:
-        # Menangani error koneksi, timeout, dll.
-        with lock:
-            jumlah_error += 1
+import json
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 
 def format_bytes(size):
     """Fungsi helper untuk memformat bytes menjadi KB, MB, GB, dll."""
-    if size == 0:
+    if size is None or size == 0:
         return "0 B"
     power = 1024
     n = 0
     power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
-    while size >= power and n < len(power_labels) -1 :
+    while size >= power and n < len(power_labels) - 1:
         size /= power
         n += 1
-    return f"{size:.2f} {power_labels[n]}B"
+    return f"{size:.2f} {power_labels[n]}"
+
+def get_full_page_load_metrics(url):
+    """
+    Menggunakan Selenium untuk satu sesi pemuatan halaman penuh.
+    Mengembalikan tuple: (total_bytes, load_time).
+    """
+    total_bytes = 0
+    load_time = 0
+    
+    # --- Pengaturan Selenium ---
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--log-level=3") # Hanya menampilkan error fatal
+    logging_prefs = {'performance': 'ALL'}
+    chrome_options.set_capability('goog:loggingPrefs', logging_prefs)
+
+    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
+
+    try:
+        start_time = time.perf_counter()
+        driver.get(url)
+        # Ambil metrik 'navigationStart' dan 'loadEventEnd' dari Timing API browser
+        navigation_start = driver.execute_script("return window.performance.timing.navigationStart")
+        load_event_end = driver.execute_script("return window.performance.timing.loadEventEnd")
+        
+        # Hitung waktu muat halaman dari perspektif browser
+        # Jika load_event_end belum ada (halaman masih loading), fallback ke perf_counter
+        if load_event_end > 0:
+            load_time = (load_event_end - navigation_start) / 1000.0 # konversi ke detik
+        else:
+            # Fallback jika timing API gagal
+            end_time = time.perf_counter()
+            load_time = end_time - start_time
+        
+        # Mengambil log performa untuk menghitung total bytes
+        logs = driver.get_log('performance')
+        for entry in logs:
+            log = json.loads(entry['message'])['message']
+            if log['method'] == 'Network.dataReceived' and 'params' in log and 'encodedDataLength' in log['params']:
+                total_bytes += log['params']['encodedDataLength']
+                
+    except Exception as e:
+        print(f"\nError saat menganalisis {url}: {e}")
+        return (None, None)
+    finally:
+        driver.quit()
+        
+    return (total_bytes, load_time)
+
 
 def main():
-    """
-    Fungsi utama untuk mengatur, menjalankan, dan melaporkan hasil traffic generator.
-    """
-    parser = argparse.ArgumentParser(description="Traffic Generator untuk Website Lokal")
+    parser = argparse.ArgumentParser(description="Analisis Beban Halaman Berurutan menggunakan Selenium.")
     parser.add_argument('--url', type=str, default="http://192.168.2.2", help="URL target website.")
-    parser.add_argument('--total', type=int, default=100, help="Jumlah total request yang akan dikirim.")
-    parser.add_argument('--rps', type=int, default=10, help="Jumlah request per second (RPS) yang diinginkan.")
+    parser.add_argument('--total', type=int, default=5, help="Jumlah total pengujian yang akan dijalankan.")
     
     args = parser.parse_args()
 
-    url = args.url
-    total_request = args.total
-    rps = args.rps
+    print(f"🚀 Memulai Analisis Berurutan...")
+    print(f"   - URL Target    : {args.url}")
+    print(f"   - Jumlah Uji    : {args.total}")
+    print("-" * 40)
+
+    hasil_ukuran = []
+    hasil_waktu_muat = []
     
-    print(f"🚀 Memulai Traffic Generator...")
-    print(f"   - URL Target    : {url}")
-    print(f"   - Total Request : {total_request}")
-    print(f"   - Request/Detik : {rps}")
-    print("-" * 30)
-
-    threads = []
     waktu_mulai_total = time.perf_counter()
-    waktu_mulai_formatted = datetime.now()
 
-    for i in range(total_request):
-        thread = threading.Thread(target=kirim_request, args=(url,))
-        threads.append(thread)
-        thread.start()
-        time.sleep(1.0 / rps)
-
-    for thread in threads:
-        thread.join()
+    for i in range(args.total):
+        print(f"Running test [{i+1}/{args.total}]...")
+        size, load_time = get_full_page_load_metrics(args.url)
+        if size is not None and load_time is not None:
+            hasil_ukuran.append(size)
+            hasil_waktu_muat.append(load_time)
 
     waktu_selesai_total = time.perf_counter()
-    waktu_selesai_formatted = datetime.now()
-
-    # --- Kalkulasi Hasil ---
-    total_waktu = waktu_selesai_total - waktu_mulai_total
-    request_berhasil = len(hasil_rtt)
     
-    if request_berhasil > 0:
-        rata_rata_rtt = sum(hasil_rtt) / request_berhasil
+    # --- Kalkulasi Hasil ---
+    jumlah_sukses = len(hasil_ukuran)
+    if jumlah_sukses > 0:
+        rata_rata_ukuran = sum(hasil_ukuran) / jumlah_sukses
+        rata_rata_waktu = sum(hasil_waktu_muat) / jumlah_sukses
+        # Throughput = rata-rata data yang diunduh per detik selama rata-rata waktu muat
+        avg_throughput = rata_rata_ukuran / rata_rata_waktu if rata_rata_waktu > 0 else 0
     else:
-        rata_rata_rtt = 0
-        
-    # KALKULASI THROUGHPUT DALAM BYTES/SECOND (PERUBAHAN)
-    if total_waktu > 0:
-        throughput_bps = total_bytes_diterima / total_waktu
-    else:
-        throughput_bps = 0
+        rata_rata_ukuran = 0
+        rata_rata_waktu = 0
+        avg_throughput = 0
 
     # --- Menampilkan Output ---
     print("\n✅ Proses Selesai!")
-    print("=" * 35)
-    print("📊 HASIL PENGUJIAN")
-    print("=" * 35)
-    print(f"Waktu Mulai         : {waktu_mulai_formatted.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Waktu Selesai       : {waktu_selesai_formatted.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Total Waktu Eksekusi: {total_waktu:.4f} detik")
-    print("-" * 35)
-    print(f"Request Berhasil    : {request_berhasil}")
-    print(f"Request Gagal       : {jumlah_error}")
-    print(f"Total Data Diterima : {format_bytes(total_bytes_diterima)}") # (OUTPUT BARU)
-    print(f"Average RTT         : {rata_rata_rtt * 1000:.4f} ms")
-    # TAMPILKAN THROUGHPUT DALAM FORMAT BYTES/S (PERUBAHAN)
-    print(f"Throughput          : {format_bytes(throughput_bps)}/s")
-    print("=" * 35)
+    print("=" * 40)
+    print("📊 HASIL PENGUJIAN HALAMAN LENGKAP")
+    print("=" * 40)
+    print(f"Total Waktu Eksekusi  : {waktu_selesai_total - waktu_mulai_total:.2f} detik")
+    print(f"Pengujian Berhasil    : {jumlah_sukses}/{args.total}")
+    print("-" * 40)
+    print(f"Rata-rata Waktu Muat  : {rata_rata_waktu:.2f} detik/halaman")
+    print(f"Rata-rata Ukuran      : {format_bytes(rata_rata_ukuran)}/halaman")
+    print(f"Rata-rata Throughput  : {format_bytes(avg_throughput)}/s")
+    print("=" * 40)
 
 
 if __name__ == "__main__":
