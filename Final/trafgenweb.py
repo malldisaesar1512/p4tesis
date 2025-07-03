@@ -67,7 +67,7 @@ def traffic_generator(url, total_requests, target_rps):
 
     start_time_overall = time.time()  # Start wall clock timer
 
-    with ThreadPoolExecutor(max_workers=max(10, target_rps * 2)) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         while requests_sent < total_requests:
             second_start = time.time()
             batch_count = 0
