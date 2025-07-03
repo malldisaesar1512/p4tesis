@@ -96,6 +96,7 @@ def traffic_generator(url, total_requests, target_rps):
     print(f"Average RTT (full page + all resources): {avg_rtt:.4f} seconds")
     print(f"Total Data Received (including resources): {total_bytes} bytes")
     print(f"Total Time (wall clock): {total_time_wallclock:.4f} seconds")
+    print(f"Throughput (total bytes / total time): {throughput:.2f} bytes/second")
     print(f"Target Requests Per Second (int): {target_rps} req/s")
     print(f"Actual Requests Per Second (approx): {actual_rps:.2f} req/s")
 
