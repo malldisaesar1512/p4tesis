@@ -48,7 +48,7 @@ def fetch_full_request(url):
         resource_links = set()
 
     resource_total_size = 0
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         futures = [executor.submit(fetch_content, res_url) for res_url in resource_links]
         for future in as_completed(futures):
             resource_total_size += future.result()
