@@ -3,7 +3,8 @@ import argparse
 import time
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import queue
+from concurrent.futures import ThreadPoolExecutor
 from scapy.all import (
     Ether,
     IP,
@@ -16,8 +17,11 @@ from scapy.all import (
 )
 
 # --- FUNGSI PEKERJA (WORKER) ---
-def send_and_receive_worker(src_mac, dst_mac, src_ip, dst_ip, sport, dport, payload, iface):
-    """Satu siklus tugas: membuat, mengirim paket TCP, dan menunggu balasan."""
+def send_and_receive_worker(results_queue, src_mac, dst_mac, src_ip, dst_ip, sport, dport, payload, iface):
+    """
+    Mengirim satu paket dan memasukkan hasilnya ke dalam queue.
+    Fungsi ini TIDAK mengembalikan nilai, untuk mencegah hang.
+    """
     try:
         packet = (
             Ether(src=src_mac, dst=dst_mac) /
@@ -29,12 +33,17 @@ def send_and_receive_worker(src_mac, dst_mac, src_ip, dst_ip, sport, dport, payl
         bytes_sent = len(packet)
 
         if reply is None:
-            return None, bytes_sent
+            # Gagal karena RTO
+            results_queue.put(('FAILURE', 0, bytes_sent))
+            return
 
         rtt = (reply.time - packet.sent_time) * 1000
-        return rtt, bytes_sent
+        # Berhasil
+        results_queue.put(('SUCCESS', rtt, bytes_sent))
+
     except Exception:
-        return None, 0
+        # Gagal karena error lain
+        results_queue.put(('FAILURE', 0, 0))
 
 def get_gateway_and_iface(target_ip):
     """Mencari tahu gateway dan interface yang benar untuk mencapai target."""
@@ -64,6 +73,7 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
     print(f"[*] Interface: {iface}, Gateway: {gateway_ip}, MAC Tujuan: {dst_mac}")
     print("--- Konfigurasi Selesai ---\n")
 
+    results_queue = queue.Queue()
     rtt_list = []
     total_bytes_sent = 0
     successful_pings = 0
@@ -78,9 +88,9 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
     overall_start_time = time.perf_counter()
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
         dispatch_start_time = time.perf_counter()
         
+        # --- DISPATCHER LOOP ---
         for i in range(count):
             expected_dispatch_time = dispatch_start_time + (i / rps)
             sleep_duration = expected_dispatch_time - time.perf_counter()
@@ -88,35 +98,31 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
                 time.sleep(sleep_duration)
             
             sport = 1024 + i
-            futures.append(executor.submit(send_and_receive_worker, src_mac, dst_mac, source_ip, target_ip, sport, 80, payload, iface))
+            # Menjadwalkan worker untuk dieksekusi, memberinya akses ke queue
+            executor.submit(send_and_receive_worker, results_queue, src_mac, dst_mac, source_ip, target_ip, sport, 80, payload, iface)
 
-        print("\nSemua tugas telah dikirim, menunggu hasil...")
+        print("\nSemua tugas telah dikirim. Mengumpulkan hasil...")
         
-        # --- PERUBAHAN KUNCI: BLOK PENGUMPUL HASIL (GATHERING) ---
-        # Kita iterasi melalui daftar 'futures' asli, bukan 'as_completed'.
-        for future in futures:
+        # --- PERUBAHAN KUNCI: BLOK PENGUMPUL HASIL DARI QUEUE ---
+        for i in range(count):
             try:
-                # Beri setiap future batas waktu untuk selesai.
-                # Sedikit lebih lama dari timeout srp1() untuk memberi ruang.
-                rtt, bytes_sent = future.result(timeout=2.5)
+                # Coba ambil hasil dari queue dengan timeout pendek.
+                # Ini mencegah proses menunggu selamanya untuk satu hasil.
+                status, rtt, bytes_sent = results_queue.get(timeout=3)
                 
                 total_bytes_sent += bytes_sent
-                if rtt is not None:
+                if status == 'SUCCESS':
                     successful_pings += 1
                     rtt_list.append(rtt)
                 else:
-                    # Ini adalah RTO yang terdeteksi dengan benar
                     failed_pings += 1
-
-            except FuturesTimeoutError:
-                # Ini adalah thread yang macet (STUCK)
-                print("\n[!] Satu request terdeteksi macet dan dilewati.")
+            except queue.Empty:
+                # Jika queue kosong setelah timeout, berarti thread-nya macet.
+                print(f"\n[!] Satu request dianggap macet dan tidak memberikan hasil.")
                 failed_pings += 1
-            except Exception as e:
-                # Menangani error lain yang mungkin terjadi
-                print(f"\n[!] Terjadi error saat mengambil hasil: {e}")
-                failed_pings += 1
-        # --- AKHIR BLOK PERUBAHAN ---
+            
+            # Memberi update progress
+            print(f"\rProgress: {i+1}/{count} hasil diproses...", end="")
 
     print("\n\nProses pengumpulan hasil selesai.")
     overall_end_time = time.perf_counter()
@@ -140,7 +146,7 @@ def main():
     if os.geteuid() != 0:
         sys.exit("[!] Error: Jalankan dengan hak akses root/administrator (gunakan 'sudo').")
         
-    parser = argparse.ArgumentParser(description="Traffic Generator TCP Multi-Threaded (Anti-Stuck).")
+    parser = argparse.ArgumentParser(description="Traffic Generator TCP Multi-Threaded (Versi Queue Anti-Hang).")
     parser.add_argument('--tujuan', type=str, default="192.168.2.2", help="Alamat IP tujuan.")
     parser.add_argument('--sumber', type=str, default="192.168.1.3", help="Alamat IP sumber.")
     parser.add_argument('--jumlah', type=int, required=True, help="Jumlah total paket.")
