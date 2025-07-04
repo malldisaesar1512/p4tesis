@@ -3,7 +3,7 @@ import argparse
 import time
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from scapy.all import (
     Ether,
     IP,
@@ -16,12 +16,8 @@ from scapy.all import (
 )
 
 # --- FUNGSI PEKERJA (WORKER) ---
-# Fungsi ini akan dijalankan oleh setiap thread.
 def send_and_receive_worker(src_mac, dst_mac, src_ip, dst_ip, sport, dport, payload, iface):
-    """
-    Satu siklus tugas: membuat, mengirim paket TCP, dan menunggu balasan.
-    Didesain untuk dijalankan di dalam sebuah thread.
-    """
+    """Satu siklus tugas: membuat, mengirim paket TCP, dan menunggu balasan."""
     try:
         packet = (
             Ether(src=src_mac, dst=dst_mac) /
@@ -29,18 +25,16 @@ def send_and_receive_worker(src_mac, dst_mac, src_ip, dst_ip, sport, dport, payl
             TCP(sport=sport, dport=dport, flags='S') /
             Raw(load=payload)
         )
-        
         reply = srp1(packet, timeout=2, verbose=0, iface=iface)
-        
         bytes_sent = len(packet)
 
         if reply is None:
-            return None, bytes_sent # RTO
+            return None, bytes_sent
 
-        rtt = (reply.time - packet.sent_time) * 1000  # dalam ms
+        rtt = (reply.time - packet.sent_time) * 1000
         return rtt, bytes_sent
     except Exception:
-        return None, 0 # Error dalam thread
+        return None, 0
 
 def get_gateway_and_iface(target_ip):
     """Mencari tahu gateway dan interface yang benar untuk mencapai target."""
@@ -51,8 +45,7 @@ def get_gateway_and_iface(target_ip):
             gateway_ip = target_ip
         return gateway_ip, iface
     except Exception as e:
-        print(f"[!] Error: Tidak dapat menemukan rute ke {target_ip}. Detail: {e}")
-        sys.exit(1)
+        sys.exit(f"[!] Error: Tidak dapat menemukan rute ke {target_ip}. Detail: {e}")
 
 def format_bytes_to_kbps(byte_count, duration_secs):
     """Mengonversi total byte dan durasi ke kilobits per second (Kbps)."""
@@ -66,8 +59,7 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
     gateway_ip, iface = get_gateway_and_iface(target_ip)
     dst_mac = getmacbyip(gateway_ip)
     if not dst_mac:
-        print(f"[!] Error: Gagal mendapatkan alamat MAC untuk {gateway_ip}.")
-        sys.exit(1)
+        sys.exit(f"[!] Error: Gagal mendapatkan alamat MAC untuk {gateway_ip}.")
     src_mac = get_if_hwaddr(iface)
     print(f"[*] Interface: {iface}, Gateway: {gateway_ip}, MAC Tujuan: {dst_mac}")
     print("--- Konfigurasi Selesai ---\n")
@@ -75,14 +67,13 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
     rtt_list = []
     total_bytes_sent = 0
     successful_pings = 0
+    failed_pings = 0
     
     payload_size = max(0, size - 40)
     payload = b'P' * payload_size
-    
-    # Menentukan jumlah worker. Sedikit lebih banyak dari RPS untuk menangani antrian.
     max_workers = rps * 2
 
-    print(f"Memulai pengiriman {count} paket ke {target_ip} dengan target {rps} RPS menggunakan {max_workers} worker...")
+    print(f"Memulai pengiriman {count} paket ke {target_ip} dengan target {rps} RPS...")
     
     overall_start_time = time.perf_counter()
 
@@ -90,33 +81,44 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
         futures = []
         dispatch_start_time = time.perf_counter()
         
-        # --- DISPATCHER LOOP ---
-        # Loop ini hanya bertugas MENJADWALKAN tugas sesuai RPS.
         for i in range(count):
             expected_dispatch_time = dispatch_start_time + (i / rps)
             sleep_duration = expected_dispatch_time - time.perf_counter()
             if sleep_duration > 0:
                 time.sleep(sleep_duration)
             
-            # Menjadwalkan fungsi worker untuk dieksekusi oleh thread yang tersedia
-            # Setiap request menggunakan port sumber yang unik
-            sport = 1024 + i 
+            sport = 1024 + i
             futures.append(executor.submit(send_and_receive_worker, src_mac, dst_mac, source_ip, target_ip, sport, 80, payload, iface))
 
         print("\nSemua tugas telah dikirim, menunggu hasil...")
         
-        # --- GATHERING LOOP ---
-        # Loop ini mengumpulkan hasil dari thread yang telah selesai.
-        for i, future in enumerate(as_completed(futures)):
-            rtt, bytes_sent = future.result()
-            total_bytes_sent += bytes_sent
-            if rtt is not None:
-                successful_pings += 1
-                rtt_list.append(rtt)
-            # Memberi update progress sederhana
-            print(f"\rProgress: {i+1}/{count} request selesai...", end="")
+        # --- PERUBAHAN KUNCI: BLOK PENGUMPUL HASIL (GATHERING) ---
+        # Kita iterasi melalui daftar 'futures' asli, bukan 'as_completed'.
+        for future in futures:
+            try:
+                # Beri setiap future batas waktu untuk selesai.
+                # Sedikit lebih lama dari timeout srp1() untuk memberi ruang.
+                rtt, bytes_sent = future.result(timeout=2.5)
+                
+                total_bytes_sent += bytes_sent
+                if rtt is not None:
+                    successful_pings += 1
+                    rtt_list.append(rtt)
+                else:
+                    # Ini adalah RTO yang terdeteksi dengan benar
+                    failed_pings += 1
 
-    print("\n") # Baris baru setelah progress selesai
+            except FuturesTimeoutError:
+                # Ini adalah thread yang macet (STUCK)
+                print("\n[!] Satu request terdeteksi macet dan dilewati.")
+                failed_pings += 1
+            except Exception as e:
+                # Menangani error lain yang mungkin terjadi
+                print(f"\n[!] Terjadi error saat mengambil hasil: {e}")
+                failed_pings += 1
+        # --- AKHIR BLOK PERUBAHAN ---
+
+    print("\n\nProses pengumpulan hasil selesai.")
     overall_end_time = time.perf_counter()
     total_duration = overall_end_time - overall_start_time
     
@@ -126,8 +128,9 @@ def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
 
     print("="*20 + " HASIL AKHIR " + "="*20)
     print(f"Waktu Total             : {total_duration:.2f} detik")
-    print(f"Paket Terkirim (dijadwalkan): {count}")
-    print(f"Balasan Diterima        : {successful_pings}")
+    print(f"Paket Dijadwalkan       : {count}")
+    print(f"Balasan Diterima (Sukses) : {successful_pings}")
+    print(f"Gagal/Timeout/Macet     : {failed_pings}")
     print(f"Rata-rata RTT           : {avg_rtt:.2f} ms")
     print(f"Throughput              : {throughput_kbps:.2f} Kbps")
     print(f"RPS Aktual (tercapai)   : {actual_rps:.2f} req/detik")
@@ -137,7 +140,7 @@ def main():
     if os.geteuid() != 0:
         sys.exit("[!] Error: Jalankan dengan hak akses root/administrator (gunakan 'sudo').")
         
-    parser = argparse.ArgumentParser(description="Traffic Generator TCP Multi-Threaded.")
+    parser = argparse.ArgumentParser(description="Traffic Generator TCP Multi-Threaded (Anti-Stuck).")
     parser.add_argument('--tujuan', type=str, default="192.168.2.2", help="Alamat IP tujuan.")
     parser.add_argument('--sumber', type=str, default="192.168.1.3", help="Alamat IP sumber.")
     parser.add_argument('--jumlah', type=int, required=True, help="Jumlah total paket.")
