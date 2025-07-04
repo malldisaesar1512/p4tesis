@@ -59,7 +59,7 @@ if __name__ == "__main__":
     src_ip = "192.168.1.3"
     dst_ip = "192.168.2.2"
     src_port = 12345
-    dst_port = 80
+    dst_port = 8000
 
     count = int(input("Enter number of TCP pings to send: "))
     rps = float(input("Enter requests per second: "))
