@@ -33,7 +33,7 @@ def traffic_generator(target, total_requests, rps, payload_size):
     interval = 1.0 / rps
     threads = []
 
-    port = random.randint(1024, 65535)
+    port = 80
     print(f"[+] Sending {total_requests} TCP packets to {target}:{port} at {rps} RPS")
 
     start_time = time.perf_counter()
