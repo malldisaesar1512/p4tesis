@@ -355,7 +355,7 @@ control MyIngress(inout headers hdr,
                 if(hdr.ipv4.protocol == TYPE_ICMP && hdr.icmp.icmp_type == 8){ //hashing packet in
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
-                }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 2){
+                }else if(hdr.ipv4.protocol == TYPE_TCP && (hdr.tcp.flags == 2 || hdr.tcp.flags == 24)){
                     hash(var_hash_in, HashAlgorithm.crc32, (bit<32>)0, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort}, (bit<32>)NUM_FLOW);
                     flow_in.write((bit<32>)var_flowid, var_hash_in);
                 }else if(hdr.ipv4.protocol == TYPE_UDP){
@@ -373,7 +373,7 @@ control MyIngress(inout headers hdr,
 
                         hash(var_hash_out, HashAlgorithm.crc32, (bit<32>)0, {ip_a,ip_b}, (bit<32>)NUM_FLOW);
                         flow_out.write((bit<32>)var_flowid, var_hash_out);
-                    }else if(hdr.ipv4.protocol == TYPE_TCP && hdr.tcp.flags == 20){
+                    }else if(hdr.ipv4.protocol == TYPE_TCP && (hdr.tcp.flags == 20 || hdr.tcp.flags == 18 || hdr.tcp.flags == 16)){
                         ip_a = hdr.ipv4.dstAddr;
                         ip_b = hdr.ipv4.srcAddr;
                         port_a = hdr.tcp.dstPort;
