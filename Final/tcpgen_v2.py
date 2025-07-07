@@ -10,21 +10,22 @@ rtt_list = []
 bytes_sent = 0
 lock = threading.Lock()
 
-def send_tcp_packet(target, payload_size, results_queue):
+def send_tcp_packet(target, port, payload_size, results_queue):
     global bytes_sent
     try:
         payload = b'a' * payload_size
-        port = 80 #random.randint(1024, 65535)
-        start = time.time()
+        start = time.perf_counter()
         with socket.create_connection((target, port), timeout=2) as sock:
             sock.sendall(payload)
-        end = time.time()
+        end = time.perf_counter()
         rtt = (end - start) * 1000  # ms
         with lock:
             rtt_list.append(rtt)
             bytes_sent += payload_size
+        print(f"[✓] RTT: {rtt:.2f} ms")
         results_queue.put((True, rtt))
     except Exception as e:
+        print(f"[✗] Error: {e}")
         results_queue.put((False, str(e)))
 
 def traffic_generator(target, total_requests, rps, payload_size):
@@ -32,30 +33,30 @@ def traffic_generator(target, total_requests, rps, payload_size):
     interval = 1.0 / rps
     threads = []
 
-    print(f"[+] Sending {total_requests} TCP packets to {target} at {rps} RPS")
-    print(f"[+] Using random ports (1024–65535)")
+    port = random.randint(1024, 65535)
+    print(f"[+] Sending {total_requests} TCP packets to {target}:{port} at {rps} RPS")
 
-    start_time = time.time()
+    start_time = time.perf_counter()
     for i in range(total_requests):
-        t = threading.Thread(target=send_tcp_packet, args=(target, payload_size, results))
+        t = threading.Thread(target=send_tcp_packet, args=(target, port, payload_size, results))
         t.start()
         threads.append(t)
         time.sleep(interval)
 
     for t in threads:
         t.join()
-    end_time = time.time()
+    end_time = time.perf_counter()
 
     duration = end_time - start_time
     avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
-    throughput_mbps = (bytes_sent * 8) / duration / 1_000_000
+    throughput_bps = bytes_sent / duration  # Bps
 
     print("\n=== Result ===")
     print(f"Total Sent     : {total_requests} packets")
     print(f"Successful     : {len(rtt_list)}")
     print(f"Failed         : {total_requests - len(rtt_list)}")
     print(f"Avg RTT        : {avg_rtt:.2f} ms")
-    print(f"Throughput     : {throughput_mbps:.2f} Mbps")
+    print(f"Throughput     : {throughput_bps:.2f} Bytes/sec")
     print(f"Duration       : {duration:.2f} sec")
 
 if __name__ == "__main__":
