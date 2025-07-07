@@ -14,7 +14,7 @@ def send_tcp_packet(target, payload_size, results_queue):
     global bytes_sent
     try:
         payload = b'a' * payload_size
-        port = random.randint(1024, 65535)
+        port = 80 #random.randint(1024, 65535)
         start = time.time()
         with socket.create_connection((target, port), timeout=2) as sock:
             sock.sendall(payload)
