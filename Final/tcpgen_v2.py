@@ -59,11 +59,9 @@ def run_traffic(target_ip, source_ip, count, rps, size):
         threads.append(t)
         time.sleep(1 / rps)
 
-    # Tunggu semua selesai
     for t in threads:
         t.join()
 
-    # Bangun peta sport ke waktu kirim
     while not results_queue.empty():
         i, t_sent, sport = results_queue.get()
         sent_time_map[sport] = t_sent
@@ -103,11 +101,11 @@ def main():
         sys.exit("[!] Harus dijalankan sebagai root!")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tujuan', type=str, required=True)
-    parser.add_argument('--sumber', type=str, required=True)
-    parser.add_argument('--jumlah', type=int, required=True)
-    parser.add_argument('--rps', type=int, required=True)
-    parser.add_argument('--ukuran', type=int, default=64)
+    parser.add_argument('--tujuan', type=str, default="192.168.2.2", help="IP tujuan")
+    parser.add_argument('--sumber', type=str, default="192.168.1.3", help="IP sumber")
+    parser.add_argument('--jumlah', type=int, required=True, help="Jumlah total paket")
+    parser.add_argument('--rps', type=int, required=True, help="Rate per second")
+    parser.add_argument('--ukuran', type=int, default=64, help="Ukuran total paket (bytes)")
     args = parser.parse_args()
 
     run_traffic(args.tujuan, args.sumber, args.jumlah, args.rps, args.ukuran)
