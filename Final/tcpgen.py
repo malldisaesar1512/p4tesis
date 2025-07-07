@@ -74,7 +74,7 @@ def custom_tcp_ping_fragmented_parallel(src_mac, dst_mac, src_ip, dst_ip, src_po
 
 if __name__ == "__main__":
     src_mac = "50:00:00:00:10:00"
-    dst_mac = "50:00:00:00:60:00"
+    dst_mac = "50:00:00:00:88:01"
     src_ip = "192.168.1.3"
     dst_ip = "192.168.2.2"
     src_port = 12345
