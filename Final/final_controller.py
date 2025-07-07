@@ -466,6 +466,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
         lsack_list.append(lsacknih)
     
         if lsack_type == 'network' or lsack_type == 2:
+            print(f"sampe sini")
             print(f"LSA ID: {lsack_id} - Type: {lsack_type} - AdRouter: {lsack_adrouter} - Seq: {lsack_seq}")
             lsdbp4 = i.routerlist
             netp4 = i.mask
