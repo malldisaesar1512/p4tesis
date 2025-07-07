@@ -1,37 +1,30 @@
 import argparse
-import time
 import os
 import sys
+import time
+import threading
 import queue
-from concurrent.futures import ThreadPoolExecutor
-from scapy.all import (
-    Ether, IP, TCP, Raw,
-    srp1, conf,
-    get_if_hwaddr,
-    getmacbyip
-)
+from scapy.all import Ether, IP, TCP, Raw, sendp, sniff, get_if_hwaddr, getmacbyip, conf
 
-def send_and_receive_worker(results_queue, src_mac, dst_mac, src_ip, dst_ip, sport, dport, payload, iface):
-    try:
-        packet = (
-            Ether(src=src_mac, dst=dst_mac) /
-            IP(src=src_ip, dst=dst_ip) /
-            TCP(sport=sport, dport=dport, flags='S') /
-            Raw(load=payload)
+results_queue = queue.Queue()
+
+def send_packet(index, src_mac, dst_mac, src_ip, dst_ip, sport, dport, payload, iface):
+    pkt = Ether(src=src_mac, dst=dst_mac) / IP(src=src_ip, dst=dst_ip) / TCP(sport=sport, dport=dport, flags='S') / Raw(load=payload)
+    send_time = time.time()
+    sendp(pkt, iface=iface, verbose=0)
+    results_queue.put((index, send_time, sport))
+
+def sniff_replies(expected_sports, dst_ip, iface, timeout=5):
+    def pkt_filter(pkt):
+        return (
+            pkt.haslayer(IP) and
+            pkt.haslayer(TCP) and
+            pkt[IP].src == dst_ip and
+            pkt[TCP].flags == 'SA' and
+            pkt[TCP].sport == 80 and
+            pkt[TCP].dport in expected_sports
         )
-
-        send_time = time.time()
-        reply = srp1(packet, timeout=0.5, verbose=0, iface=iface)
-        rtt = (time.time() - send_time) * 1000  # ms
-        bytes_sent = len(packet)
-
-        if reply:
-            results_queue.put(('SUCCESS', rtt, bytes_sent))
-        else:
-            results_queue.put(('FAILURE', 0, bytes_sent))
-
-    except Exception as e:
-        results_queue.put(('FAILURE', 0, 0))
+    return sniff(iface=iface, timeout=timeout, lfilter=pkt_filter)
 
 def get_gateway_and_iface(target_ip):
     try:
@@ -41,95 +34,83 @@ def get_gateway_and_iface(target_ip):
             gateway_ip = target_ip
         return gateway_ip, iface
     except Exception as e:
-        sys.exit(f"[!] Tidak dapat menemukan rute ke {target_ip}: {e}")
+        sys.exit(f"[!] Tidak bisa resolve route: {e}")
 
-def format_bytes_to_kbps(byte_count, duration_secs):
-    if duration_secs == 0: return 0
-    return ((byte_count * 8) / 1000) / duration_secs
-
-def tcp_traffic_generator(target_ip, source_ip, count, rps, size):
-    print("[*] Auto-Konfigurasi jaringan...")
-    gateway_ip, iface = get_gateway_and_iface(target_ip)
-    dst_mac = getmacbyip(gateway_ip)
+def run_traffic(target_ip, source_ip, count, rps, size):
+    print("[*] Setup routing & MAC...")
+    gateway, iface = get_gateway_and_iface(target_ip)
+    dst_mac = getmacbyip(gateway)
     if not dst_mac:
-        print("[!] MAC gateway tidak ditemukan, fallback broadcast.")
         dst_mac = "ff:ff:ff:ff:ff:ff"
-
     src_mac = get_if_hwaddr(iface)
-    print(f"[+] Interface: {iface}, Gateway: {gateway_ip}, MAC: {dst_mac}")
-
-    results_queue = queue.Queue()
-    rtt_list = []
-    total_bytes_sent = 0
-    success = 0
-    fail = 0
 
     payload_size = max(0, size - 40)
     payload = b'X' * payload_size
-    max_workers = min(500, rps * 2)
 
-    print(f"[+] Kirim {count} paket @ {rps} RPS...")
+    sent_time_map = {}
+    print(f"[+] Mengirim {count} TCP SYN @ {rps} rps ke {target_ip}\n")
 
-    start_time = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        dispatch_start = time.perf_counter()
-        for i in range(count):
-            target_time = dispatch_start + (i / rps)
-            delay = target_time - time.perf_counter()
-            if delay > 0:
-                time.sleep(delay)
-
-            sport = 1024 + (i % 60000)
-            executor.submit(send_and_receive_worker, results_queue, src_mac, dst_mac,
-                            source_ip, target_ip, sport, 80, payload, iface)
-
-    print("[*] Semua request dikirim. Mengumpulkan hasil...\n")
-
-    timeout_global = time.time() + 10  # batas pengumpulan 10 detik
+    threads = []
+    start_time = time.time()
     for i in range(count):
-        try:
-            remain = max(0.1, timeout_global - time.time())
-            status, rtt, bytes_sent = results_queue.get(timeout=remain)
-            total_bytes_sent += bytes_sent
-            if status == 'SUCCESS':
-                success += 1
-                rtt_list.append(rtt)
-            else:
-                fail += 1
-        except queue.Empty:
-            print(f"[!] Timeout hasil ke-{i+1}, dianggap gagal.")
-            fail += 1
-        print(f"\rProgress: {i+1}/{count}", end='')
+        t = threading.Thread(target=send_packet, args=(i, src_mac, dst_mac, source_ip, target_ip,
+                                                       10000 + i, 80, payload, iface))
+        t.start()
+        threads.append(t)
+        time.sleep(1 / rps)
 
-    end_time = time.perf_counter()
-    duration = end_time - start_time
-    avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
-    throughput = format_bytes_to_kbps(total_bytes_sent, duration)
-    rps_actual = success / duration if duration > 0 else 0
+    # Tunggu semua selesai
+    for t in threads:
+        t.join()
 
-    print("\n\n====== HASIL ======")
-    print(f"Durasi Total     : {duration:.2f} detik")
-    print(f"Total Dikirim    : {count}")
-    print(f"Sukses           : {success}")
-    print(f"Gagal/Timeout    : {fail}")
+    # Bangun peta sport ke waktu kirim
+    while not results_queue.empty():
+        i, t_sent, sport = results_queue.get()
+        sent_time_map[sport] = t_sent
+
+    print("[*] Mulai sniff balasan...")
+    replies = sniff_replies(set(sent_time_map.keys()), target_ip, iface, timeout=5)
+
+    total_sent = count
+    total_received = 0
+    total_bytes = 0
+    rtts = []
+
+    for pkt in replies:
+        sport = pkt[TCP].dport
+        recv_time = pkt.time
+        if sport in sent_time_map:
+            rtt = (recv_time - sent_time_map[sport]) * 1000
+            rtts.append(rtt)
+            total_bytes += len(pkt)
+            total_received += 1
+
+    duration = time.time() - start_time
+    avg_rtt = sum(rtts) / len(rtts) if rtts else 0
+    throughput = (total_bytes * 8 / 1000) / duration if duration > 0 else 0
+    rps_actual = total_received / duration
+
+    print("\n=== HASIL ===")
+    print(f"Total Dikirim    : {total_sent}")
+    print(f"Total Diterima   : {total_received}")
     print(f"RTT Rata-rata    : {avg_rtt:.2f} ms")
     print(f"Throughput       : {throughput:.2f} Kbps")
     print(f"RPS Aktual       : {rps_actual:.2f} req/s")
-    print("====================")
+    print("=================\n")
 
 def main():
     if os.geteuid() != 0:
         sys.exit("[!] Harus dijalankan sebagai root!")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tujuan', type=str, default="192.168.2.2", help="IP tujuan")
-    parser.add_argument('--sumber', type=str, default="192.168.1.3", help="IP sumber")
-    parser.add_argument('--jumlah', type=int, required=True, help="Jumlah paket total")
-    parser.add_argument('--rps', type=int, required=True, help="Rate per second")
-    parser.add_argument('--ukuran', type=int, default=64, help="Ukuran total paket (bytes)")
+    parser.add_argument('--tujuan', type=str, required=True)
+    parser.add_argument('--sumber', type=str, required=True)
+    parser.add_argument('--jumlah', type=int, required=True)
+    parser.add_argument('--rps', type=int, required=True)
+    parser.add_argument('--ukuran', type=int, default=64)
     args = parser.parse_args()
 
-    tcp_traffic_generator(args.tujuan, args.sumber, args.jumlah, args.rps, args.ukuran)
+    run_traffic(args.tujuan, args.sumber, args.jumlah, args.rps, args.ukuran)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
