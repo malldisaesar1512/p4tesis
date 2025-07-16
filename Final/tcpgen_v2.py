@@ -53,6 +53,8 @@ def traffic_generator(target, total_requests, rps, payload_size):
 
     print("\n=== Result ===")
     print(f"Total Sent     : {total_requests} packets")
+    print(f"Total Bytes    : {bytes_sent} Bytes")
+    print(f"Total RTTs     : {sum(rtt_list)} ms")
     print(f"Successful     : {len(rtt_list)}")
     print(f"Failed         : {total_requests - len(rtt_list)}")
     print(f"Avg RTT        : {avg_rtt:.2f} ms")
