@@ -896,6 +896,7 @@ def initiate_top4():
             
             for ip in rutep4:
                 if ip in networklist:
+                    print(f"IP {ip} already exists in networklist, skipping")
                     continue
                 else:
                     if (ip == "192.168.1.0/24"):
