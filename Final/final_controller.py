@@ -499,7 +499,7 @@ def send_ospf_lsaack(interface, src_broadcast, source_ip,broadcastip):
 
             db_lsap4[interface] = {"routelist": newrute, "netmask": netp4, "interface": interface, "ether_src": mac_src}
 
-            print(f"sampe sini")
+            print(f"sampe sini2")
             initiate_top4()
 
             # add_to_p4(interface)  # Tambahkan rute baru ke P4
