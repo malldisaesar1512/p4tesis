@@ -14,7 +14,7 @@ def start_sniff(interface_name):
     print(f"Memulai monitoring pada interface {interface_name}...")
     sniff(iface=interface_name, prn=monitor_packet, store=0)
 
-interfaces = ['eth0', 'wlan0']  # ubah ke nama interface yang sesuai
+interfaces = ['ens5', 'ens6', 'ens7']  # ubah ke nama interface yang sesuai
 threads = []
 
 for iface in interfaces:
