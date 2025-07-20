@@ -409,7 +409,7 @@ control MyIngress(inout headers hdr,
                     tcpflag.write(0, var_tcpflag);
                 }
 
-                if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2 || hdr.tcp.flags == 24){
+                if(hdr.icmp.icmp_type == 8 || hdr.tcp.flags == 2){
                     if (var_time1 == 0){
                         var_time1 = standard_metadata.ingress_global_timestamp;
                         gudangrtt.write((bit<32>)var_hash_in, var_time1);//index,value
@@ -421,7 +421,7 @@ control MyIngress(inout headers hdr,
                         var_packetstatus = 1;
                         packet_status.write(0, var_packetstatus);
                     }
-                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 20 || hdr.tcp.flags == 18 || hdr.tcp.flags == 16) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
+                }else if((hdr.icmp.icmp_type == 0 || hdr.tcp.flags == 18) && (var_time1 != 0) && (var_hash_out == var_hash_in)){
                     var_time2 = standard_metadata.ingress_global_timestamp;
                     meta.var_rtt = var_time2 - var_time1;
                     var_time1 = 0;
