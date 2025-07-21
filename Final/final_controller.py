@@ -767,7 +767,7 @@ def modify_action():
             time.sleep(0)
 
 
-def icmp_monitor_simple(timeout=0.5):
+def icmp_monitor_simple(timeout=1):
     global prev_status
     while True:
         if prev_status is None:
@@ -1133,7 +1133,7 @@ def check_link_status(target_ip, count, packet_size):
         payload_size = max(packet_size - 28, 0)
         packet = IP(dst=target_ip)/ICMP(seq=seq)/("X" * payload_size)
         
-        reply = sr1(packet, timeout=0.25, verbose=0)
+        reply = sr1(packet, timeout=1, verbose=0)
 
 
         if reply is None:
