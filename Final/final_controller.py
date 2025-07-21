@@ -1147,7 +1147,7 @@ def check_link_status(target_ip, count, packet_size):
             received_packets += 1
             print(f"Reply from {target_ip}: seq={seq} time={rtt:.2f} ms")
 
-        time.sleep(1)  # jeda 1 detik antar paket
+        time.sleep(0)  # jeda 1 detik antar paket
 
     packet_loss = ((count - received_packets) / count) * 100
 
