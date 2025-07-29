@@ -4,7 +4,6 @@ import time
 import argparse
 import threading
 import queue
-import random
 
 rtt_list = []
 bytes_sent = 0
@@ -48,15 +47,18 @@ def traffic_generator(target, total_requests, rps, payload_size):
     end_time = time.perf_counter()
 
     duration = end_time - start_time
-    avg_rtt = sum(rtt_list) / len(rtt_list) if rtt_list else 0
+    total_success = len(rtt_list)
+    packet_loss = total_requests - total_success
+    packet_loss_percent = (packet_loss / total_requests) * 100 if total_requests > 0 else 0
+    avg_rtt = sum(rtt_list) / total_success if total_success else 0
     throughput_bps = bytes_sent / duration  # Bps
 
     print("\n=== Result ===")
     print(f"Total Sent     : {total_requests} packets")
     print(f"Total Bytes    : {bytes_sent} Bytes")
-    print(f"Total RTTs     : {sum(rtt_list)} ms")
-    print(f"Successful     : {len(rtt_list)}")
-    print(f"Failed         : {total_requests - len(rtt_list)}")
+    print(f"Total RTTs     : {sum(rtt_list):.2f} ms")
+    print(f"Successful     : {total_success}")
+    print(f"Packet Loss    : {packet_loss} ({packet_loss_percent:.2f}%)")
     print(f"Avg RTT        : {avg_rtt:.2f} ms")
     print(f"Throughput     : {throughput_bps:.2f} Bytes/sec")
     print(f"Duration       : {duration:.2f} sec")
